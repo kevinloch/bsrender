@@ -26,3 +26,4 @@ By default it will render a 360 degree cylindrically projected panorama of the e
 Due to uncertainty in the parallax data of approximately 15 microarcseconds, things start to look weird as the camera is positioned a short distance away from the sun (more than 10 parsecs).  This is a limitation of the source data and not any bug or problem with the rendering engine.
 
 Sample binary data files are available from https://kevinloch.com/bsrender/sample_data/poc/
+These sample data files have already had sources concatenated to the indicated minimum level.
