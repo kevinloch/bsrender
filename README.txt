@@ -12,8 +12,8 @@ Installation:
 - Compile with gnu make.
 - make sure the gaia_source containing the Gaia EDR3 compresed csv files is in (or symlinked to) the current directory
 - run 'gaia-edr3-extract.sh'
-- Create a 'galaxy.dat' file by concatenating one or more of the galazy-pqxxx.dat files.  For example to generate a galaxy.dat file with up to parallax quality
-  10: 'cat galaxy-pq100.dat galaxy-pq050.dat galaxy-pq030.dat galaxy-pq020.dat galaxy-pq010.dat > galaxy.dat'
+- Create a 'galaxy.dat' file by concatenating one or more of the galazy-pqxxx.dat files.  For example to generate a galaxy.dat file with a minimum parallax quality
+  of 10: 'cat galaxy-pq100.dat galaxy-pq050.dat galaxy-pq030.dat galaxy-pq020.dat galaxy-pq010.dat > galaxy.dat'
 - Edit options in bsrender.c for desired camera settings and recompaile with gnu make
 - run 'bsrender > output.ppm', then convert ppm file to png with 'pnmtopng output.ppm > output.png'
 
