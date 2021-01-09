@@ -29,6 +29,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include "bsrender.h"
 
 double correctParallax(double *parallax, int astrometric_params_solved, double G, double neff, double ecl_lat) {
   //
@@ -408,13 +409,6 @@ int main(int argc, char **argv) {
   float linear_1pc_intensity;
   uint64_t color_temperature;
 
-  typedef struct {
-    double icrs_x;
-    double icrs_y;
-    double icrs_z;
-    uint64_t intensity_and_temperature;
-  } star_record_t;
-
   star_record_t star_record;
   int star_record_size=sizeof(star_record_t);
 
@@ -439,7 +433,7 @@ int main(int argc, char **argv) {
 
   // attempt to open input file
   printf("init, Opening input file gaia-edr3-extracted.csv\n");
-  input_file=fopen("gaia-edr3-extracted.csv", "r");
+  input_file=fopen("gaia-edr3-extracted.csv", "rb");
   if (input_file == NULL) {
     printf("init, Error: could not open extracted.csv\n");
     fflush(stdout);
@@ -448,7 +442,7 @@ int main(int argc, char **argv) {
 
   // attempt to open ouptut file for pq000
   printf("init, Opening output file galaxy-pq000.dat\n");
-  output_file_pq000=fopen("galaxy-pq000.dat", "w");
+  output_file_pq000=fopen("galaxy-pq000.dat", "wb");
   if (output_file_pq000 == NULL) {
     printf("init, Error: could not open galaxy-pq000.dat for writing\n");
     fflush(stdout);
@@ -457,7 +451,7 @@ int main(int argc, char **argv) {
 
   // attempt to open ouptut file for pq001
   printf("init, Opening output file galaxy-pq001.dat\n");
-  output_file_pq001=fopen("galaxy-pq001.dat", "w");
+  output_file_pq001=fopen("galaxy-pq001.dat", "wb");
   if (output_file_pq001 == NULL) {
     printf("init, Error: could not open galaxy-pq001.dat for writing\n");
     fflush(stdout);
@@ -466,7 +460,7 @@ int main(int argc, char **argv) {
 
   // attempt to open ouptut file for pq002
   printf("init, Opening output file galaxy-pq002.dat\n");
-  output_file_pq002=fopen("galaxy-pq002.dat", "w");
+  output_file_pq002=fopen("galaxy-pq002.dat", "wb");
   if (output_file_pq002 == NULL) {
     printf("init, Error: could not open galaxy-pq002.dat for writing\n");
     fflush(stdout);
@@ -474,7 +468,7 @@ int main(int argc, char **argv) {
   }
   // attempt to open ouptut file for pq003
   printf("init, Opening output file galaxy-pq003.dat\n");
-  output_file_pq003=fopen("galaxy-pq003.dat", "w");
+  output_file_pq003=fopen("galaxy-pq003.dat", "wb");
   if (output_file_pq003 == NULL) {
     printf("init, Error: could not open galaxy-pq003.dat for writing\n");
     fflush(stdout);
@@ -482,7 +476,7 @@ int main(int argc, char **argv) {
   }
   // attempt to open ouptut file for pq005
   printf("init, Opening output file galaxy-pq005.dat\n");
-  output_file_pq005=fopen("galaxy-pq005.dat", "w");
+  output_file_pq005=fopen("galaxy-pq005.dat", "wb");
   if (output_file_pq005 == NULL) {
     printf("init, Error: could not open galaxy-pq005.dat for writing\n");
     fflush(stdout);
@@ -490,7 +484,7 @@ int main(int argc, char **argv) {
   }
   // attempt to open ouptut file for pq010
   printf("init, Opening output file galaxy-pq010.dat\n");
-  output_file_pq010=fopen("galaxy-pq010.dat", "w");
+  output_file_pq010=fopen("galaxy-pq010.dat", "wb");
   if (output_file_pq010 == NULL) {
     printf("init, Error: could not open galaxy-pq010.dat for writing\n");
     fflush(stdout);
@@ -498,7 +492,7 @@ int main(int argc, char **argv) {
   }
   // attempt to open ouptut file for pq020
   printf("init, Opening output file galaxy-pq020.dat\n");
-  output_file_pq020=fopen("galaxy-pq020.dat", "w");
+  output_file_pq020=fopen("galaxy-pq020.dat", "wb");
   if (output_file_pq020 == NULL) {
     printf("init, Error: could not open galaxy-pq020.dat for writing\n");
     fflush(stdout);
@@ -506,7 +500,7 @@ int main(int argc, char **argv) {
   }
   // attempt to open ouptut file for pq030
   printf("init, Opening output file galaxy-pq030.dat\n");
-  output_file_pq030=fopen("galaxy-pq030.dat", "w");
+  output_file_pq030=fopen("galaxy-pq030.dat", "wb");
   if (output_file_pq030 == NULL) {
     printf("init, Error: could not open galaxy-pq030.dat for writing\n");
     fflush(stdout);
@@ -514,7 +508,7 @@ int main(int argc, char **argv) {
   }
   // attempt to open ouptut file for pq050
   printf("init, Opening output file galaxy-pq050.dat\n");
-  output_file_pq050=fopen("galaxy-pq050.dat", "w");
+  output_file_pq050=fopen("galaxy-pq050.dat", "wb");
   if (output_file_pq050 == NULL) {
     printf("init, Error: could not open galaxy-pq050.dat for writing\n");
     fflush(stdout);
@@ -522,7 +516,7 @@ int main(int argc, char **argv) {
   }
   // attempt to open ouptut file for pq100
   printf("init, Opening output file galaxy-pq100.dat\n");
-  output_file_pq100=fopen("galaxy-pq100.dat", "w");
+  output_file_pq100=fopen("galaxy-pq100.dat", "wb");
   if (output_file_pq100 == NULL) {
     printf("init, Error: could not open galaxy-pq100.dat for writing\n");
     fflush(stdout);

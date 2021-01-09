@@ -1,8 +1,8 @@
 C = gcc
-CFLAGS = -I. -Wall -Ofast
-LIBS = -lm
+CFLAGS = -I. -I/usr/local/include -Wall -Ofast
+LIBS = -lm -lpng -L/usr/local/lib
 OBJ = mkgalaxy.o bsrender.o
-DEPS = 
+DEPS = bsrender.h
 
 .PHONY: all clean
 

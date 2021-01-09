@@ -16,8 +16,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-
-#define OUTPUT_PPM
+#include <png.h>
+#include "bsrender.h"
 
 // generate RGB color values for a given blackbody temperature
 // set temp to desired white balance temperature
@@ -151,13 +151,162 @@ int limitIntensityPreserveColor(double *pixel_r, double *pixel_g, double *pixel_
   return(0);
 }
 
+int writePNGFile(pixel_composition_t *image_composition_buf, int camera_res_x, int camera_res_y, double pixel_intensity_limit, double camera_gamma) {
+  pixel_composition_t *image_composition_p;
+  png_byte *image_output_buf;
+  png_byte *image_output_p;
+  double pixel_r;
+  double pixel_g;
+  double pixel_b;
+  int i;
+  int x;
+  int y;
+  FILE *output_file;
+  png_structp png_ptr;
+  png_infop info_ptr;
+  png_byte color_type=PNG_COLOR_TYPE_RGB;
+  png_byte bit_depth=8;
+  png_bytep *row_pointers;
+  struct timespec starttime;
+  struct timespec endtime;
+  double elapsed_time;
+#define PNG_SETJMP_NOT_SUPPORTED
+
+  // allocate memory for image output buffer (8 bits per color rgb) and initialize
+  image_output_buf = (png_byte *)malloc(camera_res_x * camera_res_y * 3 * sizeof(png_byte));
+  if (image_output_buf == NULL) {
+    printf("Error: could not allocate memory for image output buffer\n");
+    fflush(stdout);
+    return(1);
+  }
+  image_output_p=image_output_buf;
+  for (i=0; i < (camera_res_x * camera_res_y); i++) {
+    *image_output_p=0;
+    image_output_p++;
+    *image_output_p=0;
+    image_output_p++;
+    *image_output_p=0;
+    image_output_p++;
+  }
+
+  clock_gettime(CLOCK_REALTIME, &starttime);
+  printf("Converting to 8-bit output buffer...");
+  fflush(stdout);
+
+  // allocate memory for row_pointers
+  row_pointers=(png_bytep *)malloc(camera_res_y * sizeof(png_bytep));
+  if (row_pointers == NULL) {
+    printf("Error: could not allocate memory for libpng row_pointers\n");
+    fflush(stdout);
+    return(1);
+  }
+
+  // convert double precision pixel_composition_buf to 8 bit image_
+  image_composition_p=image_composition_buf;
+  image_output_p=image_output_buf;
+  x=0;
+  y=0;
+  row_pointers[0]=image_output_p;
+  for (i=0; i < (camera_res_x * camera_res_y); i++) {
+    if (x == camera_res_x) {
+      x=0;
+      y++;
+      row_pointers[y]=image_output_p;
+    }
+
+    // convert flux values to output range ~0-1.0 with camera sensitivity reference level = 1.0
+    pixel_r=image_composition_p->r / pixel_intensity_limit;
+    pixel_g=image_composition_p->g / pixel_intensity_limit;
+    pixel_b=image_composition_p->b / pixel_intensity_limit;
+  
+    // apply camera gamma setting
+    pixel_r=pow(pixel_r, camera_gamma);
+    pixel_g=pow(pixel_g, camera_gamma);
+    pixel_b=pow(pixel_b, camera_gamma);
+    
+    limitIntensityPreserveColor(&pixel_r, &pixel_g, &pixel_b);
+    
+    // apply sRGB gamma
+    if (pixel_r <= 0.0031308) {
+      pixel_r=pixel_r * 12.92;
+    } else {
+      pixel_r=(1.055 * pow(pixel_r, (1.0 / 2.4)) - 0.055);
+    }
+    if (pixel_g <= 0.0031308) {
+      pixel_g=pixel_g * 12.92;
+    } else {
+      pixel_g=(1.055 * pow(pixel_g, (1.0 / 2.4)) - 0.055);
+    }
+    if (pixel_b <= 0.0031308) {
+      pixel_b=pixel_b * 12.92;
+    } else {
+      pixel_b=(1.055 * pow(pixel_b, (1.0 / 2.4)) - 0.055);
+    }
+    
+    // convert r,g,b to 8 bit values
+    *image_output_p=(unsigned char)(pixel_r * 255.0);
+    image_output_p++;
+    *image_output_p=(unsigned char)(pixel_g * 255.0);
+    image_output_p++;
+    *image_output_p=(unsigned char)(pixel_b * 255.0);
+    image_output_p++;
+
+    x++;
+    image_composition_p++;
+  }
+
+  clock_gettime(CLOCK_REALTIME, &endtime);
+  elapsed_time=((double)(endtime.tv_sec - 1500000000) + ((double)endtime.tv_nsec / 1.0E9)) - ((double)(starttime.tv_sec - 1500000000) + ((double)starttime.tv_nsec) / 1.0E9);
+  printf(" (%.4fs)\n", elapsed_time);
+  fflush(stdout);
+
+  clock_gettime(CLOCK_REALTIME, &starttime);
+  printf("Writing galaxy.png...");
+  fflush(stdout);
+
+  output_file=fopen("galaxy.png", "wb");
+  if (output_file == NULL) {
+    printf("Error: could not open galaxy.png for writing\n");
+    fflush(stdout);
+    return(1);
+  }
+  
+  // initialize PNG library
+  png_ptr=png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
+  info_ptr=png_create_info_struct(png_ptr);
+  png_init_io(png_ptr, output_file);
+  
+  // write PNG header
+  png_set_IHDR(png_ptr, info_ptr, camera_res_x, camera_res_y, bit_depth, color_type, PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE);
+  png_write_info(png_ptr, info_ptr);
+  // wringe PNG image data
+  png_write_image(png_ptr, row_pointers);
+  // end write
+  png_write_end(png_ptr, NULL);
+
+  clock_gettime(CLOCK_REALTIME, &endtime);
+  elapsed_time=((double)(endtime.tv_sec - 1500000000) + ((double)endtime.tv_nsec / 1.0E9)) - ((double)(starttime.tv_sec - 1500000000) + ((double)starttime.tv_nsec) / 1.0E9);
+  printf(" (%.4fs)\n", elapsed_time);
+  fflush(stdout);
+
+  // clean up
+  fclose(output_file);
+  free(image_output_buf);
+  free(row_pointers);
+
+  return(0);
+}
+
 int main(int argc, char **argv) {
   FILE *input_file;
   double two_pi=2.0 * M_PI;
   //double pi_over_2=M_PI / 2.0;
   double pi_over_180=M_PI / 180.0;
   double pi_over_360=M_PI / 360.0;
-  
+  struct timespec starttime;
+  struct timespec endtime;
+  double elapsed_time;
+
   // temp working variables
   int i;
   double star_x;
@@ -180,12 +329,6 @@ int main(int argc, char **argv) {
   int output_y;
   double star_linear_intensity; // star linear intensity as viewed from camera
   int image_offset;
-  double pixel_r;
-  double pixel_g;
-  double pixel_b;
-  int raster_r;
-  int raster_g;
-  int raster_b;
   float star_linear_1pc_intensity;
   uint64_t color_temperature;
   double rgb_red[32768];
@@ -193,12 +336,6 @@ int main(int argc, char **argv) {
   double rgb_blue[32768];
 
   // input file record
-  typedef struct {
-    double icrs_x;
-    double icrs_y;
-    double icrs_z;
-    uint64_t intensity_and_temperature;
-  } star_record_t;
   star_record_t star_record;
   int star_record_size=sizeof(star_record_t);
 
@@ -239,20 +376,8 @@ int main(int argc, char **argv) {
   int render_distance_selector;         //  min/max render distance from: 0=camera, 1=target
 
   // image buffers
-  typedef struct {
-    double r;
-    double g;
-    double b;
-  } pixel_composition_t;
-  typedef struct {
-    char r;
-    char g;
-    char b;
-  } pixel_output_t;
   pixel_composition_t *image_composition_buf;
   pixel_composition_t *image_composition_p;
-  pixel_output_t *image_output_buf;
-  pixel_output_t *image_output_p;
 
   // variables for triple-azimuth (3az) coordinates are derived from x,y,z positions
   // triple-azimuth coordinates allow for fast and accurate rotations.  They are a hybrid of Euler angles and quaternions/versors.
@@ -368,7 +493,7 @@ int main(int argc, char **argv) {
   render_distance_selector=0; // 0 = camera, 1 = target
 
 /*
-  printf("init, initializing image buffers\n");
+  printf("Initializing image buffers\n");
   fflush(stdout);
 */
 
@@ -386,35 +511,25 @@ int main(int argc, char **argv) {
     image_composition_p++;
   }
 
-  // allocate memory for image output buffer (8 bits per color rgb) and initialize
-  image_output_buf = (pixel_output_t *)malloc(camera_res_x * camera_res_y * sizeof(pixel_output_t));
-  if (image_output_buf == NULL) {
-    printf("Error: could not allocate memory for image output buffer\n");
-    return(1);
-  }
-  image_output_p=image_output_buf;
-  for (i=0; i < (camera_res_x * camera_res_y); i++) {
-    image_output_p->r=(char)0;
-    image_output_p->g=(char)0;
-    image_output_p->b=(char)0;
-    image_output_p++;
-  }
-
   // initialize RGB color lookup tables
   initRGBTables(camera_wb_temp, camera_color_saturation, rgb_red, rgb_green, rgb_blue);
 
 /*
-  printf("init, opening input file\n");
+  printf("Opening galaxy.dat\n");
   fflush(stdout);
 */
 
   // attempt to open input file(s)
-  input_file=fopen("galaxy.dat", "r");
+  input_file=fopen("galaxy.dat", "rb");
   if (input_file == NULL) {
-    printf("init, Error: could not open galaxy.dat\n");
+    printf("Error: could not open galaxy.dat\n");
     fflush(stdout);
     return(1);
   }
+
+  clock_gettime(CLOCK_REALTIME, &starttime);
+  printf("Rendering image to double precision composition buffer...");
+  fflush(stdout);
 
   // process user-supplied arguments
   camera_hfov=camera_fov * pi_over_360; // includes divide by 2
@@ -789,68 +904,14 @@ int main(int argc, char **argv) {
   }
 */
 
-#ifdef OUTPUT_PPM
-  // output PPM header
-  printf("P3\n%d %d\n255\n", camera_res_x, camera_res_y);
-  image_composition_p=image_composition_buf;
-  for (i=0; i < (camera_res_x * camera_res_y); i++) {
-    // convert flux values to output range ~0-1.0 with camera sensitivity reference level = 1.0
-    pixel_r=image_composition_p->r / pixel_intensity_limit;
-    pixel_g=image_composition_p->g / pixel_intensity_limit;
-    pixel_b=image_composition_p->b / pixel_intensity_limit;
+  clock_gettime(CLOCK_REALTIME, &endtime);
+  elapsed_time=((double)(endtime.tv_sec - 1500000000) + ((double)endtime.tv_nsec / 1.0E9)) - ((double)(starttime.tv_sec - 1500000000) + ((double)starttime.tv_nsec) / 1.0E9);
+  printf(" (%.3fs)\n", elapsed_time);
+  fflush(stdout);
 
-    // apply camera gamma setting
-    pixel_r=pow(pixel_r, camera_gamma);
-    pixel_g=pow(pixel_g, camera_gamma);
-    pixel_b=pow(pixel_b, camera_gamma);
-
-    limitIntensityPreserveColor(&pixel_r, &pixel_g, &pixel_b);
-
-    // apply sRGB gamma
-    if (pixel_r <= 0.0031308) {
-      pixel_r=pixel_r * 12.92;
-    } else {
-      pixel_r=(1.055 * pow(pixel_r, (1.0 / 2.4)) - 0.055);
-    }
-    if (pixel_g <= 0.0031308) {
-      pixel_g=pixel_g * 12.92;
-    } else {
-      pixel_g=(1.055 * pow(pixel_g, (1.0 / 2.4)) - 0.055);
-    }
-    if (pixel_b <= 0.0031308) {
-      pixel_b=pixel_b * 12.92;
-    } else {
-      pixel_b=(1.055 * pow(pixel_b, (1.0 / 2.4)) - 0.055);
-    }
-
-    // convert r,g,b to 8 bit values with safety clippings
-    raster_r=(int)(pixel_r * 255.0);
-    if (raster_r > 255) {
-      raster_r=255;
-    } else if (raster_r < 0) {
-      raster_r=0;
-    }
-    raster_g=(int)(pixel_g * 255.0);
-    if (raster_g > 255) {
-      raster_g=255;
-    } else if (raster_g < 0) {
-      raster_g=0;
-    }
-    raster_b=(int)(pixel_b * 255.0);
-    if (raster_b > 255) {
-      raster_b=255;
-    } else if (raster_b < 0) {
-      raster_b=0;
-    }
-    printf("%d %d %d\n", raster_r, raster_g, raster_b);
-    image_composition_p++;
-  }
-#endif
+  writePNGFile(image_composition_buf, camera_res_x, camera_res_y, pixel_intensity_limit, camera_gamma);
 
   // clean up
   fclose(input_file);
   free(image_composition_buf);
-  free(image_output_buf);
-
-  return(0);
 }
