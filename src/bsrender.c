@@ -431,8 +431,7 @@ int main(int argc, char **argv) {
 
   // camera options
   camera_fov=360.0;
-  camera_saturation_mag=6.0;
-  //pixel_intensity_limit=5.0E-4;
+  camera_saturation_mag=7.0;
   camera_wb_temp=4100.0;
   camera_color_saturation=4.0;
   camera_gamma=1.00;
@@ -443,6 +442,9 @@ int main(int argc, char **argv) {
   draw_grid_lines=0;
 
   // camera resolution
+  // 2K 16:9
+  //camera_res_x=1920;
+  //camera_res_y=1080;
   // 2K 2:1
   camera_res_x=2048;
   camera_res_y=1024;
