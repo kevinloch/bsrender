@@ -15,14 +15,32 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+#include <sys/mman.h>
 #include <math.h>
 #include <png.h>
 #include "bsrender.h"
 
+int waitForWorkerThreads(int *status_array, int num_worker_threads) {
+  int i;
+  volatile int all_workers_done=0; // volatile keeps gcc from optimizing away this function
+
+  while (all_workers_done == 0) {
+    all_workers_done=1;
+    for (i=0; (i < num_worker_threads); i++) {
+      if (status_array[i] == 0) {
+        all_workers_done=0;
+      }
+    }
+  } // end while all_workers_done
+
+  return(all_workers_done);
+}
+
+int initRGBTables(double camera_wb_temp, double camera_color_saturation, double rgb_red[], double rgb_green[], double rgb_blue[]) {
 // generate RGB color values for a given blackbody temperature
 // set temp to desired white balance temperature
 
-int initRGBTables(double camera_wb_temp, double camera_color_saturation, double rgb_red[], double rgb_green[], double rgb_blue[]) {
   int i;
 
   // CIE wavelengths
@@ -306,6 +324,15 @@ int main(int argc, char **argv) {
   struct timespec starttime;
   struct timespec endtime;
   double elapsed_time;
+  pid_t master_pid;
+  pid_t child_pid;
+  pid_t mypid;
+  int mmap_protection;
+  int mmap_visibility;
+  size_t composition_buffer_size;
+  size_t status_array_size;
+  int *status_array;
+  int my_thread_id=0;
 
   // temp working variables
   int i;
@@ -374,6 +401,10 @@ int main(int argc, char **argv) {
   double render_distance_min;        // only render stars at least this far away from selected point
   double render_distance_max;        // only render stars within this distance from selected point
   int render_distance_selector;         //  min/max render distance from: 0=camera, 1=target
+  int num_processes;                 // total number of rendering processes including master thread
+  int num_worker_threads;            // number of worker threads to fork from master
+  int draw_cross_hairs;
+  int draw_grid_lines;
 
   // image buffers
   pixel_composition_t *image_composition_buf;
@@ -400,21 +431,27 @@ int main(int argc, char **argv) {
 
   // camera options
   camera_fov=360.0;
-  camera_saturation_mag=8.2;
+  camera_saturation_mag=6.0;
   //pixel_intensity_limit=5.0E-4;
   camera_wb_temp=4100.0;
   camera_color_saturation=4.0;
   camera_gamma=1.00;
   camera_pan=0.0;
   camera_tilt=0.0;
+  num_processes=16;
+  draw_cross_hairs=0;
+  draw_grid_lines=0;
 
   // camera resolution
+  // 2K 2:1
+  camera_res_x=2048;
+  camera_res_y=1024;
   // 4K 16:9
   //camera_res_x=3840;
   //camera_res_y=2160;
   // 4K 2:1
-  camera_res_x=4096;
-  camera_res_y=2048;
+  //camera_res_x=4096;
+  //camera_res_y=2048;
   // 8K 16:9
   //camera_res_x=7680;
   //camera_res_y=4320;
@@ -492,23 +529,42 @@ int main(int argc, char **argv) {
 
   render_distance_selector=0; // 0 = camera, 1 = target
 
-/*
-  printf("Initializing image buffers\n");
-  fflush(stdout);
-*/
+  // get master process id for when we fork
+  master_pid=getpid();
+  mmap_protection=PROT_READ | PROT_WRITE;
+  mmap_visibility=MAP_SHARED | MAP_ANONYMOUS;
 
-  // allocate memory for image composition buffer (floating point rgb) and initialize
-  image_composition_buf = (pixel_composition_t *)malloc(camera_res_x * camera_res_y * sizeof(pixel_composition_t));
+  // allocate shared memory for image composition buffer (floating point rgb)
+  clock_gettime(CLOCK_REALTIME, &starttime);
+  printf("Initializing image composition buffer...");
+  fflush(stdout);
+  composition_buffer_size=camera_res_x * camera_res_y * sizeof(pixel_composition_t);
+  image_composition_buf=(pixel_composition_t *)mmap(NULL, composition_buffer_size, mmap_protection, mmap_visibility, -1, 0);
   if (image_composition_buf == NULL) {
-    printf("Error: could not allocate memory for image composition buffer\n");
+    printf("Error: could not allocate shared memory for image composition buffer\n");
     return(1);
   }
+  // initialize image composition buffer
   image_composition_p=image_composition_buf;
   for (i=0; i < (camera_res_x * camera_res_y); i++) {
     image_composition_p->r=0.0;
     image_composition_p->g=0.0;
     image_composition_p->b=0.0;
     image_composition_p++;
+  }
+  clock_gettime(CLOCK_REALTIME, &endtime);
+  elapsed_time=((double)(endtime.tv_sec - 1500000000) + ((double)endtime.tv_nsec / 1.0E9)) - ((double)(starttime.tv_sec - 1500000000) + ((double)starttime.tv_nsec) / 1.0E9);
+  printf(" (%.3fs)\n", elapsed_time);
+  fflush(stdout);
+
+  // allocate shared memory for thread status array
+  num_worker_threads=num_processes - 1;
+  if (num_worker_threads > 0) {
+    status_array_size=num_worker_threads * sizeof(int);
+    status_array=(int *)mmap(NULL, status_array_size, mmap_protection, mmap_visibility, -1, 0);
+    if (status_array == NULL) {
+      printf("Error: could not allocate shared memory for thread status array\n");
+    }
   }
 
   // initialize RGB color lookup tables
@@ -528,7 +584,7 @@ int main(int argc, char **argv) {
   }
 
   clock_gettime(CLOCK_REALTIME, &starttime);
-  printf("Rendering image to double precision composition buffer...");
+  printf("Rendering stars to image composition buffer...");
   fflush(stdout);
 
   // process user-supplied arguments
@@ -588,6 +644,18 @@ int main(int argc, char **argv) {
     target_3az_xz=atan2(target_z, target_x);
   }
 
+  // fork parallel rendering processes
+  if (num_worker_threads > 0) {
+    for (i=0; i < num_worker_threads; i++) {
+      mypid=getpid();
+      if (mypid == master_pid) {
+        my_thread_id=i; // this gets inherited by forked process
+        status_array[i]=0;
+        child_pid=fork();
+      }
+    }
+  }
+
   // read star record from input file
   fread(&star_record, star_record_size, 1, input_file);
 
@@ -637,11 +705,6 @@ int main(int argc, char **argv) {
         star_3az_yz=atan2(star_z, star_y);
       }
 
-/*
-      printf("debug, initial, star_3az_xy: %.9f, star_3az_xz: %.9f, star_3az_yz: %.9f\n", star_3az_xy, star_3az_xz, star_3az_yz);
-      fflush(stdout);
-*/
-    
       // rotate star by camera target in xy and xz planes so camera target = (xy=0,xz=0) and yz is camera rotation angle
       // This will allow for direct mapping of xy,xz angles as polar coordinates to our camera raster x,y axis and we can also easily tell if a star is within fov
 
@@ -669,11 +732,6 @@ int main(int argc, char **argv) {
         star_3az_yz=atan2(star_z, star_y);
       }
 
-/*
-      printf("debug, rotated once, star_3az_xy: %.9f, star_3az_xz: %.9f, star_3az_yz: %.9f\n", star_3az_xy, star_3az_xz, star_3az_yz);
-      fflush(stdout);
-*/
-
       // rotate star xz angle by (rotated) target xz angle
       star_3az_xz-=target_3az_xz;
       if (star_3az_xz > M_PI) {
@@ -697,11 +755,6 @@ int main(int argc, char **argv) {
       } else {
         star_3az_yz=atan2(star_z, star_y);
       }
-
-/*
-      printf("debug, rotated twice, star_3az_xy: %.9f, star_3az_xz: %.9f, star_3az_yz: %.9f\n", star_3az_xy, star_3az_xz, star_3az_yz);
-      fflush(stdout);
-*/
 
       // rotate star yz angle by camera rotation angle
       star_3az_yz+=camera_3az_yz;
@@ -779,10 +832,6 @@ int main(int argc, char **argv) {
         }
 
       }
-/*
-      printf("debug, camera rotated on yz axis, star_3az_xy: %.9f, star_3az_xz: %.9f, star_3az_yz: %.9f\n", star_3az_xy, star_3az_xz, star_3az_yz);
-      fflush(stdout);
-*/
 
       // at this point we can filter by stars that are within our fov
       if ((fabs(star_3az_xy) < camera_hfov) && (fabs(star_3az_xz) < camera_hfov)) {
@@ -835,83 +884,96 @@ int main(int argc, char **argv) {
     fread(&star_record, star_record_size, 1, input_file);
   } // end input loop
 
+  mypid=getpid();
+  if (mypid != master_pid) {
+    // if i'm a worker thread and I made it this far set my thread status to complete (1)
+    status_array[my_thread_id]=1;
+  } else {
+    // wait until all worker threads have completed
+    if (num_worker_threads > 0) {
+      waitForWorkerThreads(status_array, num_worker_threads);
+    } // end if num_worker_threads
 
-/*
-  // optionally draw cross hairs
-  for (i=(camera_half_res_x - (camera_res_y * 0.02)); i < (camera_half_res_x - (camera_res_y * 0.005)); i++) {
-    image_composition_p=image_composition_buf + (int)(camera_res_x * camera_half_res_y) + i;
-    image_composition_p->r=(pixel_intensity_limit * 0.9);
-    image_composition_p->g=0.0;
-    image_composition_p->b=0.0;
-  }
-  for (i=(camera_half_res_x + (camera_res_y * 0.005)); i < (camera_half_res_x + (camera_res_y * 0.02)); i++) {
-    image_composition_p=image_composition_buf + (int)(camera_res_x * camera_half_res_y) + i;
-    image_composition_p->r=(pixel_intensity_limit * 0.9);
-    image_composition_p->g=0.0;
-    image_composition_p->b=0.0;
-  }
-  for (i=(camera_half_res_y - (camera_res_y * 0.02)); i < (camera_half_res_y - (camera_res_y * 0.005)); i++) {
-    image_composition_p=image_composition_buf + (int)(camera_res_x * i) + (int)camera_half_res_x;
-    image_composition_p->r=(pixel_intensity_limit * 0.9);
-    image_composition_p->g=0.0;
-    image_composition_p->b=0.0;
-  }
-  for (i=(camera_half_res_y + (camera_res_y * 0.005)); i < (camera_half_res_y + (camera_res_y * 0.02)); i++) {
-    image_composition_p=image_composition_buf + (int)(camera_res_x * i) + (int)camera_half_res_x;
-    image_composition_p->r=(pixel_intensity_limit * 0.9);
-    image_composition_p->g=0.0;
-    image_composition_p->b=0.0;
-  }
-*/
+    if (draw_cross_hairs == 1) {
+      // optionally draw cross hairs
+      for (i=(camera_half_res_x - (camera_res_y * 0.02)); i < (camera_half_res_x - (camera_res_y * 0.005)); i++) {
+        image_composition_p=image_composition_buf + (int)(camera_res_x * camera_half_res_y) + i;
+        image_composition_p->r=(pixel_intensity_limit * 0.9);
+        image_composition_p->g=0.0;
+        image_composition_p->b=0.0;
+      }
+      for (i=(camera_half_res_x + (camera_res_y * 0.005)); i < (camera_half_res_x + (camera_res_y * 0.02)); i++) {
+        image_composition_p=image_composition_buf + (int)(camera_res_x * camera_half_res_y) + i;
+        image_composition_p->r=(pixel_intensity_limit * 0.9);
+        image_composition_p->g=0.0;
+        image_composition_p->b=0.0;
+      }
+      for (i=(camera_half_res_y - (camera_res_y * 0.02)); i < (camera_half_res_y - (camera_res_y * 0.005)); i++) {
+        image_composition_p=image_composition_buf + (int)(camera_res_x * i) + (int)camera_half_res_x;
+        image_composition_p->r=(pixel_intensity_limit * 0.9);
+        image_composition_p->g=0.0;
+        image_composition_p->b=0.0;
+      }
+      for (i=(camera_half_res_y + (camera_res_y * 0.005)); i < (camera_half_res_y + (camera_res_y * 0.02)); i++) {
+        image_composition_p=image_composition_buf + (int)(camera_res_x * i) + (int)camera_half_res_x;
+        image_composition_p->r=(pixel_intensity_limit * 0.9);
+        image_composition_p->g=0.0;
+        image_composition_p->b=0.0;
+      }
+    }
 
-/*
-  // optionally select raster lines
-  for (i=0; i < camera_res_x; i++) {
-    image_composition_p=image_composition_buf + (int)(camera_res_x * (camera_res_y * 0.25)) + i;
-    image_composition_p->r=(pixel_intensity_limit * 0.9);
-    image_composition_p->g=0.0;
-    image_composition_p->b=0.0;
-  }
-  for (i=0; i < camera_res_x; i++) {
-    image_composition_p=image_composition_buf + (int)(camera_res_x * camera_half_res_y) + i;
-    image_composition_p->r=(pixel_intensity_limit * 0.9);
-    image_composition_p->g=0.0;
-    image_composition_p->b=0.0;
-  }
-  for (i=0; i < camera_res_x; i++) {
-    image_composition_p=image_composition_buf + (int)(camera_res_x * (camera_res_y * 0.75)) + i;
-    image_composition_p->r=(pixel_intensity_limit * 0.9);
-    image_composition_p->g=0.0;
-    image_composition_p->b=0.0;
-  }
-  for (i=0; i < camera_res_y; i++) {
-    image_composition_p=image_composition_buf + (int)(camera_res_x * i) + (int)(camera_res_x * 0.25);
-    image_composition_p->r=(pixel_intensity_limit * 0.9);
-    image_composition_p->g=0.0;
-    image_composition_p->b=0.0;
-  }
-  for (i=0; i < camera_res_y; i++) {
-    image_composition_p=image_composition_buf + (int)(camera_res_x * i) + (int)(camera_half_res_x);
-    image_composition_p->r=(pixel_intensity_limit * 0.9);
-    image_composition_p->g=0.0;
-    image_composition_p->b=0.0;
-  }
-  for (i=0; i < camera_res_y; i++) {
-    image_composition_p=image_composition_buf + (int)(camera_res_x * i) + (int)(camera_res_x * 0.75);
-    image_composition_p->r=(pixel_intensity_limit * 0.9);
-    image_composition_p->g=0.0;
-    image_composition_p->b=0.0;
-  }
-*/
+    if (draw_grid_lines == 1) {
+      // optionally select raster lines
+      for (i=0; i < camera_res_x; i++) {
+        image_composition_p=image_composition_buf + (int)(camera_res_x * (camera_res_y * 0.25)) + i;
+        image_composition_p->r=(pixel_intensity_limit * 0.9);
+        image_composition_p->g=0.0;
+        image_composition_p->b=0.0;
+      }
+      for (i=0; i < camera_res_x; i++) {
+        image_composition_p=image_composition_buf + (int)(camera_res_x * camera_half_res_y) + i;
+        image_composition_p->r=(pixel_intensity_limit * 0.9);
+        image_composition_p->g=0.0;
+        image_composition_p->b=0.0;
+      }
+      for (i=0; i < camera_res_x; i++) {
+        image_composition_p=image_composition_buf + (int)(camera_res_x * (camera_res_y * 0.75)) + i;
+        image_composition_p->r=(pixel_intensity_limit * 0.9);
+        image_composition_p->g=0.0;
+        image_composition_p->b=0.0;
+      }
+      for (i=0; i < camera_res_y; i++) {
+        image_composition_p=image_composition_buf + (int)(camera_res_x * i) + (int)(camera_res_x * 0.25);
+        image_composition_p->r=(pixel_intensity_limit * 0.9);
+        image_composition_p->g=0.0;
+        image_composition_p->b=0.0;
+      }
+      for (i=0; i < camera_res_y; i++) {
+        image_composition_p=image_composition_buf + (int)(camera_res_x * i) + (int)(camera_half_res_x);
+        image_composition_p->r=(pixel_intensity_limit * 0.9);
+        image_composition_p->g=0.0;
+        image_composition_p->b=0.0;
+      }
+      for (i=0; i < camera_res_y; i++) {
+        image_composition_p=image_composition_buf + (int)(camera_res_x * i) + (int)(camera_res_x * 0.75);
+        image_composition_p->r=(pixel_intensity_limit * 0.9);
+        image_composition_p->g=0.0;
+        image_composition_p->b=0.0;
+      }
+    }
 
-  clock_gettime(CLOCK_REALTIME, &endtime);
-  elapsed_time=((double)(endtime.tv_sec - 1500000000) + ((double)endtime.tv_nsec / 1.0E9)) - ((double)(starttime.tv_sec - 1500000000) + ((double)starttime.tv_nsec) / 1.0E9);
-  printf(" (%.3fs)\n", elapsed_time);
-  fflush(stdout);
+    clock_gettime(CLOCK_REALTIME, &endtime);
+    elapsed_time=((double)(endtime.tv_sec - 1500000000) + ((double)endtime.tv_nsec / 1.0E9)) - ((double)(starttime.tv_sec - 1500000000) + ((double)starttime.tv_nsec) / 1.0E9);
+    printf(" (%.3fs)\n", elapsed_time);
+    fflush(stdout);
 
-  writePNGFile(image_composition_buf, camera_res_x, camera_res_y, pixel_intensity_limit, camera_gamma);
+    writePNGFile(image_composition_buf, camera_res_x, camera_res_y, pixel_intensity_limit, camera_gamma);
 
-  // clean up
-  fclose(input_file);
-  free(image_composition_buf);
+    // clean up
+    fclose(input_file);
+    munmap(image_composition_buf, composition_buffer_size);
+    if (num_worker_threads > 0) {
+      munmap(status_array, status_array_size);
+    }
+  } // end if master process
 }

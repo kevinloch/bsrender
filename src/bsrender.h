@@ -1,7 +1,7 @@
 #ifndef NLE_LEPTON_H
 #define NLE_LEPTON_H
 
-#define BSRENDER_VERSION "0.9-dev-01"
+#define BSRENDER_VERSION "0.9-dev-02"
 
 typedef struct {
   double icrs_x;
