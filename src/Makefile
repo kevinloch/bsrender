@@ -1,4 +1,4 @@
-C = gcc
+CC = gcc
 CFLAGS = -I. -I/usr/local/include -Wall -O3
 LIBS = -lm -lpng -L/usr/local/lib
 OBJ = mkgalaxy.o bsrender.o

@@ -23,7 +23,7 @@
 
 int waitForWorkerThreads(int *status_array, int num_worker_threads) {
   int i;
-  volatile int all_workers_done=0; // volatile keeps gcc from optimizing away this function
+  volatile int all_workers_done=0;
 
   while (all_workers_done == 0) {
     all_workers_done=1;
@@ -333,6 +333,7 @@ int main(int argc, char **argv) {
   size_t status_array_size;
   int *status_array;
   int my_thread_id=0;
+  int done;
 
   // temp working variables
   int i;
@@ -893,7 +894,7 @@ int main(int argc, char **argv) {
   } else {
     // wait until all worker threads have completed
     if (num_worker_threads > 0) {
-      waitForWorkerThreads(status_array, num_worker_threads);
+      done=waitForWorkerThreads(status_array, num_worker_threads);
     } // end if num_worker_threads
 
     if (draw_cross_hairs == 1) {
