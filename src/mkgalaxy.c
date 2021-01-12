@@ -31,7 +31,7 @@
 #include <math.h>
 #include "bsrender.h"
 
-double correctParallax(double *parallax, int astrometric_params_solved, double G, double neff, double ecl_lat) {
+double calibrateParallax(double *parallax, int astrometric_params_solved, double G, double neff, double ecl_lat) {
   //
   // from Lindegren et. al., Gaia Early Data Release 3 Parallax bias versus magnitude, colour, and position, Astronomy & Astrophysics manuscript no. DR3-Parallaxes December 8, 2020
   //
@@ -406,6 +406,9 @@ int main(int argc, char **argv) {
   long long discard_parallax_count;
   const double flux_to_vega=5.3095E-11; // approximate conversion factor for phot_g_mean_flux to intensity relative to Vega
 
+  int calibrate_parallax_enable=1;
+  int override_parallax_toolow=1;
+
   float linear_1pc_intensity;
   uint64_t color_temperature;
 
@@ -643,12 +646,19 @@ int main(int argc, char **argv) {
           color_wavenumber=pseudocolor;
         }
 
-        // correct parallax
-        magnitude=-2.5*log10(linear_intensity); // some stars have blank phot_g_mean_magnitude so we derive from the more reliable flux column
-        correctParallax(&parallax, astrometric_params_solved, magnitude, color_wavenumber, ecl_lat);
+        // optionally calibrate parallax according to Lindegren et. al
+        if (calibrate_parallax_enable == 1) {
+          magnitude=-2.5*log10(linear_intensity); // some stars have blank phot_g_mean_magnitude so we derive from the more reliable flux column
+          calibrateParallax(&parallax, astrometric_params_solved, magnitude, color_wavenumber, ecl_lat);
+        }
 
-        // only continue if parallax is positive after corrections
-        if (parallax > 0) {
+        // optionaly override parallax below instrument minimum (or negative)
+        if ((parallax < 0.01) && (override_parallax_toolow == 1)) {
+          parallax=0.01;
+        }
+
+        // only continue if parallax is valid
+        if (parallax > 0.0) {
           // transform spherical icrs to euclidian icrs
           //distance=M_PI / (648000.0 * tan(M_PI * parallax / 648000000)); // in parsecs, full calculation
           distance=1000.0 / parallax; // in parsecs, approximation ignoring small angle tan()

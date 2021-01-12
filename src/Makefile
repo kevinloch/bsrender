@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -I. -I/usr/local/include -Wall -O3
+CFLAGS = -I. -I/usr/local/include -Wall -Ofast
 LIBS = -lm -lpng -L/usr/local/lib
 OBJ = mkgalaxy.o bsrender.o
 DEPS = bsrender.h

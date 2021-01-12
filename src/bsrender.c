@@ -138,6 +138,31 @@ int initRGBTables(double camera_wb_temp, double camera_color_saturation, double 
   return(0);
 }
 
+int limitIntensity(double *pixel_r, double *pixel_g, double *pixel_b) {
+  double pixel_max;
+
+  // limit pixel to range 0.0-1.0 without regard to color
+  if (*pixel_r < 0.0) {
+    *pixel_r=0.0;
+  }
+  if (*pixel_g < 0.0) {
+    *pixel_g=0.0;
+  }
+  if (*pixel_b < 0.0) {
+    *pixel_b=0.0;
+  }
+  if (*pixel_r > 1.0) {
+    *pixel_r=1.0;
+  }
+  if (*pixel_g > 1.0) {
+    *pixel_g=1.0;
+  }
+  if (*pixel_b > 1.0) {
+    *pixel_b=1.0;
+  }
+  return(0);
+}
+
 int limitIntensityPreserveColor(double *pixel_r, double *pixel_g, double *pixel_b) {
   double pixel_max;
 
@@ -169,7 +194,7 @@ int limitIntensityPreserveColor(double *pixel_r, double *pixel_g, double *pixel_
   return(0);
 }
 
-int writePNGFile(pixel_composition_t *image_composition_buf, int camera_res_x, int camera_res_y, double pixel_intensity_limit, double camera_gamma) {
+int writePNGFile(pixel_composition_t *image_composition_buf, int camera_res_x, int camera_res_y, double camera_pixel_limit, double camera_gamma, int camera_pixel_limit_mode) {
   pixel_composition_t *image_composition_p;
   png_byte *image_output_buf;
   png_byte *image_output_p;
@@ -233,16 +258,20 @@ int writePNGFile(pixel_composition_t *image_composition_buf, int camera_res_x, i
     }
 
     // convert flux values to output range ~0-1.0 with camera sensitivity reference level = 1.0
-    pixel_r=image_composition_p->r / pixel_intensity_limit;
-    pixel_g=image_composition_p->g / pixel_intensity_limit;
-    pixel_b=image_composition_p->b / pixel_intensity_limit;
+    pixel_r=image_composition_p->r / camera_pixel_limit;
+    pixel_g=image_composition_p->g / camera_pixel_limit;
+    pixel_b=image_composition_p->b / camera_pixel_limit;
   
     // apply camera gamma setting
     pixel_r=pow(pixel_r, camera_gamma);
     pixel_g=pow(pixel_g, camera_gamma);
     pixel_b=pow(pixel_b, camera_gamma);
     
-    limitIntensityPreserveColor(&pixel_r, &pixel_g, &pixel_b);
+    if (camera_pixel_limit_mode == 0) {
+      limitIntensity(&pixel_r, &pixel_g, &pixel_b);
+    } else if (camera_pixel_limit_mode == 1) {
+      limitIntensityPreserveColor(&pixel_r, &pixel_g, &pixel_b);
+    }
     
     // apply sRGB gamma
     if (pixel_r <= 0.0031308) {
@@ -318,7 +347,7 @@ int writePNGFile(pixel_composition_t *image_composition_buf, int camera_res_x, i
 int main(int argc, char **argv) {
   FILE *input_file;
   double two_pi=2.0 * M_PI;
-  //double pi_over_2=M_PI / 2.0;
+  double pi_over_2=M_PI / 2.0;
   double pi_over_180=M_PI / 180.0;
   double pi_over_360=M_PI / 360.0;
   struct timespec starttime;
@@ -362,6 +391,9 @@ int main(int argc, char **argv) {
   double rgb_red[32768];
   double rgb_green[32768];
   double rgb_blue[32768];
+  double mollewide_angle;
+  double two_mollewide_angle;
+  int mollewide_iterations=5;
 
   // input file record
   star_record_t star_record;
@@ -376,8 +408,9 @@ int main(int argc, char **argv) {
   double camera_fov;          // user-supplied field of view angle for x-axis (deg)
   double camera_hfov;         // half of fov angle, to speed calculations (rad)
   double pixels_per_radian;   // pixels per radian for x and y axis
-  double camera_saturation_mag;     // Mangnitude at white individual camera pixels saturate 
-  double pixel_intensity_limit;         // maximum allowed flux value for a single pixel r,g, or b channel
+  double camera_pixel_limit_mag;     // Mangnitude at white individual camera pixels saturate 
+  int camera_pixel_limit_mode;       // 0=saturate to white, 1=preserve color
+  double camera_pixel_limit;         // maximum allowed flux value for a single pixel r,g, or b channel
   double camera_color_saturation;  // camera chroma saturation level
   double camera_wb_temp;      // camera white balance temperature
   double camera_gamma;        // gamma adjustment for camera output
@@ -406,6 +439,7 @@ int main(int argc, char **argv) {
   int num_worker_threads;            // number of worker threads to fork from master
   int draw_cross_hairs;
   int draw_grid_lines;
+  int camera_projection;            // camera raster projectino: 0=lat/lon, 1=spherical, 2=Mollewide
 
   // image buffers
   pixel_composition_t *image_composition_buf;
@@ -432,29 +466,31 @@ int main(int argc, char **argv) {
 
   // camera options
   camera_fov=360.0;
-  camera_saturation_mag=7.0;
-  camera_wb_temp=4100.0;
+  camera_pixel_limit_mag=8.2;
+  camera_pixel_limit_mode=0;
+  camera_wb_temp=4200.0;
   camera_color_saturation=4.0;
-  camera_gamma=1.00;
+  camera_gamma=1.0;
   camera_pan=0.0;
   camera_tilt=0.0;
   num_processes=16;
   draw_cross_hairs=0;
   draw_grid_lines=0;
+  camera_projection=0;
 
   // camera resolution
   // 2K 16:9
   //camera_res_x=1920;
   //camera_res_y=1080;
   // 2K 2:1
-  camera_res_x=2048;
-  camera_res_y=1024;
+  //camera_res_x=2048;
+  //camera_res_y=1024;
   // 4K 16:9
   //camera_res_x=3840;
   //camera_res_y=2160;
   // 4K 2:1
-  //camera_res_x=4096;
-  //camera_res_y=2048;
+  camera_res_x=4096;
+  camera_res_y=2048;
   // 8K 16:9
   //camera_res_x=7680;
   //camera_res_y=4320;
@@ -598,7 +634,7 @@ int main(int argc, char **argv) {
   camera_3az_yz=camera_rotation * pi_over_180;
   camera_3az_xy=camera_pan * pi_over_180;
   camera_3az_xz=camera_tilt * pi_over_180;
-  pixel_intensity_limit=pow(100.0, (-camera_saturation_mag / 5.0));
+  camera_pixel_limit=pow(100.0, (-camera_pixel_limit_mag / 5.0));
 
   // transform spherical icrs to euclidian icrs
   target_icrs_ra_rad=target_icrs_ra * pi_over_180;
@@ -863,9 +899,24 @@ int main(int argc, char **argv) {
         output_el=atan2(star_z, star_xy_r);
         output_az=star_3az_xy;
 
-        // cylindrical projection
-        output_x=(int)((-output_az * pixels_per_radian) + camera_half_res_x + 0.5);
-        output_y=(int)((-output_el * pixels_per_radian) + camera_half_res_y + 0.5);
+        if (camera_projection == 0) {
+          // lat/lon 
+          output_x=(int)((-pixels_per_radian * output_az) + camera_half_res_x + 0.5);
+          output_y=(int)((-pixels_per_radian * output_el) + camera_half_res_y + 0.5);
+        } else if (camera_projection == 1) {
+          // spherical TBD
+          output_x=0;
+          output_y=0;
+        } else if (camera_projection == 2) {
+          // Mollewide
+          two_mollewide_angle=2.0 * asin(2.0 * output_el / M_PI);
+          for (i=0; i < mollewide_iterations; i++) {
+            two_mollewide_angle-=(two_mollewide_angle + sin(two_mollewide_angle) - (M_PI * sin(output_el))) / (1.0 + cos(two_mollewide_angle));
+          }
+          mollewide_angle=two_mollewide_angle * 0.5;
+          output_x=(int)((-pixels_per_radian * output_az * cos(mollewide_angle)) + camera_half_res_x + 0.5);
+          output_y=(int)((-pixels_per_radian * pi_over_2 * sin(mollewide_angle)) + camera_half_res_y + 0.5);
+        }
 
         if ((output_x >= 0) && (output_x < camera_res_x) && (output_y >= 0) && (output_y < camera_res_y)) {
           image_offset=(camera_res_x * output_y) + output_x;
@@ -901,25 +952,25 @@ int main(int argc, char **argv) {
       // optionally draw cross hairs
       for (i=(camera_half_res_x - (camera_res_y * 0.02)); i < (camera_half_res_x - (camera_res_y * 0.005)); i++) {
         image_composition_p=image_composition_buf + (int)(camera_res_x * camera_half_res_y) + i;
-        image_composition_p->r=(pixel_intensity_limit * 0.9);
+        image_composition_p->r=(camera_pixel_limit * 0.9);
         image_composition_p->g=0.0;
         image_composition_p->b=0.0;
       }
       for (i=(camera_half_res_x + (camera_res_y * 0.005)); i < (camera_half_res_x + (camera_res_y * 0.02)); i++) {
         image_composition_p=image_composition_buf + (int)(camera_res_x * camera_half_res_y) + i;
-        image_composition_p->r=(pixel_intensity_limit * 0.9);
+        image_composition_p->r=(camera_pixel_limit * 0.9);
         image_composition_p->g=0.0;
         image_composition_p->b=0.0;
       }
       for (i=(camera_half_res_y - (camera_res_y * 0.02)); i < (camera_half_res_y - (camera_res_y * 0.005)); i++) {
         image_composition_p=image_composition_buf + (int)(camera_res_x * i) + (int)camera_half_res_x;
-        image_composition_p->r=(pixel_intensity_limit * 0.9);
+        image_composition_p->r=(camera_pixel_limit * 0.9);
         image_composition_p->g=0.0;
         image_composition_p->b=0.0;
       }
       for (i=(camera_half_res_y + (camera_res_y * 0.005)); i < (camera_half_res_y + (camera_res_y * 0.02)); i++) {
         image_composition_p=image_composition_buf + (int)(camera_res_x * i) + (int)camera_half_res_x;
-        image_composition_p->r=(pixel_intensity_limit * 0.9);
+        image_composition_p->r=(camera_pixel_limit * 0.9);
         image_composition_p->g=0.0;
         image_composition_p->b=0.0;
       }
@@ -929,37 +980,37 @@ int main(int argc, char **argv) {
       // optionally select raster lines
       for (i=0; i < camera_res_x; i++) {
         image_composition_p=image_composition_buf + (int)(camera_res_x * (camera_res_y * 0.25)) + i;
-        image_composition_p->r=(pixel_intensity_limit * 0.9);
+        image_composition_p->r=(camera_pixel_limit * 0.9);
         image_composition_p->g=0.0;
         image_composition_p->b=0.0;
       }
       for (i=0; i < camera_res_x; i++) {
         image_composition_p=image_composition_buf + (int)(camera_res_x * camera_half_res_y) + i;
-        image_composition_p->r=(pixel_intensity_limit * 0.9);
+        image_composition_p->r=(camera_pixel_limit * 0.9);
         image_composition_p->g=0.0;
         image_composition_p->b=0.0;
       }
       for (i=0; i < camera_res_x; i++) {
         image_composition_p=image_composition_buf + (int)(camera_res_x * (camera_res_y * 0.75)) + i;
-        image_composition_p->r=(pixel_intensity_limit * 0.9);
+        image_composition_p->r=(camera_pixel_limit * 0.9);
         image_composition_p->g=0.0;
         image_composition_p->b=0.0;
       }
       for (i=0; i < camera_res_y; i++) {
         image_composition_p=image_composition_buf + (int)(camera_res_x * i) + (int)(camera_res_x * 0.25);
-        image_composition_p->r=(pixel_intensity_limit * 0.9);
+        image_composition_p->r=(camera_pixel_limit * 0.9);
         image_composition_p->g=0.0;
         image_composition_p->b=0.0;
       }
       for (i=0; i < camera_res_y; i++) {
         image_composition_p=image_composition_buf + (int)(camera_res_x * i) + (int)(camera_half_res_x);
-        image_composition_p->r=(pixel_intensity_limit * 0.9);
+        image_composition_p->r=(camera_pixel_limit * 0.9);
         image_composition_p->g=0.0;
         image_composition_p->b=0.0;
       }
       for (i=0; i < camera_res_y; i++) {
         image_composition_p=image_composition_buf + (int)(camera_res_x * i) + (int)(camera_res_x * 0.75);
-        image_composition_p->r=(pixel_intensity_limit * 0.9);
+        image_composition_p->r=(camera_pixel_limit * 0.9);
         image_composition_p->g=0.0;
         image_composition_p->b=0.0;
       }
@@ -970,7 +1021,7 @@ int main(int argc, char **argv) {
     printf(" (%.3fs)\n", elapsed_time);
     fflush(stdout);
 
-    writePNGFile(image_composition_buf, camera_res_x, camera_res_y, pixel_intensity_limit, camera_gamma);
+    writePNGFile(image_composition_buf, camera_res_x, camera_res_y, camera_pixel_limit, camera_gamma, camera_pixel_limit_mode);
 
     // clean up
     fclose(input_file);
