@@ -1,8 +1,8 @@
 CC = gcc
 CFLAGS = -I. -I/usr/local/include -Wall -Ofast
 LIBS = -lm -lpng -L/usr/local/lib
-OBJ = usage.o bsr-config.o bsrender.o
-DEPS = usage.h bsr-config.h bsrender.h
+OBJ = overlay.o bsr-png.o rgb.o usage.o util.o bsr-config.o bsrender.o
+DEPS = overlay.h bsr-png.h rgb.h usage.h util.h bsr-config.h bsrender.h
 
 .PHONY: all clean
 
