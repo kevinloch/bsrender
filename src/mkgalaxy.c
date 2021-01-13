@@ -24,12 +24,12 @@
 // as the rendering engine only works with a single "galaxy.dat" file for now
 //
 
+#include "bsrender.h" // needs to be first to get GNU_SOURCE define for strcasestr
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include "bsrender.h"
 
 double calibrateParallax(double *parallax, int astrometric_params_solved, double G, double neff, double ecl_lat) {
   //
