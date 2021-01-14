@@ -9,11 +9,14 @@ NAME\n\
      bsrender -- Render PNG image from 3D star database\n\
 \n\
 SYNOPSIS\n\
-     bsrender [-c filename] [-h]\n\
+     bsrender [-c filename] [-d path] [-h]\n\
  \n\
 OPTIONS:\n\
      -c filename\n\
           Set configuration file name (default: ./bsrender.cfg)\n\
+\n\
+     -d path\n\
+          Set path to data files (default: ./galaxydata)\n\
 \n\
      -h\n\
           Show help\n\

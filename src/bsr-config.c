@@ -6,6 +6,7 @@
 
 void initConfig(bsr_config_t *bsr_config) {
   strcpy(bsr_config->config_file_name, "./bsrender.cfg");
+  strcpy(bsr_config->data_file_directory, "./galaxydata");
   bsr_config->num_processes=16;
   bsr_config->min_parallax_quality=10;
   bsr_config->render_distance_min=0.0;
@@ -46,11 +47,51 @@ void initConfig(bsr_config_t *bsr_config) {
   bsr_config->camera_tilt=0.0;
 }
 
+void cleanupValueStr(char *value) {
+  int i;
+  int j;
+  int start;
+  int end;
+  char tmpvalue[256];
+  size_t value_length;
+
+  value_length=strlen(value);
+  if (value_length > 254) {
+    value_length=254;
+  }
+  
+  // find beginning of real value
+  start=-1;
+  for (i=0; ((start == -1) && (i < value_length)); i++) {
+    if ((value[i] != 32) && (value[i] != 34) && (value[i] != 39)) { 
+      start=i;
+    }
+  }
+
+  // find end of real value
+  end=-1;
+  for (i=(value_length-1); ((end == -1) && (i >= 0)); i--) {
+    if ((value[i] != 32) && (value[i] != 34) && (value[i] != 39)) {
+      end=i;
+    }
+  }
+
+  // trim before and after real value
+  j=0;
+  for (i=start; i <= end; i++) {
+    tmpvalue[j]=value[i];
+    j++;
+  }
+  tmpvalue[j]=0;
+
+  strcpy(value, tmpvalue);
+}
+
 void checkOptionBool(int *config_int, char *option, char *value, char *matchstr) {
   size_t matchstr_length;
 
   matchstr_length=strlen(matchstr);
-  if ((strstr(option, matchstr) != NULL) && (option[matchstr_length] != '_')) {
+  if ((strstr(option, matchstr) == option) && (option[matchstr_length] != '_')) {
     if (strcasestr(value, "yes") != NULL) {
       *config_int=1;
     } else {
@@ -63,7 +104,7 @@ void checkOptionInt(int *config_int, char *option, char *value, char *matchstr) 
   size_t matchstr_length;
   
   matchstr_length=strlen(matchstr);
-  if ((strstr(option, matchstr) != NULL) && (option[matchstr_length] != '_')) {
+  if ((strstr(option, matchstr) == option) && (option[matchstr_length] != '_')) {
     *config_int=strtol(value, NULL, 10);
   }
 }
@@ -72,12 +113,22 @@ void checkOptionDouble(double *config_double, char *option, char *value, char *m
   size_t matchstr_length;
   
   matchstr_length=strlen(matchstr);
-  if ((strstr(option, matchstr) != NULL) && (option[matchstr_length] != '_')) {
+  if ((strstr(option, matchstr) == option) && (option[matchstr_length] != '_')) {
     *config_double=strtod(value, NULL);
   }
 }
 
+void checkOptionStr(char *config_str,  char *option, char *value, char *matchstr) {
+  size_t matchstr_length;
+  
+  matchstr_length=strlen(matchstr);
+  if ((strstr(option, matchstr) == option) && (option[matchstr_length] != '_')) {
+    strcpy(config_str, value);
+  }
+}
+
 void setOptionValue(bsr_config_t *bsr_config, char *option, char *value) {
+  checkOptionStr(bsr_config->data_file_directory, option, value, "data_file_directory");
   checkOptionInt(&bsr_config->num_processes, option, value, "num_processes");
   checkOptionInt(&bsr_config->min_parallax_quality, option, value, "min_parallax_quality");
   checkOptionDouble(&bsr_config->render_distance_min, option, value, "render_distance_min");
@@ -161,11 +212,15 @@ int loadConfig(bsr_config_t *bsr_config) {
     if (symbol_p != NULL) {
       option_length=(symbol_p - input_line_trimmed);
       value_length=(input_line_trimmed_length - option_length);
-      if ((option_length <= 254) && (value_length <= 254)) {
+      // enforce range restrictions on option and value
+      if ((option_length < 254) && (value_length < 254)) {
         strncpy(option, input_line_trimmed, option_length);
         option[option_length]=0;
         strncpy(value, (symbol_p+=1), value_length);
         value[value_length]=0;
+
+        // remove non-alphanumeric characters before and after value
+        cleanupValueStr(value);
 
         // send to option value processing fucntion
         setOptionValue(bsr_config, option, value);

@@ -4,7 +4,7 @@
 #include <png.h>
 #include "util.h"
 
-int writePNGFile(bsr_config_t *bsr_config, pixel_composition_t *image_composition_buf) {
+int writePNGFile(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   pixel_composition_t *image_composition_p;
   png_byte *image_output_buf;
   png_byte *image_output_p;
@@ -55,7 +55,7 @@ int writePNGFile(bsr_config_t *bsr_config, pixel_composition_t *image_compositio
   }
 
   // convert double precision pixel_composition_buf to 8 bit image_
-  image_composition_p=image_composition_buf;
+  image_composition_p=bsr_state->image_composition_buf;
   image_output_p=image_output_buf;
   x=0;
   y=0;

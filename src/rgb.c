@@ -1,7 +1,7 @@
 #include "bsrender.h" // needs to be first to get GNU_SOURCE define for strcasestr
 #include <math.h>
 
-int initRGBTables(bsr_config_t *bsr_config, double rgb_red[], double rgb_green[], double rgb_blue[]) {
+int initRGBTables(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
 // generate RGB color values for a given blackbody temperature
 // set temp to desired white balance temperature
 
@@ -95,9 +95,9 @@ int initRGBTables(bsr_config_t *bsr_config, double rgb_red[], double rgb_green[]
 
     // re-normalize and store in rgb arrays
     normalization_factor=1.0 / (red_intensity + green_intensity + blue_intensity);
-    rgb_red[i]=red_intensity * normalization_factor;
-    rgb_green[i]=green_intensity * normalization_factor;
-    rgb_blue[i]=blue_intensity * normalization_factor;
+    bsr_state->rgb_red[i]=red_intensity * normalization_factor;
+    bsr_state->rgb_green[i]=green_intensity * normalization_factor;
+    bsr_state->rgb_blue[i]=blue_intensity * normalization_factor;
   } // end for i
   return(0);
 }

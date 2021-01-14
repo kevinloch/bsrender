@@ -1,7 +1,7 @@
-#ifndef NLE_LEPTON_H
-#define NLE_LEPTON_H
+#ifndef BSRENDER_H
+#define BSRENDER_H
 
-#define BSR_VERSION "0.9-dev-05"
+#define BSR_VERSION "0.9-dev-08"
 
 #define _GNU_SOURCE // needed for strcasestr in string.h
 #include <stdint.h> // needed for uint64_t
@@ -20,7 +20,32 @@ typedef struct {
 } pixel_composition_t;
 
 typedef struct {
+  pixel_composition_t *image_composition_buf;
+  double *rgb_red;
+  double *rgb_green;
+  double *rgb_blue;
+  double camera_hfov;
+  double camera_half_res_x;
+  double camera_half_res_y;
+  double pixels_per_radian;
+  double camera_3az_xy;
+  double camera_3az_xz;
+  double camera_3az_yz;
+  double target_x;
+  double target_y;
+  double target_z;
+  //double target_r;
+  double target_xy_r;
+  double target_xz_r;
+  double target_yz_r;
+  double target_3az_xy;
+  double target_3az_xz;
+  //double target_3az_yz;
+} bsr_state_t;
+
+typedef struct {
   char config_file_name[256];
+  char data_file_directory[256];
   int num_processes;  
   int min_parallax_quality;
   double render_distance_min;
@@ -61,5 +86,5 @@ typedef struct {
   double camera_tilt;
 } bsr_config_t;
 
-#endif // NLE_LEPTON_H
+#endif // BSRENDER_H
 
