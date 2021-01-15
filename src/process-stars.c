@@ -4,9 +4,9 @@
 
 int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_file) {
   int i;
+  volatile int success; // gcc optimization breaks code without volatile keyword
   star_record_t star_record;
   int star_record_size=sizeof(star_record_t);
-  pixel_composition_t *image_composition_p;
   double star_x;
   double star_y;
   double star_z;
@@ -29,7 +29,7 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
   double two_mollewide_angle;
   double mollewide_angle;
   const double pi_over_2=M_PI / 2.0;
-  int image_offset;
+  //int buffer_full_count=0;
 
   // read star record from input file
   fread(&star_record, star_record_size, 1, input_file);
@@ -230,7 +230,7 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
 */
 
         //
-        // render star to floating point image composition buffer
+        // render star to thread buffer.  Main thread will pick this up and add to image_composition_buf
         //
         output_el=atan2(star_z, star_xy_r);
         output_az=star_3az_xy;
@@ -255,12 +255,38 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
         }
 
         if ((output_x >= 0) && (output_x < bsr_config->camera_res_x) && (output_y >= 0) && (output_y < bsr_config->camera_res_y)) {
-          image_offset=(bsr_config->camera_res_x * output_y) + output_x;
-          image_composition_p=bsr_state->image_composition_buf + image_offset;
-          image_composition_p->r+=(star_linear_intensity * bsr_state->rgb_red[color_temperature]);
-          image_composition_p->g+=(star_linear_intensity * bsr_state->rgb_green[color_temperature]);
-          image_composition_p->b+=(star_linear_intensity * bsr_state->rgb_blue[color_temperature]);
+          // put pixel in my thread buffer
+          if (bsr_state->thread_buffer_index == bsr_config->per_thread_buffer) {
+            // end of our section of thread_buf, rewind
+            bsr_state->thread_buffer_index=0;
+            bsr_state->thread_buf_p-=bsr_config->per_thread_buffer;
+          }
+          success=0;
+          while (success == 0) {
 
+/*
+            printf("Worker thread: %d writing to thread_buffer_index: %d\n", bsr_state->my_thread_id, bsr_state->thread_buffer_index);
+            //fflush(stdout);
+*/
+
+            if ((bsr_state->thread_buf_p->status_left == 0) && (bsr_state->thread_buf_p->status_right == 0)) { // check if we've written a pixel to this location before and it has not been read/cleared by main thread yet
+              bsr_state->thread_buf_p->status_left=1;
+              bsr_state->thread_buf_p->image_offset=(bsr_config->camera_res_x * output_y) + output_x;
+              bsr_state->thread_buf_p->r=(star_linear_intensity * bsr_state->rgb_red[color_temperature]);
+              bsr_state->thread_buf_p->g=(star_linear_intensity * bsr_state->rgb_green[color_temperature]);
+              bsr_state->thread_buf_p->b=(star_linear_intensity * bsr_state->rgb_blue[color_temperature]);
+              bsr_state->thread_buf_p->status_right=1;
+              bsr_state->thread_buf_p++;
+              bsr_state->thread_buffer_index++;
+              success=1;
+/*
+            } else {
+              buffer_full_count++;
+              printf("Worker thread: %d, waiting on full buffer, count: %d\n", bsr_state->my_thread_id, buffer_full_count);
+              fflush(stdout);
+*/
+            }
+          }
 /*
           printf("debug, x: %d, y: %d, image_offset: %d, flux: %.4e, temp: %d, r: %.4e, g: %.4e, b: %.4e, rgb_red: %d, rgb_green: %d, rgb_blue: %d\n", output_x, output_y, image_offset, star_linear_intensity, star_record.color_temperature, image_composition_p->r, image_composition_p->g, image_composition_p->b, rgb_red[star_record.color_temperature], rgb_green[star_record.color_temperature], rgb_blue[star_record.color_temperature]);
           fflush(stdout);

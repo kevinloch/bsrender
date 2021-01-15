@@ -1,6 +1,7 @@
 #include "bsrender.h" // needs to be first to get GNU_SOURCE define for strcasestr
 #include <stdlib.h>
 #include <math.h>
+#define PNG_SETJMP_NOT_SUPPORTED
 #include <png.h>
 #include "util.h"
 
@@ -23,7 +24,12 @@ int writePNGFile(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   struct timespec starttime;
   struct timespec endtime;
   double elapsed_time;
-#define PNG_SETJMP_NOT_SUPPORTED
+  double inv_camera_pixel_limit;
+  double one_over_2dot4;
+
+  clock_gettime(CLOCK_REALTIME, &starttime);
+  printf("Post-processing and converting to 8-bits per color...");
+  fflush(stdout);
 
   // allocate memory for image output buffer (8 bits per color rgb) and initialize
   image_output_buf = (png_byte *)malloc(bsr_config->camera_res_x * bsr_config->camera_res_y * 3 * sizeof(png_byte));
@@ -42,10 +48,6 @@ int writePNGFile(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
     image_output_p++;
   }
 
-  clock_gettime(CLOCK_REALTIME, &starttime);
-  printf("Converting to 8-bit output buffer...");
-  fflush(stdout);
-
   // allocate memory for row_pointers
   row_pointers=(png_bytep *)malloc(bsr_config->camera_res_y * sizeof(png_bytep));
   if (row_pointers == NULL) {
@@ -60,6 +62,8 @@ int writePNGFile(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   x=0;
   y=0;
   row_pointers[0]=image_output_p;
+  inv_camera_pixel_limit = 1.0 / bsr_config->camera_pixel_limit;
+  one_over_2dot4=1.0 / 2.4;
   for (i=0; i < (bsr_config->camera_res_x * bsr_config->camera_res_y); i++) {
     if (x == bsr_config->camera_res_x) {
       x=0;
@@ -68,9 +72,9 @@ int writePNGFile(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
     }
 
     // convert flux values to output range ~0-1.0 with camera sensitivity reference level = 1.0
-    pixel_r=image_composition_p->r / bsr_config->camera_pixel_limit;
-    pixel_g=image_composition_p->g / bsr_config->camera_pixel_limit;
-    pixel_b=image_composition_p->b / bsr_config->camera_pixel_limit;
+    pixel_r=image_composition_p->r * inv_camera_pixel_limit;
+    pixel_g=image_composition_p->g * inv_camera_pixel_limit;
+    pixel_b=image_composition_p->b * inv_camera_pixel_limit;
   
     // apply camera gamma setting
     pixel_r=pow(pixel_r, bsr_config->camera_gamma);
@@ -87,25 +91,25 @@ int writePNGFile(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
     if (pixel_r <= 0.0031308) {
       pixel_r=pixel_r * 12.92;
     } else {
-      pixel_r=(1.055 * pow(pixel_r, (1.0 / 2.4)) - 0.055);
+      pixel_r=(1.055 * pow(pixel_r, one_over_2dot4) - 0.055);
     }
     if (pixel_g <= 0.0031308) {
       pixel_g=pixel_g * 12.92;
     } else {
-      pixel_g=(1.055 * pow(pixel_g, (1.0 / 2.4)) - 0.055);
+      pixel_g=(1.055 * pow(pixel_g, one_over_2dot4) - 0.055);
     }
     if (pixel_b <= 0.0031308) {
       pixel_b=pixel_b * 12.92;
     } else {
-      pixel_b=(1.055 * pow(pixel_b, (1.0 / 2.4)) - 0.055);
+      pixel_b=(1.055 * pow(pixel_b, one_over_2dot4) - 0.055);
     }
     
     // convert r,g,b to 8 bit values
-    *image_output_p=(unsigned char)(pixel_r * 255.0);
+    *image_output_p=(unsigned char)((pixel_r * 255.0) + 0.5);
     image_output_p++;
-    *image_output_p=(unsigned char)(pixel_g * 255.0);
+    *image_output_p=(unsigned char)((pixel_g * 255.0) + 0.5);
     image_output_p++;
-    *image_output_p=(unsigned char)(pixel_b * 255.0);
+    *image_output_p=(unsigned char)((pixel_b * 255.0) + 0.5);
     image_output_p++;
 
     x++;

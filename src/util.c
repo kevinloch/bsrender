@@ -1,19 +1,3 @@
-int waitForWorkerThreads(int *status_array, int num_worker_threads) {
-  int i;
-  volatile int all_workers_done=0;
-
-  while (all_workers_done == 0) {
-    all_workers_done=1;
-    for (i=0; (i < num_worker_threads); i++) {
-      if (status_array[i] == 0) {
-        all_workers_done=0;
-      }
-    }
-  } // end while all_workers_done
-
-  return(all_workers_done);
-}
-
 int limitIntensity(double *pixel_r, double *pixel_g, double *pixel_b) {
   // limit pixel to range 0.0-1.0 without regard to color
   if (*pixel_r < 0.0) {

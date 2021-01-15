@@ -7,7 +7,8 @@
 void initConfig(bsr_config_t *bsr_config) {
   strcpy(bsr_config->config_file_name, "./bsrender.cfg");
   strcpy(bsr_config->data_file_directory, "./galaxydata");
-  bsr_config->num_processes=16;
+  bsr_config->num_threads=16;
+  bsr_config->per_thread_buffer=20000;
   bsr_config->min_parallax_quality=10;
   bsr_config->render_distance_min=0.0;
   bsr_config->render_distance_max=1.0E99;
@@ -129,7 +130,8 @@ void checkOptionStr(char *config_str,  char *option, char *value, char *matchstr
 
 void setOptionValue(bsr_config_t *bsr_config, char *option, char *value) {
   checkOptionStr(bsr_config->data_file_directory, option, value, "data_file_directory");
-  checkOptionInt(&bsr_config->num_processes, option, value, "num_processes");
+  checkOptionInt(&bsr_config->num_threads, option, value, "num_threads");
+  checkOptionInt(&bsr_config->per_thread_buffer, option, value, "per_thread_buffer");
   checkOptionInt(&bsr_config->min_parallax_quality, option, value, "min_parallax_quality");
   checkOptionDouble(&bsr_config->render_distance_min, option, value, "render_distance_min");
   checkOptionDouble(&bsr_config->render_distance_max, option, value, "render_distance_max");

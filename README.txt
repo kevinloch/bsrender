@@ -2,8 +2,7 @@
  Billion Star 3D Rendering Engine
  Kevin M. Loch
 
-  bsrender is a 3d rendering engine for the ESA's Gaia EDR3 data set of over a billion stars (with parallax data).  It generates PNG images
-from any position inside or outside the galaxy.
+  bsrender is a 3d rendering engine for the ESA's Gaia EDR3 data set of over a billion stars (with parallax data).  It generates PNG images from any position inside or outside the galaxy.
 
 Installation:
 

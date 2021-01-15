@@ -1,7 +1,7 @@
 #ifndef BSRENDER_H
 #define BSRENDER_H
 
-#define BSR_VERSION "0.9-dev-08"
+#define BSR_VERSION "0.9-dev-10"
 
 #define _GNU_SOURCE // needed for strcasestr in string.h
 #include <stdint.h> // needed for uint64_t
@@ -14,13 +14,25 @@ typedef struct {
 } star_record_t;
 
 typedef struct {
+  int status_left;
+  long int image_offset;
+  double r;
+  double g;
+  double b;
+  int status_right; // left/right status fields help us deal with situation where truct is split between difference cache lines and written back at different times
+} thread_buffer_t;
+
+typedef struct {
   double r;
   double g;
   double b;
 } pixel_composition_t;
 
 typedef struct {
-  pixel_composition_t *image_composition_buf;
+  thread_buffer_t *thread_buf; // globally mmaped
+  thread_buffer_t *thread_buf_p; // used locally by each thread
+  int thread_buffer_index; // used locally by each thread
+  pixel_composition_t *image_composition_buf; // globally mmaped
   double *rgb_red;
   double *rgb_green;
   double *rgb_blue;
@@ -41,12 +53,14 @@ typedef struct {
   double target_3az_xy;
   double target_3az_xz;
   //double target_3az_yz;
+  int my_thread_id; // used locally by each thread
 } bsr_state_t;
 
 typedef struct {
   char config_file_name[256];
   char data_file_directory[256];
-  int num_processes;  
+  int num_threads;
+  int per_thread_buffer;
   int min_parallax_quality;
   double render_distance_min;
   double render_distance_max;
