@@ -77,9 +77,11 @@ int writePNGFile(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
     pixel_b=image_composition_p->b * inv_camera_pixel_limit;
   
     // apply camera gamma setting
-    pixel_r=pow(pixel_r, bsr_config->camera_gamma);
-    pixel_g=pow(pixel_g, bsr_config->camera_gamma);
-    pixel_b=pow(pixel_b, bsr_config->camera_gamma);
+    if (bsr_config->camera_gamma != 1.0) { // this is expensive so only if not 1.0
+      pixel_r=pow(pixel_r, bsr_config->camera_gamma);
+      pixel_g=pow(pixel_g, bsr_config->camera_gamma);
+      pixel_b=pow(pixel_b, bsr_config->camera_gamma);
+    }
     
     if (bsr_config->camera_pixel_limit_mode == 0) {
       limitIntensity(&pixel_r, &pixel_g, &pixel_b);
