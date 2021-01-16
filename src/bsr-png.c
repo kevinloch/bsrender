@@ -89,23 +89,25 @@ int writePNGFile(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
       limitIntensityPreserveColor(&pixel_r, &pixel_g, &pixel_b);
     }
     
-    // apply sRGB gamma
-    if (pixel_r <= 0.0031308) {
-      pixel_r=pixel_r * 12.92;
-    } else {
-      pixel_r=(1.055 * pow(pixel_r, one_over_2dot4) - 0.055);
-    }
-    if (pixel_g <= 0.0031308) {
-      pixel_g=pixel_g * 12.92;
-    } else {
-      pixel_g=(1.055 * pow(pixel_g, one_over_2dot4) - 0.055);
-    }
-    if (pixel_b <= 0.0031308) {
-      pixel_b=pixel_b * 12.92;
-    } else {
-      pixel_b=(1.055 * pow(pixel_b, one_over_2dot4) - 0.055);
-    }
-    
+    if (bsr_config->sRGB_gamma == 1) {
+      // apply sRGB gamma
+      if (pixel_r <= 0.0031308) {
+        pixel_r=pixel_r * 12.92;
+      } else {
+        pixel_r=(1.055 * pow(pixel_r, one_over_2dot4) - 0.055);
+      }
+      if (pixel_g <= 0.0031308) {
+        pixel_g=pixel_g * 12.92;
+      } else {
+        pixel_g=(1.055 * pow(pixel_g, one_over_2dot4) - 0.055);
+      }
+      if (pixel_b <= 0.0031308) {
+        pixel_b=pixel_b * 12.92;
+      } else {
+        pixel_b=(1.055 * pow(pixel_b, one_over_2dot4) - 0.055);
+      }
+    }    
+
     // convert r,g,b to 8 bit values
     *image_output_p=(unsigned char)((pixel_r * 255.0) + 0.5);
     image_output_p++;
@@ -139,6 +141,11 @@ int writePNGFile(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   info_ptr=png_create_info_struct(png_ptr);
   png_init_io(png_ptr, output_file);
   
+  // override default sRGB gamma header info if disabled in config
+  if (bsr_config->sRGB_gamma == 0) {
+    png_set_gAMA(png_ptr, info_ptr, 1.0);
+  }
+
   // write PNG header
   png_set_IHDR(png_ptr, info_ptr, bsr_config->camera_res_x, bsr_config->camera_res_y, bit_depth, color_type, PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE);
   png_write_info(png_ptr, info_ptr);
