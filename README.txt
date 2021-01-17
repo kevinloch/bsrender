@@ -13,7 +13,7 @@ Installation:
   - run 'gaia-edr3-extract.sh'
   - run 'mkgalaxy'
 - Move galaxy-pq*.dat files to ./galaxydata or path specified in config file / -d comand line option
-- run './bsrender', it will print a few progress messages and output to 'galaxy.png'
+- run './bsrender', it will print a few progress messages and output an image to 'galaxy.png'
 
 By default it will render a 360 degree lat/lon (equirectangular) projected panorama of the entire sky from the sun with the following camera settings:
  Resolution: 1920x1080

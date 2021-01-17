@@ -106,44 +106,65 @@ int main(int argc, char **argv) {
   int empty_passes;
   long star_count;
 
-  // initialize total execution timer
-  clock_gettime(CLOCK_REALTIME, &overall_starttime);
-
+  //
   // initialize bsr_config to default values
+  //
   initConfig(&bsr_config);
 
+  //
   // process command line arguments
+  //
   processCmdArgs(&bsr_config, argc, argv);
 
+  //
   // load config file
+  //
   loadConfig(&bsr_config);
 
+  //
+  // calculate number of rendering threads to be forked
+  //
   num_worker_threads=bsr_config.num_threads-1;
   if (num_worker_threads < 1) {
     num_worker_threads=1;
   }
 
-  // display major performance affecting options
-  printf("Minimum parallax quality: %d, total threads: %d, buffers per rendering thread: %d stars\n", bsr_config.min_parallax_quality, (num_worker_threads + 1), bsr_config.per_thread_buffer);
-  fflush(stdout);
+  //
+  // initialize totoal execution timer and display major performance affecting options
+  //
+  if (bsr_config.cgi_mode != 1) {
+    clock_gettime(CLOCK_REALTIME, &overall_starttime);
+    printf("Minimum parallax quality: %d, total threads: %d, buffers per rendering thread: %d stars\n", bsr_config.min_parallax_quality, (num_worker_threads + 1), bsr_config.per_thread_buffer);
+    fflush(stdout);
+  }
 
+  //
   // initialize bsr_state (setup camera target)
+  //
   initState(&bsr_config, &bsr_state);
 
+  //
   // initialize RGB color lookup tables
+  //
   bsr_state.rgb_red=rgb_red;
   bsr_state.rgb_green=rgb_green;
   bsr_state.rgb_blue=rgb_blue;
   initRGBTables(&bsr_config, &bsr_state);
 
+  //
   // allocate memory for image composition buffer (floating point rgb)
-  clock_gettime(CLOCK_REALTIME, &starttime);
-  printf("Initializing image composition buffer...");
-  fflush(stdout);
+  //
+  if (bsr_config.cgi_mode != 1) {
+    clock_gettime(CLOCK_REALTIME, &starttime);
+    printf("Initializing image composition buffer...");
+    fflush(stdout);
+  }
   composition_buffer_size=bsr_config.camera_res_x * bsr_config.camera_res_y * sizeof(pixel_composition_t);
   bsr_state.image_composition_buf=(pixel_composition_t *)malloc(composition_buffer_size);
   if (bsr_state.image_composition_buf == NULL) {
-    printf("Error: could not allocate shared memory for image composition buffer\n");
+    if (bsr_config.cgi_mode != 1) {
+      printf("Error: could not allocate shared memory for image composition buffer\n");
+    }
     return(1);
   }
   // initialize (clear) image composition buffer
@@ -154,15 +175,21 @@ int main(int argc, char **argv) {
     image_composition_p->b=0.0;
     image_composition_p++;
   }
-  clock_gettime(CLOCK_REALTIME, &endtime);
-  elapsed_time=((double)(endtime.tv_sec - 1500000000) + ((double)endtime.tv_nsec / 1.0E9)) - ((double)(starttime.tv_sec - 1500000000) + ((double)starttime.tv_nsec) / 1.0E9);
-  printf(" (%.3fs)\n", elapsed_time);
-  fflush(stdout);
+  if (bsr_config.cgi_mode != 1) {
+    clock_gettime(CLOCK_REALTIME, &endtime);
+    elapsed_time=((double)(endtime.tv_sec - 1500000000) + ((double)endtime.tv_nsec / 1.0E9)) - ((double)(starttime.tv_sec - 1500000000) + ((double)starttime.tv_nsec) / 1.0E9);
+    printf(" (%.3fs)\n", elapsed_time);
+    fflush(stdout);
+  }
 
-  // allocate shared memory for thread buffer
-  clock_gettime(CLOCK_REALTIME, &starttime);
-  printf("Initializing rendering thread buffers...");
-  fflush(stdout);
+  //
+  // allocate shared memory for thread buffer and status array
+  //
+  if (bsr_config.cgi_mode != 1) {
+    clock_gettime(CLOCK_REALTIME, &starttime);
+    printf("Initializing rendering thread buffers...");
+    fflush(stdout);
+  }
   mmap_protection=PROT_READ | PROT_WRITE;
   mmap_visibility=MAP_SHARED | MAP_ANONYMOUS;
   if (bsr_config.per_thread_buffer < 1) {
@@ -172,7 +199,10 @@ int main(int argc, char **argv) {
   thread_buffer_size=thread_buffer_count * sizeof(thread_buffer_t);
   bsr_state.thread_buf=(thread_buffer_t *)mmap(NULL, thread_buffer_size, mmap_protection, mmap_visibility, -1, 0);
   if (bsr_state.thread_buf == NULL) {
-    printf("Error: could not allocate shared memory for thread buffer\n");
+    if (bsr_config.cgi_mode != 1) {
+      printf("Error: could not allocate shared memory for thread buffer\n");
+    }
+    return(1);
   }
   // initialize thread buffer
   main_thread_buf_p=bsr_state.thread_buf;
@@ -181,33 +211,42 @@ int main(int argc, char **argv) {
     main_thread_buf_p->status_right=0;
     main_thread_buf_p++;
   }
-
   // allocate shared memory for thread status array
   status_array_size=num_worker_threads * sizeof(int);
   status_array=(int *)mmap(NULL, status_array_size, mmap_protection, mmap_visibility, -1, 0);
   if (status_array == NULL) {
-    printf("Error: could not allocate shared memory for thread status array\n");
+    if (bsr_config.cgi_mode != 1) {
+      printf("Error: could not allocate shared memory for thread status array\n");
+    }
+    return(1);
+  }
+  if (bsr_config.cgi_mode != 1) {
+    clock_gettime(CLOCK_REALTIME, &endtime);
+    elapsed_time=((double)(endtime.tv_sec - 1500000000) + ((double)endtime.tv_nsec / 1.0E9)) - ((double)(starttime.tv_sec - 1500000000) + ((double)starttime.tv_nsec) / 1.0E9);
+    printf(" (%.3fs)\n", elapsed_time);
+    fflush(stdout);
   }
 
-  clock_gettime(CLOCK_REALTIME, &endtime);
-  elapsed_time=((double)(endtime.tv_sec - 1500000000) + ((double)endtime.tv_nsec / 1.0E9)) - ((double)(starttime.tv_sec - 1500000000) + ((double)starttime.tv_nsec) / 1.0E9);
-  printf(" (%.3fs)\n", elapsed_time);
-  fflush(stdout);
-
+  //
   // attempt to open input file(s)
+  //
   sprintf(file_path, "%s/galaxy-pq100.dat", bsr_config.data_file_directory);
   input_file_pq100=fopen(file_path, "rb");
   if (input_file_pq100 == NULL) {
-    printf("Error: could not open %s\n", file_path);
-    fflush(stdout);
+    if (bsr_config.cgi_mode != 1) {
+      printf("Error: could not open %s\n", file_path);
+      fflush(stdout);
+    }
     return(1);
   }
   if (bsr_config.min_parallax_quality < 100) {
     sprintf(file_path, "%s/galaxy-pq050.dat", bsr_config.data_file_directory);
     input_file_pq050=fopen(file_path, "rb");
     if (input_file_pq050 == NULL) {
-      printf("Error: could not open %s\n", file_path);
-      fflush(stdout);
+      if (bsr_config.cgi_mode != 1) {
+        printf("Error: could not open %s\n", file_path);
+        fflush(stdout);
+      }
       return(1);
     }
   }
@@ -215,8 +254,10 @@ int main(int argc, char **argv) {
     sprintf(file_path, "%s/galaxy-pq030.dat", bsr_config.data_file_directory);
     input_file_pq030=fopen(file_path, "rb");
     if (input_file_pq030 == NULL) {
-      printf("Error: could not open %s\n", file_path);
-      fflush(stdout);
+      if (bsr_config.cgi_mode != 1) {
+        printf("Error: could not open %s\n", file_path);
+        fflush(stdout);
+      }
       return(1);
     }
   }
@@ -224,8 +265,10 @@ int main(int argc, char **argv) {
     sprintf(file_path, "%s/galaxy-pq020.dat", bsr_config.data_file_directory);
     input_file_pq020=fopen(file_path, "rb");
     if (input_file_pq020 == NULL) {
-      printf("Error: could not open %s\n", file_path);
-      fflush(stdout);
+      if (bsr_config.cgi_mode != 1) {
+        printf("Error: could not open %s\n", file_path);
+        fflush(stdout);
+      }
       return(1);
     }
   }
@@ -233,8 +276,10 @@ int main(int argc, char **argv) {
     sprintf(file_path, "%s/galaxy-pq010.dat", bsr_config.data_file_directory);
     input_file_pq010=fopen(file_path, "rb");
     if (input_file_pq010 == NULL) {
-      printf("Error: could not open %s\n", file_path);
-      fflush(stdout);
+      if (bsr_config.cgi_mode != 1) {
+        printf("Error: could not open %s\n", file_path);
+        fflush(stdout);
+      }
       return(1);
     }
   }
@@ -242,8 +287,10 @@ int main(int argc, char **argv) {
     sprintf(file_path, "%s/galaxy-pq005.dat", bsr_config.data_file_directory);
     input_file_pq005=fopen(file_path, "rb");
     if (input_file_pq005 == NULL) {
-      printf("Error: could not open %s\n", file_path);
-      fflush(stdout);
+      if (bsr_config.cgi_mode != 1) {
+        printf("Error: could not open %s\n", file_path);
+        fflush(stdout);
+      }
       return(1);
     }
   }
@@ -251,8 +298,10 @@ int main(int argc, char **argv) {
     sprintf(file_path, "%s/galaxy-pq003.dat", bsr_config.data_file_directory);
     input_file_pq003=fopen(file_path, "rb");
     if (input_file_pq003 == NULL) {
-      printf("Error: could not open %s\n", file_path);
-      fflush(stdout);
+      if (bsr_config.cgi_mode != 1) {
+        printf("Error: could not open %s\n", file_path);
+        fflush(stdout);
+      }
       return(1);
     }
   }
@@ -260,8 +309,10 @@ int main(int argc, char **argv) {
     sprintf(file_path, "%s/galaxy-pq002.dat", bsr_config.data_file_directory);
     input_file_pq002=fopen(file_path, "rb");
     if (input_file_pq002 == NULL) {
-      printf("Error: could not open %s\n", file_path);
-      fflush(stdout);
+      if (bsr_config.cgi_mode != 1) {
+        printf("Error: could not open %s\n", file_path);
+        fflush(stdout);
+      }
       return(1);
     }
   }
@@ -269,8 +320,10 @@ int main(int argc, char **argv) {
     sprintf(file_path, "%s/galaxy-pq001.dat", bsr_config.data_file_directory);
     input_file_pq001=fopen(file_path, "rb");
     if (input_file_pq001 == NULL) {
-      printf("Error: could not open %s\n", file_path);
-      fflush(stdout);
+      if (bsr_config.cgi_mode != 1) {
+        printf("Error: could not open %s\n", file_path);
+        fflush(stdout);
+      }
       return(1);
     }
   }
@@ -278,17 +331,26 @@ int main(int argc, char **argv) {
     sprintf(file_path, "%s/galaxy-pq000.dat", bsr_config.data_file_directory);
     input_file_pq000=fopen(file_path, "rb");
     if (input_file_pq000 == NULL) {
-      printf("Error: could not open %s\n", file_path);
-      fflush(stdout);
+      if (bsr_config.cgi_mode != 1) {
+        printf("Error: could not open %s\n", file_path);
+        fflush(stdout);
+      }
       return(1);
     }
   }
 
-  clock_gettime(CLOCK_REALTIME, &starttime);
-  printf("Rendering stars to image composition buffer...");
-  fflush(stdout);
+  //
+  // display begin rendering status if not in cgi mode
+  //
+  if (bsr_config.cgi_mode != 1) {
+    clock_gettime(CLOCK_REALTIME, &starttime);
+    printf("Rendering stars to image composition buffer...");
+    fflush(stdout);
+  }
 
-  // fork parallel rendering processes
+  //
+  // fork rendering threads
+  //
   master_pid=getpid();
   if (num_worker_threads > 0) {
     for (i=0; i < num_worker_threads; i++) {
@@ -302,13 +364,21 @@ int main(int argc, char **argv) {
   }
   mypid=getpid();
 
+  // 
+  // begin thread specific processing.  Rendering threads read data files and send pixles to main thread.  Main integrates these pixels into
+  // the image composition buffer
+  //
   if (mypid != master_pid) {
-    // we are a worker thread
-    // set our thread buffer postion to the beginning of this threads block
+
+    //
+    // rendering thread: set our thread buffer postion to the beginning of this threads block
+    //
     bsr_state.thread_buf_p=bsr_state.thread_buf + (bsr_state.my_thread_id * bsr_config.per_thread_buffer);
     bsr_state.thread_buffer_index=0; // index within this threads block
 
-    // main rendering function reads stars from input file and renders to image composition buffer
+    //
+    // rendering thread: set input file and send to rendering function
+    //
     processStars(&bsr_config, &bsr_state, input_file_pq100);
     if (bsr_config.min_parallax_quality < 100) {
       processStars(&bsr_config, &bsr_state, input_file_pq050);
@@ -340,7 +410,10 @@ int main(int argc, char **argv) {
     // let main thread know we are done
     status_array[bsr_state.my_thread_id]=1;
   } else {
-    // we are the master thread, process thread buffer entries until all worker threads have completed and buffer is empty
+
+    //
+    // main thread: scan rendering thread buffers for pixels to integrate into image until all rendering threads are done
+    //
     star_count=0;
     empty_passes=0;
     while (empty_passes < 2) { // do second pass once empty
@@ -364,7 +437,7 @@ int main(int argc, char **argv) {
         }
         main_thread_buf_p++;
       } // end for thread_buffer_index
-
+      // if buffer is completely empty, check if all threads are done
       if (buffer_is_empty == 1) {
         // if buffer is completely empty, check if all threads are done
         all_workers_done=1;
@@ -378,9 +451,11 @@ int main(int argc, char **argv) {
           empty_passes++;
         }
       } 
-    } // end while 
+    } // end while not done
 
-    // optionally draw overlays
+    //
+    // main thread: optionally draw overlays
+    //
     if (bsr_config.draw_cross_hairs == 1) {
       drawCrossHairs(&bsr_config, &bsr_state);
     }
@@ -388,15 +463,24 @@ int main(int argc, char **argv) {
       drawGridLines(&bsr_config, &bsr_state);
     }
 
-    clock_gettime(CLOCK_REALTIME, &endtime);
-    elapsed_time=((double)(endtime.tv_sec - 1500000000) + ((double)endtime.tv_nsec / 1.0E9)) - ((double)(starttime.tv_sec - 1500000000) + ((double)starttime.tv_nsec) / 1.0E9);
-    printf(" (%.3fs)\n", elapsed_time);
-    fflush(stdout);
+    //
+    // main thread: report rendering time if not in cgi mode
+    //
+    if (bsr_config.cgi_mode != 1) {
+      clock_gettime(CLOCK_REALTIME, &endtime);
+      elapsed_time=((double)(endtime.tv_sec - 1500000000) + ((double)endtime.tv_nsec / 1.0E9)) - ((double)(starttime.tv_sec - 1500000000) + ((double)starttime.tv_nsec) / 1.0E9);
+      printf(" (%.3fs)\n", elapsed_time);
+      fflush(stdout);
+    }
 
-    // output png file
+    //
+    // main thread: output png file
+    //
     writePNGFile(&bsr_config, &bsr_state);
 
-    // clean up
+    //
+    // main thread: clean up
+    //
     if (input_file_pq100 != NULL) {
       fclose(input_file_pq100);
     }
@@ -431,11 +515,17 @@ int main(int argc, char **argv) {
     munmap(bsr_state.thread_buf, thread_buffer_size);
     munmap(status_array, status_array_size);
 
-    // output total runtime
-    clock_gettime(CLOCK_REALTIME, &overall_endtime);
-    elapsed_time=((double)(overall_endtime.tv_sec - 1500000000) + ((double)overall_endtime.tv_nsec / 1.0E9)) - ((double)(overall_starttime.tv_sec - 1500000000) + ((double)overall_starttime.tv_nsec) / 1.0E9);
-    printf("Rendered %ld stars to %.2f megapixels, total runtime: %.3fs\n", star_count, ((double)(bsr_config.camera_res_x * bsr_config.camera_res_y) / 1.0E6), elapsed_time);
-    fflush(stdout);
+    //
+    // main thread: output total runtime
+    //
+    if (bsr_config.cgi_mode != 1) {
+      clock_gettime(CLOCK_REALTIME, &overall_endtime);
+      elapsed_time=((double)(overall_endtime.tv_sec - 1500000000) + ((double)overall_endtime.tv_nsec / 1.0E9)) - ((double)(overall_starttime.tv_sec - 1500000000) + ((double)overall_starttime.tv_nsec) / 1.0E9);
+      printf("Rendered %ld stars to %.2f megapixels, total runtime: %.3fs\n", star_count, ((double)(bsr_config.camera_res_x * bsr_config.camera_res_y) / 1.0E6), elapsed_time);
+      fflush(stdout);
+    }
 
   } // end if master process
+
+  return(0);
 }

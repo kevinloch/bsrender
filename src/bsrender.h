@@ -1,7 +1,7 @@
 #ifndef BSRENDER_H
 #define BSRENDER_H
 
-#define BSR_VERSION "0.9-dev-10"
+#define BSR_VERSION "0.9-dev-13"
 
 #define _GNU_SOURCE // needed for strcasestr in string.h
 #include <stdint.h> // needed for uint64_t
@@ -80,6 +80,7 @@ typedef struct {
   int camera_pixel_limit_mode;
   double camera_color_saturation;
   int camera_projection;
+  int spherical_orientation;
   int Mollewide_iterations;
   double camera_gamma;
   int sRGB_gamma;

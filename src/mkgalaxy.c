@@ -46,7 +46,9 @@ double calibrateParallax(double *parallax, int astrometric_params_solved, double
   double high; // interpolate high ratio
   // note: G=magnitude, neff=nu_eff or pseudocolor
 
+  //
   // initialize q
+  //
   for (j=0; j <= 4; j++) {
     for (k=0; k <=2; k++) {
       q[j][k]=0.0;
@@ -322,7 +324,9 @@ double calibrateParallax(double *parallax, int astrometric_params_solved, double
     return(1); // we should not get here but just in case
   }
 
+  //
   // initialize c
+  //
   c[0]=1.0;
   if (neff <= 1.24) {
     c[1]=-0.24;
@@ -349,11 +353,16 @@ double calibrateParallax(double *parallax, int astrometric_params_solved, double
     c[4]=neff - 1.72;
   }
 
+  //
   // initialize b
+  //
   b[0]=1.0;
   b[1]=sin(ecl_lat * M_PI / 180.0);
   b[2]=pow(sin((ecl_lat * M_PI / 180.0) - (1.0 / 3.0)), 2.0);
 
+  //
+  // apply calibration
+  //
   Z=0;
   for (j=0; j <= 4; j++) {
     for (k=0; k <= 2; k++) {
@@ -362,13 +371,8 @@ double calibrateParallax(double *parallax, int astrometric_params_solved, double
   }
   Z=Z / 1000.0; // Z is in uas, parallax is in mas
   new_parallax = *parallax - Z;
-
-/*
-  printf("debug, params: %d, G: %.4e, neff: %.4e, ecl_lat: %.4e, Z: %.4e, parallax: %.4e, new parallax: %.4e\n", astrometric_params_solved, G, neff, ecl_lat, Z, *parallax, new_parallax);
-  fflush(stdout);
-*/
-
   *parallax=new_parallax;
+
   return(new_parallax); // necessary for -Ofast to not skip function
 }
 
@@ -405,13 +409,8 @@ int main(int argc, char **argv) {
   long long discard_parms_count;
   long long discard_parallax_count;
   const double flux_to_vega=5.3095E-11; // approximate conversion factor for phot_g_mean_flux to intensity relative to Vega
-
-  int calibrate_parallax_enable=1;
-  int override_parallax_toolow=1;
-
   float linear_1pc_intensity;
   uint64_t color_temperature;
-
   star_record_t star_record;
   int star_record_size=sizeof(star_record_t);
 
@@ -434,7 +433,15 @@ int main(int argc, char **argv) {
   double magnitude;
   double linear_intensity; // flux relative to vega
 
+  //
+  // settings for calibration and parallax override
+  //
+  int calibrate_parallax_enable=1;
+  int override_parallax_toolow=1;
+
+  //
   // attempt to open input file
+  //
   printf("init, Opening input file gaia-edr3-extracted.csv\n");
   input_file=fopen("gaia-edr3-extracted.csv", "rb");
   if (input_file == NULL) {
@@ -443,7 +450,9 @@ int main(int argc, char **argv) {
     return(1);
   }
 
-  // attempt to open ouptut file for pq000
+  //
+  // attempt to open ouptut files
+  //
   printf("init, Opening output file galaxy-pq000.dat\n");
   output_file_pq000=fopen("galaxy-pq000.dat", "wb");
   if (output_file_pq000 == NULL) {
@@ -451,8 +460,6 @@ int main(int argc, char **argv) {
     fflush(stdout);
     return(1);
   }
-
-  // attempt to open ouptut file for pq001
   printf("init, Opening output file galaxy-pq001.dat\n");
   output_file_pq001=fopen("galaxy-pq001.dat", "wb");
   if (output_file_pq001 == NULL) {
@@ -460,8 +467,6 @@ int main(int argc, char **argv) {
     fflush(stdout);
     return(1);
   }
-
-  // attempt to open ouptut file for pq002
   printf("init, Opening output file galaxy-pq002.dat\n");
   output_file_pq002=fopen("galaxy-pq002.dat", "wb");
   if (output_file_pq002 == NULL) {
@@ -469,7 +474,6 @@ int main(int argc, char **argv) {
     fflush(stdout);
     return(1);
   }
-  // attempt to open ouptut file for pq003
   printf("init, Opening output file galaxy-pq003.dat\n");
   output_file_pq003=fopen("galaxy-pq003.dat", "wb");
   if (output_file_pq003 == NULL) {
@@ -477,7 +481,6 @@ int main(int argc, char **argv) {
     fflush(stdout);
     return(1);
   }
-  // attempt to open ouptut file for pq005
   printf("init, Opening output file galaxy-pq005.dat\n");
   output_file_pq005=fopen("galaxy-pq005.dat", "wb");
   if (output_file_pq005 == NULL) {
@@ -485,7 +488,6 @@ int main(int argc, char **argv) {
     fflush(stdout);
     return(1);
   }
-  // attempt to open ouptut file for pq010
   printf("init, Opening output file galaxy-pq010.dat\n");
   output_file_pq010=fopen("galaxy-pq010.dat", "wb");
   if (output_file_pq010 == NULL) {
@@ -493,7 +495,6 @@ int main(int argc, char **argv) {
     fflush(stdout);
     return(1);
   }
-  // attempt to open ouptut file for pq020
   printf("init, Opening output file galaxy-pq020.dat\n");
   output_file_pq020=fopen("galaxy-pq020.dat", "wb");
   if (output_file_pq020 == NULL) {
@@ -501,7 +502,6 @@ int main(int argc, char **argv) {
     fflush(stdout);
     return(1);
   }
-  // attempt to open ouptut file for pq030
   printf("init, Opening output file galaxy-pq030.dat\n");
   output_file_pq030=fopen("galaxy-pq030.dat", "wb");
   if (output_file_pq030 == NULL) {
@@ -509,7 +509,6 @@ int main(int argc, char **argv) {
     fflush(stdout);
     return(1);
   }
-  // attempt to open ouptut file for pq050
   printf("init, Opening output file galaxy-pq050.dat\n");
   output_file_pq050=fopen("galaxy-pq050.dat", "wb");
   if (output_file_pq050 == NULL) {
@@ -517,7 +516,6 @@ int main(int argc, char **argv) {
     fflush(stdout);
     return(1);
   }
-  // attempt to open ouptut file for pq100
   printf("init, Opening output file galaxy-pq100.dat\n");
   output_file_pq100=fopen("galaxy-pq100.dat", "wb");
   if (output_file_pq100 == NULL) {
@@ -526,7 +524,9 @@ int main(int argc, char **argv) {
     return(1);
   }
 
+  //
   // read and process each line of input file
+  //
   input_count=0;
   discard_parms_count=0;
   discard_parallax_count=0;
@@ -554,14 +554,18 @@ int main(int argc, char **argv) {
       input_count++;
       field_start=input_line;
 
+      //
       // random_index
+      //
       field_end=strchr(field_start, ','); 
       field_length=(field_end - field_start);
       strncpy(random_index, field_start, field_length);
       random_index[field_length]=0;
       field_start=(field_end+1);
 
+      //
       // ra
+      //
       field_end=strchr(field_start, ',');
       field_length=(field_end - field_start);
       strncpy(tmpstr, field_start, field_length);
@@ -569,7 +573,9 @@ int main(int argc, char **argv) {
       ra=strtod(tmpstr, NULL);
       field_start=(field_end+1);
 
+      //
       // dec
+      //
       field_end=strchr(field_start, ',');
       field_length=(field_end - field_start);
       strncpy(tmpstr, field_start, field_length);
@@ -577,7 +583,9 @@ int main(int argc, char **argv) {
       dec=strtod(tmpstr, NULL);
       field_start=(field_end+1);
 
+      //
       // parallax
+      //
       field_end=strchr(field_start, ',');
       field_length=(field_end - field_start);
       strncpy(tmpstr, field_start, field_length);
@@ -585,7 +593,9 @@ int main(int argc, char **argv) {
       parallax=strtod(tmpstr, NULL);
       field_start=(field_end+1);
 
+      //
       // paralax_over_error
+      //
       field_end=strchr(field_start, ',');
       field_length=(field_end - field_start);
       strncpy(tmpstr, field_start, field_length);
@@ -593,7 +603,9 @@ int main(int argc, char **argv) {
       parallax_over_error=strtod(tmpstr, NULL);
       field_start=(field_end+1);
 
+      //
       // astrometric_params_solved
+      //
       field_end=strchr(field_start, ',');
       field_length=(field_end - field_start);
       strncpy(tmpstr, field_start, field_length);
@@ -601,7 +613,9 @@ int main(int argc, char **argv) {
       astrometric_params_solved=strtol(tmpstr, NULL, 10);
       field_start=(field_end+1);
 
+      //
       // nu_eff_used_in_astrometry
+      //
       field_end=strchr(field_start, ',');
       field_length=(field_end - field_start);
       strncpy(tmpstr, field_start, field_length);
@@ -609,7 +623,9 @@ int main(int argc, char **argv) {
       nu_eff_used_in_astrometry=strtod(tmpstr, NULL);
       field_start=(field_end+1);
 
+      //
       // pseudocolor
+      //
       field_end=strchr(field_start, ',');
       field_length=(field_end - field_start);
       strncpy(tmpstr, field_start, field_length);
@@ -617,14 +633,18 @@ int main(int argc, char **argv) {
       pseudocolor=strtod(tmpstr, NULL);
       field_start=(field_end+1);
 
+      //
       // phot_g_mean_flux
+      //
       field_end=strchr(field_start, ',');
       field_length=(field_end - field_start);
       strncpy(tmpstr, field_start, field_length);
       tmpstr[field_length]=0;
       phot_g_mean_flux=strtod(tmpstr, NULL);
 
+      //
       // ecl_lat
+      //
       field_end=strchr(field_start, '\0'); // special processing for last field
       field_length=(field_end - field_start);
       if (field_length > 255) {
@@ -634,32 +654,48 @@ int main(int argc, char **argv) {
       tmpstr[field_length]=0;
       ecl_lat=strtod(tmpstr, NULL);
 
+      //
       // only continue if record has parallax (5 parms solved or 6 parms solved)
+      //
       if ((astrometric_params_solved == 31) || (astrometric_params_solved == 95)) {
+
+        //
         // transform flux to linear intensity relative to vega 
+        //
         linear_intensity=phot_g_mean_flux * flux_to_vega;
 
+        //
         // select correct color variable
+        //
         if (astrometric_params_solved == 31) {
           color_wavenumber=nu_eff_used_in_astrometry;
         } else if (astrometric_params_solved == 95) {
           color_wavenumber=pseudocolor;
         }
 
+        //
         // optionally calibrate parallax according to Lindegren et. al
+        //
         if (calibrate_parallax_enable == 1) {
           magnitude=-2.5*log10(linear_intensity); // some stars have blank phot_g_mean_magnitude so we derive from the more reliable flux column
           calibrateParallax(&parallax, astrometric_params_solved, magnitude, color_wavenumber, ecl_lat);
         }
 
+        //
         // optionaly override parallax below instrument minimum (or negative)
+        //
         if ((parallax < 0.01) && (override_parallax_toolow == 1)) {
           parallax=0.01;
         }
 
+        //
         // only continue if parallax is valid
+        //
         if (parallax > 0.0) {
+
+          //
           // transform spherical icrs to euclidian icrs
+          //
           //distance=M_PI / (648000.0 * tan(M_PI * parallax / 648000000)); // in parsecs, full calculation
           distance=1000.0 / parallax; // in parsecs, approximation ignoring small angle tan()
           ra_rad=ra * M_PI / 180.0;
@@ -668,15 +704,14 @@ int main(int argc, char **argv) {
           star_record.icrs_y=distance * cos(dec_rad) * sin(ra_rad);
           star_record.icrs_z=distance * sin(dec_rad);
 
+          //
           // convert linear intensity to intensity at 1pc
+          //
           linear_1pc_intensity=(float)(linear_intensity * pow(distance, 2.0));
 
-/*
-          printf("debug, random_index: %s, phot_g_mean_flux: %.4e, linear_intensity: %.4e, magnitude: %.4e, distance: %.4e, linear_1pc_intensity: %.4e\n", random_index, phot_g_mean_flux, linear_intensity, magnitude, distance, linear_1pc_intensity);
-          fflush(stdout);
-*/
-
+          //
           // transofrm color_wavenumber to integer Kelvin blackbody temperature divided by 100 and clip extraneous values
+          //
           color_temperature=(uint64_t)((2897.771955 * color_wavenumber) + 0.5); // wein's displacement to convert to Kelvin
           if (color_temperature < 0) {
             color_temperature=0;
@@ -684,13 +719,17 @@ int main(int argc, char **argv) {
             color_temperature=32767;
           }
 
+          //
           // combine intensity and temperature into one 64 bit value
+          //
           star_record.intensity_and_temperature=0;
           star_record.intensity_and_temperature=(uint64_t)*((uint32_t*)&linear_1pc_intensity);
           star_record.intensity_and_temperature <<= 32;
           star_record.intensity_and_temperature |= color_temperature;
 
+          //
           // output transformed fields to correct output dat file
+          //
           if (parallax_over_error >= 100.0) {
             fwrite(&star_record, star_record_size, 1, output_file_pq100);
             pq100_count++;
@@ -731,15 +770,24 @@ int main(int argc, char **argv) {
       } // end ignore if not parms=5 or 6
     } // end ignore csv header lines
 
-    // periodic reporting
+    //
+    // periodic status
+    //
     if ((input_count % 1000000) == 0) {
       printf("status, input records: %9lld, pq000: %8lld, pq001: %8lld, pq002: %8lld, pq003: %8lld, pq005: %8lld, pq010: %8lld, pq020: %8lld, pq030: %8lld, pq050: %8lld, pq100: %8lld, no parallax: %8lld, parallax unusable: %8lld\n", input_count, pq000_count, pq001_count, pq002_count, pq003_count, pq005_count, pq010_count, pq020_count, pq030_count, pq050_count, pq100_count, discard_parms_count, discard_parallax_count);
     }
 
     input_line_p=fgets(input_line, 256, input_file);
   }  // end while read file
-      printf("status, input records: %9lld, pq000: %8lld, pq001: %8lld, pq002: %8lld, pq003: %8lld, pq005: %8lld, pq010: %8lld, pq020: %8lld, pq030: %8lld, pq050: %8lld, pq100: %8lld, no parallax: %8lld, parallax unusable: %8lld\n", input_count, pq000_count, pq001_count, pq002_count, pq003_count, pq005_count, pq010_count, pq020_count, pq030_count, pq050_count, pq100_count, discard_parms_count, discard_parallax_count);
+      
+  //
+  // print final status 
+  //
+  printf("status, input records: %9lld, pq000: %8lld, pq001: %8lld, pq002: %8lld, pq003: %8lld, pq005: %8lld, pq010: %8lld, pq020: %8lld, pq030: %8lld, pq050: %8lld, pq100: %8lld, no parallax: %8lld, parallax unusable: %8lld\n", input_count, pq000_count, pq001_count, pq002_count, pq003_count, pq005_count, pq010_count, pq020_count, pq030_count, pq050_count, pq100_count, discard_parms_count, discard_parallax_count);
 
+  //
+  // clean up
+  //
   fclose(input_file);
   fclose(output_file_pq000);
   fclose(output_file_pq001);

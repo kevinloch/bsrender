@@ -28,6 +28,7 @@ void initConfig(bsr_config_t *bsr_config) {
   bsr_config->camera_pixel_limit_mode=0;
   bsr_config->camera_color_saturation=4;
   bsr_config->camera_projection=0;
+  bsr_config->spherical_orientation=0;
   bsr_config->Mollewide_iterations=5;
   bsr_config->camera_gamma=1.0;
   bsr_config->sRGB_gamma=1;
@@ -56,12 +57,17 @@ void cleanupValueStr(char *value) {
   char tmpvalue[256];
   size_t value_length;
 
+  //
+  // safety bounds check
+  //
   value_length=strlen(value);
   if (value_length > 254) {
     value_length=254;
   }
   
-  // find beginning of real value
+  //
+  // find beginning of value, ignoring leading spaces or quotes
+  //
   start=-1;
   for (i=0; ((start == -1) && (i < value_length)); i++) {
     if ((value[i] != 32) && (value[i] != 34) && (value[i] != 39)) { 
@@ -69,7 +75,9 @@ void cleanupValueStr(char *value) {
     }
   }
 
-  // find end of real value
+  //
+  // find end of value, ignoring trailing spaces or quotes
+  //
   end=-1;
   for (i=(value_length-1); ((end == -1) && (i >= 0)); i--) {
     if ((value[i] != 32) && (value[i] != 34) && (value[i] != 39)) {
@@ -77,7 +85,9 @@ void cleanupValueStr(char *value) {
     }
   }
 
-  // trim before and after real value
+  //
+  // trim before and after value
+  //
   j=0;
   for (i=start; i <= end; i++) {
     tmpvalue[j]=value[i];
@@ -151,6 +161,7 @@ void setOptionValue(bsr_config_t *bsr_config, char *option, char *value) {
   checkOptionInt(&bsr_config->camera_pixel_limit_mode, option, value, "camera_pixel_limit_mode");
   checkOptionDouble(&bsr_config->camera_color_saturation, option, value, "camera_color_saturation");
   checkOptionInt(&bsr_config->camera_projection, option, value, "camera_projection");
+  checkOptionInt(&bsr_config->spherical_orientation, option, value, "spherical_orientation");
   checkOptionInt(&bsr_config->Mollewide_iterations, option, value, "Mollewide_iterations");
   checkOptionDouble(&bsr_config->camera_gamma, option, value, "camera_gamma");
   checkOptionBool(&bsr_config->sRGB_gamma, option, value, "sRGB_gamma");
@@ -185,21 +196,30 @@ int loadConfig(bsr_config_t *bsr_config) {
   size_t value_length;
   
   // attempt to open config file
+/*
+  // need to add cgi auto-detect here
   printf("Loading configuration from %s\n", bsr_config->config_file_name);
   fflush(stdout);
+*/
   config_file=fopen(bsr_config->config_file_name, "r");
   if (config_file == NULL) {
+/*
     printf("Warning: could not open %s\n", bsr_config->config_file_name);
     fflush(stdout);
+*/
     return(0);
   }
 
+  //
   // read and process each line of config file
+  //
   input_line_p=fgets(input_line, 256, config_file);
   while(input_line_p != NULL) {
     input_line_length=strlen(input_line);
 
+    //
     // search for comment symbol and remove any comments, otherwise just remove newline
+    //
     symbol_p=strchr(input_line, '#');
     if (symbol_p != NULL) {
       input_line_trimmed_length=(symbol_p - input_line);
@@ -209,7 +229,9 @@ int loadConfig(bsr_config_t *bsr_config) {
     strncpy(input_line_trimmed, input_line, input_line_trimmed_length);
     input_line_trimmed[input_line_trimmed_length]=0;
 
+    //
     // search for option/value delimiter and split option and value strings
+    //
     symbol_p=strchr(input_line_trimmed, '=');
     if (symbol_p != NULL) {
       option_length=(symbol_p - input_line_trimmed);

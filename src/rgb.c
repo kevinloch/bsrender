@@ -2,16 +2,11 @@
 #include <math.h>
 
 int initRGBTables(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
+//
 // generate RGB color values for a given blackbody temperature
-// set temp to desired white balance temperature
+//
 
   int i;
-
-  // CIE wavelengths
-  double red_center=700.0E-9;
-  double green_center=546.1E-9;
-  double blue_center=435.8E-9;
-
   double red_freq;
   double green_freq;
   double blue_freq;
@@ -30,11 +25,21 @@ int initRGBTables(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   double color_min;
   double color_mid;
 
+  // CIE wavelengths
+  double red_center=700.0E-9;
+  double green_center=546.1E-9;
+  double blue_center=435.8E-9;
+
+  //
+  // convert CIE reference wavelengths to frequency
+  //
   red_freq=c / red_center;
   green_freq=c / green_center;
   blue_freq=c / blue_center;
 
+  //
   // calculate white balance factors
+  //
   red_intensity=  (2.0 * h * pow(red_freq,   3.0) / pow(c, 2.0)) / (exp(h * red_freq   / (kb * bsr_config->camera_wb_temp)) - 1);
   green_intensity=(2.0 * h * pow(green_freq, 3.0) / pow(c, 2.0)) / (exp(h * green_freq / (kb * bsr_config->camera_wb_temp)) - 1);
   blue_intensity= (2.0 * h * pow(blue_freq,  3.0) / pow(c, 2.0)) / (exp(h * blue_freq  / (kb * bsr_config->camera_wb_temp)) - 1);
@@ -42,14 +47,18 @@ int initRGBTables(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   red_wb_factor=1.0 / red_intensity;
   blue_wb_factor=1.0 / blue_intensity;
   
+  //
   // calculate rgb values for each integer Kelving temp from 0 - 32767K
+  //
   for (i=0; i < 32768; i++) {
     temp=(double)i;
     red_intensity=red_wb_factor     * (2.0 * h * pow(red_freq,   3.0) / pow(c, 2.0)) / (exp(h * red_freq   / (kb * temp)) - 1);
     green_intensity=green_wb_factor * (2.0 * h * pow(green_freq, 3.0) / pow(c, 2.0)) / (exp(h * green_freq / (kb * temp)) - 1);
     blue_intensity= blue_wb_factor  * (2.0 * h * pow(blue_freq,  3.0) / pow(c, 2.0)) / (exp(h * blue_freq  / (kb * temp)) - 1);
 
+    //
     // calculate normalization factor so r+g+b=1
+    //
     if (red_intensity == 0) {
       red_intensity=1.0;
     }
@@ -58,7 +67,9 @@ int initRGBTables(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
     green_intensity=green_intensity * normalization_factor;
     blue_intensity=blue_intensity * normalization_factor;
 
+    //
     // apply camera color saturation adjustment
+    //
     color_max=-1.0;
     if (red_intensity > color_max) {
       color_max=red_intensity;
@@ -93,11 +104,14 @@ int initRGBTables(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
       blue_intensity=0;
     }
 
+    //
     // re-normalize and store in rgb arrays
+    //
     normalization_factor=1.0 / (red_intensity + green_intensity + blue_intensity);
     bsr_state->rgb_red[i]=red_intensity * normalization_factor;
     bsr_state->rgb_green[i]=green_intensity * normalization_factor;
     bsr_state->rgb_blue[i]=blue_intensity * normalization_factor;
   } // end for i
+
   return(0);
 }
