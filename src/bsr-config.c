@@ -8,7 +8,7 @@ void initConfig(bsr_config_t *bsr_config) {
   strcpy(bsr_config->config_file_name, "./bsrender.cfg");
   strcpy(bsr_config->data_file_directory, "./galaxydata");
   bsr_config->num_threads=16;
-  bsr_config->per_thread_buffer=20000;
+  bsr_config->per_thread_buffer=50000;
   bsr_config->min_parallax_quality=10;
   bsr_config->render_distance_min=0.0;
   bsr_config->render_distance_max=1.0E99;
@@ -16,8 +16,8 @@ void initConfig(bsr_config_t *bsr_config) {
   bsr_config->draw_cross_hairs=0;
   bsr_config->draw_grid_lines=0;
   bsr_config->cgi_mode=0;
-  bsr_config->cgi_max_res_x=32768;
-  bsr_config->cgi_max_res_y=16384;
+  bsr_config->cgi_max_res_x=4096;
+  bsr_config->cgi_max_res_y=4096;
   bsr_config->cgi_min_parallax_quality=0;
   bsr_config->camera_res_x=1920;
   bsr_config->camera_res_y=1080;
@@ -26,7 +26,7 @@ void initConfig(bsr_config_t *bsr_config) {
   bsr_config->camera_pixel_limit_mag=7.0;
   bsr_config->camera_pixel_limit=pow(100.0, (-bsr_config->camera_pixel_limit_mag / 5.0));
   bsr_config->camera_pixel_limit_mode=0;
-  bsr_config->camera_color_saturation=4;
+  bsr_config->camera_color_saturation=4.0;
   bsr_config->camera_projection=0;
   bsr_config->spherical_orientation=0;
   bsr_config->Mollewide_iterations=5;
@@ -44,7 +44,7 @@ void initConfig(bsr_config_t *bsr_config) {
   bsr_config->target_icrs_ra=266.4168371;
   bsr_config->target_icrs_dec=-29.0078106;
   bsr_config->target_icrs_r=8178.0;
-  bsr_config->camera_rotation=-60.2;
+  bsr_config->camera_rotation=-58.6;
   bsr_config->camera_pan=0.0;
   bsr_config->camera_tilt=0.0;
 }
