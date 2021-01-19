@@ -1,7 +1,7 @@
 #ifndef BSRENDER_H
 #define BSRENDER_H
 
-#define BSR_VERSION "0.9-dev-14"
+#define BSR_VERSION "0.9-dev-15"
 
 #define _GNU_SOURCE // needed for strcasestr in string.h
 #include <stdint.h> // needed for uint64_t

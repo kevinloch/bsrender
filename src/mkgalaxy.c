@@ -436,7 +436,7 @@ int main(int argc, char **argv) {
   //
   // settings for calibration and parallax override
   //
-  int calibrate_parallax_enable=0; // enable Lindegren et. al. parallax calibration
+  int calibrate_parallax_enable=1; // enable Lindegren et. al. parallax calibration
   int override_parallax_toolow=1;  // enforce minimum_parallax
   double minimum_parallax=0.015;   // minimum parallax when override_parallax_toolow is set
 
