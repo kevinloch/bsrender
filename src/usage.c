@@ -3,7 +3,7 @@
 
 void printUsage() {
 
-printf("nle-lepton version %s\n", BSR_VERSION);
+printf("bsrender version %s\n", BSR_VERSION);
 printf("\n\
 NAME\n\
      bsrender -- Render PNG image from 3D star database\n\

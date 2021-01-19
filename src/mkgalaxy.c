@@ -436,8 +436,21 @@ int main(int argc, char **argv) {
   //
   // settings for calibration and parallax override
   //
-  int calibrate_parallax_enable=1;
-  int override_parallax_toolow=1;
+  int calibrate_parallax_enable=0; // enable Lindegren et. al. parallax calibration
+  int override_parallax_toolow=1;  // enforce minimum_parallax
+  double minimum_parallax=0.015;   // minimum parallax when override_parallax_toolow is set
+
+  //
+  // print options
+  //
+  if (calibrate_parallax_enable == 1) {
+    printf("Lindegren et. al. parallax calibration enabled.  Edit calibrate_parallax_enable in mkgalaxy.c and recompile to change this option\n");
+  } else {
+    printf("Lindegrenn et. al. parallax calibration disabled. Edit calibrate_parallax_enable in mkgalaxy.c and recompile to change this option\n");
+  }
+  if (override_parallax_toolow == 1) {
+    printf("Minimum parallax of %.3f uas will be enforced. Edit override_parallax_toolow and minimum_parallax in mkgalaxy.c and recompile to change this option\n", minimum_parallax, minimum_parallax);
+  }
 
   //
   // attempt to open input file
@@ -684,8 +697,8 @@ int main(int argc, char **argv) {
         //
         // optionaly override parallax below instrument minimum (or negative)
         //
-        if ((parallax < 0.01) && (override_parallax_toolow == 1)) {
-          parallax=0.01;
+        if ((parallax < minimum_parallax) && (override_parallax_toolow == 1)) {
+          parallax=minimum_parallax;
         }
 
         //

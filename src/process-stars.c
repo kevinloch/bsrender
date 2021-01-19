@@ -23,6 +23,7 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
   float star_linear_1pc_intensity;
   double star_linear_intensity; // star linear intensity as viewed from camera
   double output_az;
+  double output_az_by2;
   double output_el;
   int output_x=0;
   int output_y=0;
@@ -261,6 +262,12 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
         output_x=(int)((-bsr_state->pixels_per_radian * output_az) + bsr_state->camera_half_res_x + 0.5);
         output_y=(int)((-bsr_state->pixels_per_radian * output_el) + bsr_state->camera_half_res_y + 0.5);
       } else if (bsr_config->camera_projection == 2) {
+        // Hammer
+        output_az_by2=star_3az_xy / 2.0;
+        output_el=atan2(star_z, star_xy_r);
+        output_x=(int)((-bsr_state->pixels_per_radian * M_PI * cos(output_el) * sin(output_az_by2) / (sqrt(1.0 + (cos(output_el) * cos(output_az_by2))))) + bsr_state->camera_half_res_x + 0.5);
+        output_y=(int)((-bsr_state->pixels_per_radian * pi_over_2 * sin(output_el) / (sqrt(1.0 + (cos(output_el) * cos(output_az_by2))))) + bsr_state->camera_half_res_y + 0.5);
+      } else if (bsr_config->camera_projection == 3) {
         // Mollewide
         output_az=star_3az_xy;
         output_el=atan2(star_z, star_xy_r);
