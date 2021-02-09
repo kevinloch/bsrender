@@ -438,7 +438,7 @@ int main(int argc, char **argv) {
   //
   int calibrate_parallax_enable=1; // enable Lindegren et. al. parallax calibration
   int override_parallax_toolow=1;  // enforce minimum_parallax
-  double minimum_parallax=0.015;   // minimum parallax when override_parallax_toolow is set
+  double minimum_parallax=0.015;   // minimum parallax in mas when override_parallax_toolow is set
 
   //
   // print options
@@ -449,7 +449,7 @@ int main(int argc, char **argv) {
     printf("Lindegrenn et. al. parallax calibration disabled. Edit calibrate_parallax_enable in mkgalaxy.c and recompile to change this option\n");
   }
   if (override_parallax_toolow == 1) {
-    printf("Minimum parallax of %.3f uas will be enforced. Edit override_parallax_toolow and minimum_parallax in mkgalaxy.c and recompile to change this option\n", minimum_parallax, minimum_parallax);
+    printf("Minimum parallax of %.3f mas will be enforced. Edit override_parallax_toolow and minimum_parallax in mkgalaxy.c and recompile to change this option\n", minimum_parallax);
   }
 
   //

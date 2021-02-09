@@ -22,6 +22,7 @@
 #include "overlay.h"
 #include "process-stars.h"
 #include "init-state.h"
+#include "cgi.h"
 
 int processCmdArgs(bsr_config_t *bsr_config, int argc, char **argv) {
   int i;
@@ -79,7 +80,7 @@ int main(int argc, char **argv) {
   FILE *input_file_pq002=NULL;
   FILE *input_file_pq001=NULL;
   FILE *input_file_pq000=NULL;
-  pid_t master_pid;
+  pid_t master_pid=0;
   pid_t mypid;
   int mmap_protection;
   int mmap_visibility;
@@ -119,7 +120,16 @@ int main(int argc, char **argv) {
   //
   // load config file
   //
-  loadConfig(&bsr_config);
+  loadConfigFromFile(&bsr_config);
+
+  //
+  // if cgi mode, print CGI output header and read query string
+  //
+  if (bsr_config.cgi_mode == 1) {
+    printCGIheader();
+    getCGIOptions(&bsr_config);
+    validateCGIOptions(&bsr_config);
+  }
 
   //
   // calculate number of rendering threads to be forked

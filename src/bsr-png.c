@@ -167,11 +167,9 @@ int writePNGFile(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   }
 
   //
-  // print html header if in cgi mode, otherwise open output png file for writing
+  // if not cgi mode, open output file
   //
-  if (bsr_config->cgi_mode == 1) {
-    printCGIheader();
-  } else {
+  if (bsr_config->cgi_mode != 1) {
     output_file=fopen("galaxy.png", "wb");
     if (output_file == NULL) {
       printf("Error: could not open galaxy.png for writing\n");
@@ -209,11 +207,9 @@ int writePNGFile(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   png_write_end(png_ptr, NULL);
 
   //
-  // print html footer if in cgi mode, otherwise display status message and close output file
+  // if not cgi mode display status message and close output file
   //
-  if (bsr_config->cgi_mode == 1) {
-    printCGIfooter();
-  } else {
+  if (bsr_config->cgi_mode != 1) {
     clock_gettime(CLOCK_REALTIME, &endtime);
     elapsed_time=((double)(endtime.tv_sec - 1500000000) + ((double)endtime.tv_nsec / 1.0E9)) - ((double)(starttime.tv_sec - 1500000000) + ((double)starttime.tv_nsec) / 1.0E9);
     printf(" (%.4fs)\n", elapsed_time);

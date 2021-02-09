@@ -138,20 +138,29 @@ void checkOptionStr(char *config_str,  char *option, char *value, char *matchstr
   }
 }
 
-void setOptionValue(bsr_config_t *bsr_config, char *option, char *value) {
-  checkOptionStr(bsr_config->data_file_directory, option, value, "data_file_directory");
-  checkOptionInt(&bsr_config->num_threads, option, value, "num_threads");
-  checkOptionInt(&bsr_config->per_thread_buffer, option, value, "per_thread_buffer");
+void setOptionValue(bsr_config_t *bsr_config, char *option, char *value, int from_cgi) {
+  if (from_cgi == 0) {
+    //
+    // values that can be set from config file or command line only (not cgi query_string)
+    //
+    checkOptionStr(bsr_config->data_file_directory, option, value, "data_file_directory");
+    checkOptionInt(&bsr_config->num_threads, option, value, "num_threads");
+    checkOptionInt(&bsr_config->per_thread_buffer, option, value, "per_thread_buffer");
+    checkOptionBool(&bsr_config->cgi_mode, option, value, "cgi_mode");
+    checkOptionInt(&bsr_config->cgi_max_res_x, option, value, "cgi_max_res_x");
+    checkOptionInt(&bsr_config->cgi_max_res_y, option, value, "cgi_max_res_y");
+    checkOptionInt(&bsr_config->cgi_min_parallax_quality, option, value, "cgi_min_parallax_quality");
+  }
+
+  //
+  // values that can be set from config file, command line, or cgi query_string
+  //
   checkOptionInt(&bsr_config->min_parallax_quality, option, value, "min_parallax_quality");
   checkOptionDouble(&bsr_config->render_distance_min, option, value, "render_distance_min");
   checkOptionDouble(&bsr_config->render_distance_max, option, value, "render_distance_max");
   checkOptionInt(&bsr_config->render_distance_selector, option, value, "render_distance_selector");
   checkOptionBool(&bsr_config->draw_cross_hairs, option, value, "draw_cross_hairs");
   checkOptionBool(&bsr_config->draw_grid_lines, option, value, "draw_grid_lines");
-  checkOptionBool(&bsr_config->cgi_mode, option, value, "cgi_mode");
-  checkOptionInt(&bsr_config->cgi_max_res_x, option, value, "cgi_max_res_x");
-  checkOptionInt(&bsr_config->cgi_max_res_y, option, value, "cgi_max_res_y");
-  checkOptionInt(&bsr_config->cgi_min_parallax_quality, option, value, "cgi_min_parallax_quality");
   checkOptionInt(&bsr_config->camera_res_x, option, value, "camera_res_x");
   checkOptionInt(&bsr_config->camera_res_y, option, value, "camera_res_y");
   checkOptionDouble(&bsr_config->camera_fov, option, value, "camera_fov");
@@ -182,7 +191,7 @@ void setOptionValue(bsr_config_t *bsr_config, char *option, char *value) {
   checkOptionDouble(&bsr_config->camera_tilt, option, value, "camera_tilt");
 }
 
-int loadConfig(bsr_config_t *bsr_config) {
+int loadConfigFromFile(bsr_config_t *bsr_config) {
   FILE *config_file;
   char *input_line_p;
   char *symbol_p;
@@ -247,12 +256,112 @@ int loadConfig(bsr_config_t *bsr_config) {
         cleanupValueStr(value);
 
         // send to option value processing fucntion
-        setOptionValue(bsr_config, option, value);
+        setOptionValue(bsr_config, option, value, 0); // 0 == not from cgi
 
       } // end option_length and value_length checks
     } // end symbol_p check
     input_line_p=fgets(input_line, 256, config_file);
   } // end while input_line_raw
+
+  return(0);
+}
+
+int loadConfigFromQueryString(bsr_config_t *bsr_config, char *query_string) {
+  int done;
+  char *query_p;
+  char segment[2048];
+  int segment_length;
+  char *symbol_p;
+  char option[256];
+  size_t option_length;
+  char value[256];
+  size_t value_length;
+
+  //
+  // load first segment from query_string
+  //
+  done=0;
+  query_p=query_string;
+  if (query_p[0] == 0) {
+    done=1;
+  } else {
+    symbol_p=strchr(query_p, '&');
+    if (symbol_p != NULL) {
+      segment_length=symbol_p - query_p;
+    } else {
+      segment_length=strlen(query_p);
+    }
+  }
+  while (done == 0) {
+    strncpy(segment, query_p, segment_length);
+    segment[segment_length]=0;
+
+    //
+    // search for option/value delimiter and split option and value strings
+    //
+    symbol_p=strchr(segment, '=');
+    if ((segment_length > 0) && (symbol_p != NULL)) {
+      option_length=(symbol_p - segment);
+      value_length=(segment_length - option_length);
+
+      //
+      // enforce range restrictions on option and value
+      //
+      if ((option_length < 254) && (value_length < 254)) {
+        strncpy(option, segment, option_length);
+        option[option_length]=0;
+        strncpy(value, (symbol_p+=1), value_length);
+        value[value_length]=0;
+
+        //
+        // remove non-alphanumeric characters before and after value
+        //
+        cleanupValueStr(value);
+
+        //
+        // send to option value processing fucntion
+        //
+        setOptionValue(bsr_config, option, value, 1); // 1 == from cgi
+
+      } // end option_length and value_length checks
+    } // end symbol_p check
+
+    //
+    // load next segment
+    //
+    query_p+=segment_length;
+    if (query_p[0] == 0) {
+      done=1;
+    } else {
+      query_p++;
+      symbol_p=strchr(query_p, '&');
+      if (symbol_p != NULL) {
+        segment_length=symbol_p - query_p;
+      } else {
+        segment_length=strlen(query_p);
+      }
+    }
+  } // end while not done
+
+  return(0);
+}
+
+int validateCGIOptions(bsr_config_t *bsr_config) {
+  if (bsr_config->camera_res_x < 10) {
+    bsr_config->camera_res_x=10;
+  }
+  if (bsr_config->camera_res_x > bsr_config->cgi_max_res_x) {
+    bsr_config->camera_res_x=bsr_config->cgi_max_res_x;
+  }
+  if (bsr_config->camera_res_y < 10) {
+    bsr_config->camera_res_y=10;
+  }
+  if (bsr_config->camera_res_y > bsr_config->cgi_max_res_y) {
+    bsr_config->camera_res_y=bsr_config->cgi_max_res_y;
+  }
+  if (bsr_config->min_parallax_quality < bsr_config->cgi_min_parallax_quality) {
+    bsr_config->min_parallax_quality=bsr_config->cgi_min_parallax_quality;
+  }
 
   return(0);
 }
