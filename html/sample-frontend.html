@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="0" />
+<style>
+#nav {
+  background-color:#e0e0e0;
+  padding:20px;
+}
+#box_style {
+  display: table;
+  max-width: device-width;
+  white-space: nowrap;
+}
+#settings_style {
+  min-width: 20%;
+  display: table-cell;
+  background-color:#e0e0e0;
+  padding:20px;
+  white-space: normal;
+}
+#rendering_style {
+  display: table-cell;
+  vertical-align: top;
+  padding: 20px;
+  white-space: normal;
+}
+img {
+  max-width: 100%;
+}
+</style>
+  <meta charset="utf-8">
+  <title>bsrender</title>
+  <script>
+    function loadSettingsFromURL() {
+      let url = new URL(window.location.href);
+      let search = url.searchParams;
+      let tmpvalue = search.get("rendering_server");
+      if (tmpvalue != null) {
+        settings_form.rendering_server.value = tmpvalue;
+      }
+      tmpvalue = search.get("min_parallax_quality");
+      if (tmpvalue != null) {
+        settings_form.min_parallax_quality.value = tmpvalue;
+      }
+      tmpvalue = search.get("render_distance_min");
+      if (tmpvalue != null) {
+        settings_form.render_distance_min.value = tmpvalue;
+      }
+      tmpvalue = search.get("render_distance_max");
+      if (tmpvalue != null) {
+        settings_form.render_distance_max.value = tmpvalue;
+      }
+      tmpvalue = search.get("render_distance_selector");
+      if (tmpvalue != null) {
+        settings_form.render_distance_selector.value = tmpvalue;
+      }
+      tmpvalue = search.get("draw_cross_hairs");
+      if (tmpvalue == "yes") {
+        settings_form.draw_cross_hairs.checked = true;
+      }
+      tmpvalue = search.get("draw_grid_lines");
+      if (tmpvalue == "yes") {
+        settings_form.draw_grid_lines.checked = true;
+      }
+      tmpvalue = search.get("sRGB_gamma");
+      if (tmpvalue != null) {
+        settings_form.sRGB_gamma.value = tmpvalue;
+      }
+      tmpvalue = search.get("camera_res_x");
+      if (tmpvalue != null) {
+        settings_form.camera_res_x.value = tmpvalue;
+      }
+      tmpvalue = search.get("camera_res_y");
+      if (tmpvalue != null) {
+        settings_form.camera_res_y.value = tmpvalue;
+      }
+      tmpvalue = search.get("camera_fov");
+      if (tmpvalue != null) {
+        settings_form.camera_fov.value = tmpvalue;
+      }
+      tmpvalue = search.get("camera_pixel_limit_mag");
+      if (tmpvalue != null) {
+        settings_form.camera_pixel_limit_mag.value = tmpvalue;
+      }
+      tmpvalue = search.get("camera_pixel_limit_mode");
+      if (tmpvalue != null) {
+        settings_form.camera_pixel_limit_mode.value = tmpvalue;
+      }
+      tmpvalue = search.get("camera_wb_temp");
+      if (tmpvalue != null) {
+        settings_form.camera_wb_temp.value = tmpvalue;
+      }
+      tmpvalue = search.get("camera_color_saturation");
+      if (tmpvalue != null) {
+        settings_form.camera_color_saturation.value = tmpvalue;
+      }
+      tmpvalue = search.get("camera_gamma");
+      if (tmpvalue != null) {
+        settings_form.camera_gamma.value = tmpvalue;
+      }
+      tmpvalue = search.get("camera_projection");
+      if (tmpvalue != null) {
+        settings_form.camera_projection.value = tmpvalue;
+      }
+      tmpvalue = search.get("spherical_orientation");
+      if (tmpvalue != null) {
+        settings_form.spherical_orientation.value = tmpvalue;
+      }
+      tmpvalue = search.get("camera_icrs_x");
+      if (tmpvalue != null) {
+        settings_form.camera_icrs_x.value = tmpvalue;
+      }
+      tmpvalue = search.get("camera_icrs_y");
+      if (tmpvalue != null) {
+        settings_form.camera_icrs_y.value = tmpvalue;
+      }
+      tmpvalue = search.get("camera_icrs_z");
+      if (tmpvalue != null) {
+        settings_form.camera_icrs_z.value = tmpvalue;
+      }
+      tmpvalue = search.get("camera_icrs_ra");
+      if (tmpvalue != null) {
+        settings_form.camera_icrs_ra.value = tmpvalue;
+      }
+      tmpvalue = search.get("camera_icrs_dec");
+      if (tmpvalue != null) {
+        settings_form.camera_icrs_dec.value = tmpvalue;
+      }
+      tmpvalue = search.get("camera_icrs_r");
+      if (tmpvalue != null) {
+        settings_form.camera_icrs_r.value = tmpvalue;
+      }
+      tmpvalue = search.get("target_icrs_x");
+      if (tmpvalue != null) {
+        settings_form.target_icrs_x.value = tmpvalue;
+      }
+      tmpvalue = search.get("target_icrs_y");
+      if (tmpvalue != null) {
+        settings_form.target_icrs_y.value = tmpvalue;
+      }
+      tmpvalue = search.get("target_icrs_z");
+      if (tmpvalue != null) {
+        settings_form.target_icrs_z.value = tmpvalue;
+      }
+      tmpvalue = search.get("target_icrs_ra");
+      if (tmpvalue != null) {
+        settings_form.target_icrs_ra.value = tmpvalue;
+      }
+      tmpvalue = search.get("target_icrs_dec");
+      if (tmpvalue != null) {
+        settings_form.target_icrs_dec.value = tmpvalue;
+      }
+      tmpvalue = search.get("target_icrs_r");
+      if (tmpvalue != null) {
+        settings_form.target_icrs_r.value = tmpvalue;
+      }
+      tmpvalue = search.get("camera_rotation");
+      if (tmpvalue != null) {
+        settings_form.camera_rotation.value = tmpvalue;
+      }
+      tmpvalue = search.get("camera_pan");
+      if (tmpvalue != null) {
+        settings_form.camera_pan.value = tmpvalue;
+      }
+      tmpvalue = search.get("camera_tilt");
+      if (tmpvalue != null) {
+        settings_form.camera_tilt.value = tmpvalue;
+      }
+    };
+    function updateImage() {
+      let src = `${settings_form.rendering_server.value}/?\
+min_parallax_quality=${settings_form.min_parallax_quality.value}&\
+render_distance_min=${settings_form.render_distance_min.value}&\
+render_distance_max=${settings_form.render_distance_max.value}&\
+render_distance_selector=${settings_form.render_distance_selector.value}&\
+draw_cross_hairs=${settings_form.draw_cross_hairs.value}&\
+draw_grid_lines=${settings_form.draw_grid_lines.value}&\
+sRGB_gamma=${settings_form.sRGB_gamma.value}&\
+camera_res_x=${settings_form.camera_res_x.value}&\
+camera_res_y=${settings_form.camera_res_y.value}&\
+camera_fov=${settings_form.camera_fov.value}&\
+camera_pixel_limit_mag=${settings_form.camera_pixel_limit_mag.value}&\
+camera_pixel_limit_mode=${settings_form.camera_pixel_limit_mode.value}&\
+camera_wb_temp=${settings_form.camera_wb_temp.value}&\
+camera_color_saturation=${settings_form.camera_color_saturation.value}&\
+camera_gamma=${settings_form.camera_gamma.value}&\
+camera_projection=${settings_form.camera_projection.value}&\
+spherical_orientation=${settings_form.spherical_orientation.value}&\
+camera_icrs_x=${settings_form.camera_icrs_x.value}&\
+camera_icrs_y=${settings_form.camera_icrs_y.value}&\
+camera_icrs_z=${settings_form.camera_icrs_z.value}&\
+camera_icrs_ra=${settings_form.camera_icrs_ra.value}&\
+camera_icrs_dec=${settings_form.camera_icrs_dec.value}&\
+camera_icrs_r=${settings_form.camera_icrs_r.value}&\
+target_icrs_x=${settings_form.target_icrs_x.value}&\
+target_icrs_y=${settings_form.target_icrs_y.value}&\
+target_icrs_z=${settings_form.target_icrs_z.value}&\
+target_icrs_ra=${settings_form.target_icrs_ra.value}&\
+target_icrs_dec=${settings_form.target_icrs_dec.value}&\
+target_icrs_r=${settings_form.target_icrs_r.value}&\
+camera_rotation=${settings_form.camera_rotation.value}&\
+camera_pan=${settings_form.camera_pan.value}&\
+camera_tilt=${settings_form.camera_tilt.value}`;
+      document.getElementById("render_image").src = src;
+    };
+  </script>
+</head>
+<body>
+  <header>
+    <h2>Sample web interface for <a href="https://github.com/kevinloch/bsrender">bsrender</a> using data from <a href="https://www.cosmos.esa.int/web/gaia/earlydr3">Gaia EDR3</a></h2>
+  </header>
+  <nav id="nav">
+    Easy navigation buttons go here
+  </nav>
+  <main role="main">
+    <div id="box_style">
+      <div id="settings_style">
+        <h3>General Rendering Options</h3>
+        <form name="settings_form">
+          <button type="reset">reset to defaults</button>&nbsp;<button type="button" onClick="updateImage()">Render</button>
+          <p>
+          <label for="rendering_server">Rendering server</label>
+          <input type="text" name="rendering_server" id="rendering_server" size="40" value="http://bsrender.kevinloch.com/r/">
+          <br><label for="min_parallax_quality">Minimum parallax quality</label>
+          <select name="min_parallax_quality" id="min_parallax_quality">
+            <option value="100">100</option>
+            <option value="50">50</option>
+            <option value="30">30</option>
+            <option value="20">20</option>
+            <option value="10" selected>10</option>
+            <option value="5">5</option>
+            <option value="3">3</option>
+            <option value="2">2</option>
+            <option value="1">1</option>
+            <option value="0">0</option>
+          </select>
+          <label for="min_parallax_quality">parallax / error</label>
+          <br><label for="render_distance_min">Minimum render distance</label>
+          <input type="text" name="render_distance_min" id="render_distance_min" value="0.0E0"> parsecs
+          <br><label for="render_distance_max">Maximum render distance</label>
+          <input type="text" name="render_distance_max" id="render_distance_max" value="1.0E99"> parsecs
+          <br><label for "render_distance_selector">Render distance measured from</label>
+          <select name="render_distance_selector" id="render_distance_selector">
+            <option value="0" selected>Camera</option>
+            <option value="1">Target</option>
+          </select>
+          <br><label for "draw_cross_hairs">Draw cross-hairs</label>
+          <select name="draw_cross_hairs" id="draw_cross_hairs">
+            <option value="no" selected>no</option>
+            <option value="yes">yes</option>
+          </select>
+          <br><label for "draw_grid_lines">Draw grid lines</label>
+          <select name="draw_grid_lines" id="draw_grid_lines">
+            <option value="no" selected>no</option>
+            <option value="yes">yes</option>
+          </select>
+          <br><label for "sRGB_gamma">Enable sRGB encoding gamma</label>
+          <select name="sRGB_gamma" id="sRGB_gamma">
+            <option value="yes">yes</option>
+            <option value="no">no</option>
+          </select>
+          <h3>Camera Options</h3>
+          <label for "camera_res_x">Horizontal resolution</label>
+          <input type="text" id="camera_res_x" name="camera_res_x" value="2000">
+          <br><label for "camera_res_y">Vertical resolution</label>
+          <input type="text" id="camera_res_y" name="camera_res_y" value="1000">
+          <br><label for "camera_fov">Field of view</label>
+          <input type="text" id="camera_fov" name="camera_fov" value="360"> deg
+          <br><label for "camera_pixel_limit_mag">Pixel intensity limit</label>
+          <input type="text" id="camera_pixel_limit_mag" name="camera_pixel_limit_mag" value="7.0"> magnitude
+          <br><label for "camera_pixel_limit_mode">Pixel intensity limit mode</label>
+          <select name="camera_pixel_limit_mode" id="camera_pixel_limit_mode">
+            <option value="0">Saturate to white</option>
+            <option value="1">Preserve color</option>
+          </select>
+          <br><label for "camera_wb_temp">White balance temp</label>
+          <input type="text" id="camera_wb_temp" name="camera_wb_temp" value="4200"> K
+          <br><label for "camera_color_saturation">Color saturation</label>
+          <input type="text" id="camera_color_saturation" name="camera_color_saturation" value="4">
+          <br><label for "camera_gamma">Gamma</label>
+          <input type="text" id="camera_gamma" name="camera_gamma" value="1.0">
+          <br><label for "camera_projection">Raster projection mode</label>
+          <select name="camera_projection" id="camera_projection">
+            <option value="0">lat/lon (equirectangular)</option>
+            <option value="1">spherical</option>
+            <option value="2">Hammer</option>
+            <option value="3">Mollewide</option>
+          </select>
+          <br><label for "spherical_orientation">Orientation for spherical projection</label>
+          <select name="spherical_orientation" id="spherical_orientation">
+            <option value="0">forward centered</option>
+            <option value="1">side-by-side</option>
+          </select>
+          <h3>Camera Position (ICRS coordinates)</h3>
+            <label for "camera_icrs_x>x</label>
+            <input type="text" id="camera_icrs_x" name="camera_icrs_x" value="0.0"> parsecs
+            <br><label for "camera_icrs_y>y</label>
+            <input type="text" id="camera_icrs_y" name="camera_icrs_y" value="0.0"> parsecs
+            <br><label for "camera_icrs_z>z</label>
+            <input type="text" id="camera_icrs_z" name="camera_icrs_z" value="0.0"> parsecs
+            <p>or<p>
+            <label for "camera_icrs_ra>ra</label>
+            <input type="text" id="camera_icrs_ra" name="camera_icrs_ra" value="0.0"> deg
+            <br><label for "camera_icrs_dec>dec</label>
+            <input type="text" id="camera_icrs_dec" name="camera_icrs_dec" value="0.0"> deg
+            <br><label for "camera_icrs_r>r</label>
+            <input type="text" id="camera_icrs_r" name="camera_icrs_r" value="0.0"> parsecs
+          <h3>Target Position (ICRS coordinates)</h3>
+            <label for "target_icrs_x>x</label>
+            <input type="text" id="target_icrs_x" name="target_icrs_x" value="0.0"> parsecs
+            <br><label for "target_icrs_y>y</label>
+            <input type="text" id="target_icrs_y" name="target_icrs_y" value="0.0"> parsecs
+            <br><label for "target_icrs_z>z</label>
+            <input type="text" id="target_icrs_z" name="target_icrs_z" value="0.0"> parsecs
+            <p>or<p>
+            <label for "target_icrs_ra>ra</label>
+            <input type="text" id="target_icrs_ra" name="target_icrs_ra" value="266.4168371"> deg
+            <br><label for "target_icrs_dec>dec</label>
+            <input type="text" id="target_icrs_dec" name="target_icrs_dec" value="-29.0078106"> deg
+            <br><label for "target_icrs_r>r</label>
+            <input type="text" id="target_icrs_r" name="target_icrs_r" value="8178.0"> parsec
+          <h3>Camera Rotation/Pan/Tilt</h3>
+            (After aiming at target) 
+            <p>
+            <label for "camera_rotation">Rotate</label>
+            <input type="text" id="camera_rotation" name="camera_rotation" value="-58.6"> deg
+            <br><label for "camera_pan">Pan</label>
+            <input type="text" id="camera_pan" name="camera_pan" value="0.0"> deg
+            <br><label for "camera_tilt">Tilt</label>
+            <input type="text" id="camera_tilt" name="camera_tilt" value="0.0"> deg
+          <p>
+          <button type="reset">reset to defaults</button>&nbsp;<button type="button" onClick="updateImage()">Render</button>
+        </form>
+      </div>
+      <script>
+        loadSettingsFromURL();
+      </script>
+      <div id="rendering_style">
+        <img alt="" src="" id="render_image">
+        <script>
+          updateImage();
+        </script>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

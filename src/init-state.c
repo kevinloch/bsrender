@@ -21,16 +21,18 @@ int initState(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   bsr_state->camera_3az_xz=bsr_config->camera_tilt * -pi_over_180;
 
   //
-  // optionally transform spherical icrs to euclidian icrs
+  // optionally transform spherical icrs to euclidian icrs if x,y,z are zero
   //
-  if ((bsr_config->camera_icrs_dec != 0) || (bsr_config->camera_icrs_ra != 0)) {
+  if (((bsr_config->camera_icrs_ra != 0.0) || (bsr_config->camera_icrs_dec != 0.0) || (bsr_config->camera_icrs_r != 0.0))\
+    && (bsr_config->camera_icrs_x == 0.0) && (bsr_config->camera_icrs_y == 0.0) && (bsr_config->camera_icrs_z == 0.0)) {
     camera_icrs_ra_rad=bsr_config->camera_icrs_ra * pi_over_180;
     camera_icrs_dec_rad=bsr_config->camera_icrs_dec * pi_over_180;
     bsr_config->camera_icrs_x=bsr_config->camera_icrs_r * cos(camera_icrs_dec_rad) * cos(camera_icrs_ra_rad);
     bsr_config->camera_icrs_y=bsr_config->camera_icrs_r * cos(camera_icrs_dec_rad) * sin(camera_icrs_ra_rad);
     bsr_config->camera_icrs_z=bsr_config->camera_icrs_r * sin(camera_icrs_dec_rad);
   }
-  if ((bsr_config->target_icrs_dec != 0) || (bsr_config->target_icrs_ra != 0)) {
+  if (((bsr_config->target_icrs_ra != 0.0) || (bsr_config->target_icrs_dec != 0.0) || (bsr_config->target_icrs_r != 0.0))\
+    && (bsr_config->target_icrs_x == 0.0) && (bsr_config->target_icrs_y == 0.0) && (bsr_config->target_icrs_z == 0.0)) {
     target_icrs_ra_rad=bsr_config->target_icrs_ra * pi_over_180;
     target_icrs_dec_rad=bsr_config->target_icrs_dec * pi_over_180;
     bsr_config->target_icrs_x=bsr_config->target_icrs_r * cos(target_icrs_dec_rad) * cos(target_icrs_ra_rad);

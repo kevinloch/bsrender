@@ -16,11 +16,11 @@ void initConfig(bsr_config_t *bsr_config) {
   bsr_config->draw_cross_hairs=0;
   bsr_config->draw_grid_lines=0;
   bsr_config->cgi_mode=0;
-  bsr_config->cgi_max_res_x=4096;
-  bsr_config->cgi_max_res_y=4096;
+  bsr_config->cgi_max_res_x=33000;
+  bsr_config->cgi_max_res_y=17000;
   bsr_config->cgi_min_parallax_quality=0;
-  bsr_config->camera_res_x=1920;
-  bsr_config->camera_res_y=1080;
+  bsr_config->camera_res_x=2000;
+  bsr_config->camera_res_y=1000;
   bsr_config->camera_fov=360.0;
   bsr_config->camera_wb_temp=4200.0;
   bsr_config->camera_pixel_limit_mag=7.0;
