@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
@@ -8,6 +9,7 @@
 #nav {
   background-color:#e0e0e0;
   padding:20px;
+  text-align: center;
 }
 #box_style {
   display: table;
@@ -15,7 +17,7 @@
   white-space: nowrap;
 }
 #settings_style {
-  min-width: 20%;
+  min-width: 25%;
   display: table-cell;
   background-color:#e0e0e0;
   padding:20px;
@@ -26,6 +28,10 @@
   vertical-align: top;
   padding: 20px;
   white-space: normal;
+}
+#footer {
+  padding:20px;
+  text-align: center;
 }
 img {
   max-width: 100%;
@@ -57,9 +63,9 @@ img {
       if (tmpvalue != null) {
         settings_form.render_distance_selector.value = tmpvalue;
       }
-      tmpvalue = search.get("draw_cross_hairs");
+      tmpvalue = search.get("draw_crosshairs");
       if (tmpvalue == "yes") {
-        settings_form.draw_cross_hairs.checked = true;
+        settings_form.draw_crosshairs.checked = true;
       }
       tmpvalue = search.get("draw_grid_lines");
       if (tmpvalue == "yes") {
@@ -108,6 +114,18 @@ img {
       tmpvalue = search.get("spherical_orientation");
       if (tmpvalue != null) {
         settings_form.spherical_orientation.value = tmpvalue;
+      }
+      tmpvalue = search.get("Airy_disk");
+      if (tmpvalue != null) {
+        settings_form.Airy_disk.value = tmpvalue;
+      }
+      tmpvalue = search.get("Airy_disk_first_null");
+      if (tmpvalue != null) {
+        settings_form.Airy_disk_first_null.value = tmpvalue;
+      }
+      tmpvalue = search.get("Airy_disk_max_extent");
+      if (tmpvalue != null) {
+        settings_form.Airy_disk_max_extent.value = tmpvalue;
       }
       tmpvalue = search.get("camera_icrs_x");
       if (tmpvalue != null) {
@@ -176,7 +194,7 @@ min_parallax_quality=${settings_form.min_parallax_quality.value}&\
 render_distance_min=${settings_form.render_distance_min.value}&\
 render_distance_max=${settings_form.render_distance_max.value}&\
 render_distance_selector=${settings_form.render_distance_selector.value}&\
-draw_cross_hairs=${settings_form.draw_cross_hairs.value}&\
+draw_crosshairs=${settings_form.draw_crosshairs.value}&\
 draw_grid_lines=${settings_form.draw_grid_lines.value}&\
 sRGB_gamma=${settings_form.sRGB_gamma.value}&\
 camera_res_x=${settings_form.camera_res_x.value}&\
@@ -189,6 +207,9 @@ camera_color_saturation=${settings_form.camera_color_saturation.value}&\
 camera_gamma=${settings_form.camera_gamma.value}&\
 camera_projection=${settings_form.camera_projection.value}&\
 spherical_orientation=${settings_form.spherical_orientation.value}&\
+Airy_disk=${settings_form.Airy_disk.value}&\
+Airy_disk_first_null=${settings_form.Airy_disk_first_null.value}&\
+Airy_disk_max_extent=${settings_form.Airy_disk_max_extent.value}&\
 camera_icrs_x=${settings_form.camera_icrs_x.value}&\
 camera_icrs_y=${settings_form.camera_icrs_y.value}&\
 camera_icrs_z=${settings_form.camera_icrs_z.value}&\
@@ -247,8 +268,8 @@ camera_tilt=${settings_form.camera_tilt.value}`;
             <option value="0" selected>Camera</option>
             <option value="1">Target</option>
           </select>
-          <br><label for "draw_cross_hairs">Draw cross-hairs</label>
-          <select name="draw_cross_hairs" id="draw_cross_hairs">
+          <br><label for "draw_crosshairs">Draw crosshairs</label>
+          <select name="draw_crosshairs" id="draw_crosshairs">
             <option value="no" selected>no</option>
             <option value="yes">yes</option>
           </select>
@@ -259,7 +280,7 @@ camera_tilt=${settings_form.camera_tilt.value}`;
           </select>
           <br><label for "sRGB_gamma">Enable sRGB encoding gamma</label>
           <select name="sRGB_gamma" id="sRGB_gamma">
-            <option value="yes">yes</option>
+            <option value="yes" selected>yes</option>
             <option value="no">no</option>
           </select>
           <h3>Camera Options</h3>
@@ -294,6 +315,15 @@ camera_tilt=${settings_form.camera_tilt.value}`;
             <option value="0">forward centered</option>
             <option value="1">side-by-side</option>
           </select>
+          <br><label for "Airy_disk">Enable Airy disks</label>
+          <select name="Airy_disk" id="Airy_disk">
+            <option value="yes">yes</option>
+            <option value="no" selected>no</option>
+          </select> Caution: Airy disks render very slowly
+          <br><label for "Airy_disk_first_null">Radius of first Airy disk null</label>
+          <input type="text" id="Airy_disk_first_null" name="Airy_disk_first_null" value="0.5"> pixels
+          <br><label for "Airy_disk_max_extent">Maximum extent of Airy disk</label>
+          <input type="text" id="Airy_disk_max_extent" name="Airy_disk_max_extent" value="3"> pixels
           <h3>Camera Position (ICRS coordinates)</h3>
             <label for "camera_icrs_x>x</label>
             <input type="text" id="camera_icrs_x" name="camera_icrs_x" value="0.0"> parsecs
@@ -346,5 +376,8 @@ camera_tilt=${settings_form.camera_tilt.value}`;
       </div>
     </div>
   </main>
+  <footer id="footer">
+    sample-frontend.html from bsrender v0.9.0-dev-23
+  </footer>
 </body>
 </html>

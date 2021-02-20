@@ -1,7 +1,7 @@
 #ifndef BSRENDER_H
 #define BSRENDER_H
 
-#define BSR_VERSION "0.9-dev-20"
+#define BSR_VERSION "0.9-dev-23"
 
 #define _GNU_SOURCE // needed for strcasestr in string.h
 #include <stdint.h> // needed for uint64_t
@@ -36,6 +36,9 @@ typedef struct {
   double *rgb_red;
   double *rgb_green;
   double *rgb_blue;
+  double *Airymap_red;
+  double *Airymap_green;
+  double *Airymap_blue;
   double camera_hfov;
   double camera_half_res_x;
   double camera_half_res_y;
@@ -61,29 +64,35 @@ typedef struct {
   char data_file_directory[256];
   int num_threads;
   int per_thread_buffer;
-  int min_parallax_quality;
-  double render_distance_min;
-  double render_distance_max;
-  int render_distance_selector;
-  int draw_cross_hairs;
-  int draw_grid_lines;
   int cgi_mode;
   int cgi_max_res_x;
   int cgi_max_res_y;
   int cgi_min_parallax_quality;
+  int min_parallax_quality;
+  double render_distance_min;
+  double render_distance_max;
+  int render_distance_selector;
+  int draw_crosshairs;
+  int draw_grid_lines;
+  int sRGB_gamma;
   int camera_res_x;
   int camera_res_y;
   double camera_fov;
-  double camera_wb_temp;
   double camera_pixel_limit_mag;
   double camera_pixel_limit;
   int camera_pixel_limit_mode;
+  double camera_wb_temp;
+  double red_center;
+  double green_center;
+  double blue_center;
   double camera_color_saturation;
+  double camera_gamma;
   int camera_projection;
   int spherical_orientation;
   int Mollewide_iterations;
-  double camera_gamma;
-  int sRGB_gamma;
+  int Airy_disk;
+  double Airy_disk_first_null;
+  int Airy_disk_max_extent;
   double camera_icrs_x;
   double camera_icrs_y;
   double camera_icrs_z;
@@ -102,4 +111,3 @@ typedef struct {
 } bsr_config_t;
 
 #endif // BSRENDER_H
-

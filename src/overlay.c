@@ -5,7 +5,7 @@ int drawCrossHairs(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   pixel_composition_t *image_composition_p;
 
   //
-  // optionally draw cross hairs
+  // optionally draw crosshairs
   //
   for (i=(bsr_state->camera_half_res_x - (bsr_config->camera_res_y * 0.02)); i < (bsr_state->camera_half_res_x - (bsr_config->camera_res_y * 0.005)); i++) {
     image_composition_p=bsr_state->image_composition_buf + (int)(bsr_config->camera_res_x * bsr_state->camera_half_res_y) + i;

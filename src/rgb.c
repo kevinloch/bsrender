@@ -13,9 +13,9 @@ int initRGBTables(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   double red_intensity;
   double green_intensity;
   double blue_intensity;
-  double kb=1.380649E-23;
-  double h=6.62607015E-34;
-  double c=299792458.0;
+  const double kb=1.380649E-23;
+  const double h=6.62607015E-34;
+  const double c=299792458.0;
   double temp;
   double red_wb_factor;
   double green_wb_factor;
@@ -25,17 +25,12 @@ int initRGBTables(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   double color_min;
   double color_mid;
 
-  // CIE wavelengths
-  double red_center=700.0E-9;
-  double green_center=546.1E-9;
-  double blue_center=435.8E-9;
-
   //
-  // convert CIE reference wavelengths to frequency
+  // convert reference wavelengths to frequency
   //
-  red_freq=c / red_center;
-  green_freq=c / green_center;
-  blue_freq=c / blue_center;
+  red_freq=c / bsr_config->red_center;
+  green_freq=c / bsr_config->green_center;
+  blue_freq=c / bsr_config->blue_center;
 
   //
   // calculate white balance factors

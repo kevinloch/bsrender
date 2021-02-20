@@ -23,6 +23,7 @@
 #include "process-stars.h"
 #include "init-state.h"
 #include "cgi.h"
+#include "diffraction.h"
 
 int processCmdArgs(bsr_config_t *bsr_config, int argc, char **argv) {
   int i;
@@ -96,6 +97,7 @@ int main(int argc, char **argv) {
   double rgb_red[32768];
   double rgb_green[32768];
   double rgb_blue[32768];
+  int Airymap_size;
   int num_worker_threads; 
   pixel_composition_t *image_composition_p;
   int thread_buffer_size;
@@ -106,6 +108,7 @@ int main(int argc, char **argv) {
   int buffer_is_empty;
   int empty_passes;
   long star_count;
+  int Airymap_xy;
 
   //
   // initialize bsr_config to default values
@@ -140,7 +143,14 @@ int main(int argc, char **argv) {
   }
 
   //
-  // initialize totoal execution timer and display major performance affecting options
+  // set colors to standard CIE wavelengths
+  //
+  bsr_config.red_center=700.0E-9;
+  bsr_config.green_center=546.1E-9;
+  bsr_config.blue_center=435.8E-9;
+
+  //
+  // initialize total execution timer and display major performance affecting options
   //
   if (bsr_config.cgi_mode != 1) {
     clock_gettime(CLOCK_REALTIME, &overall_starttime);
@@ -160,6 +170,29 @@ int main(int argc, char **argv) {
   bsr_state.rgb_green=rgb_green;
   bsr_state.rgb_blue=rgb_blue;
   initRGBTables(&bsr_config, &bsr_state);
+
+  //
+  // allocate memory for Airy disk maps and initialize
+  //
+  if (bsr_config.Airy_disk == 1) {
+    if (bsr_config.cgi_mode != 1) {
+      clock_gettime(CLOCK_REALTIME, &starttime);
+      printf("Initializing Airy disk maps...");
+      fflush(stdout);
+    }
+    Airymap_xy=(bsr_config.Airy_disk_max_extent * 2) + 1;
+    Airymap_size=Airymap_xy * Airymap_xy * sizeof(double);
+    bsr_state.Airymap_red=(double *)malloc(Airymap_size);
+    bsr_state.Airymap_green=(double *)malloc(Airymap_size);
+    bsr_state.Airymap_blue=(double *)malloc(Airymap_size);
+    initAiryMaps(&bsr_config, &bsr_state);
+    if (bsr_config.cgi_mode != 1) {
+      clock_gettime(CLOCK_REALTIME, &endtime);
+      elapsed_time=((double)(endtime.tv_sec - 1500000000) + ((double)endtime.tv_nsec / 1.0E9)) - ((double)(starttime.tv_sec - 1500000000) + ((double)starttime.tv_nsec) / 1.0E9);
+      printf(" (%.3fs)\n", elapsed_time);
+      fflush(stdout);
+    }
+  }
 
   //
   // allocate memory for image composition buffer (floating point rgb)
@@ -466,7 +499,7 @@ int main(int argc, char **argv) {
     //
     // main thread: optionally draw overlays
     //
-    if (bsr_config.draw_cross_hairs == 1) {
+    if (bsr_config.draw_crosshairs == 1) {
       drawCrossHairs(&bsr_config, &bsr_state);
     }
     if (bsr_config.draw_grid_lines == 1) {

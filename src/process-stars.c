@@ -32,6 +32,21 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
   double two_mollewide_angle;
   double mollewide_angle;
   const double pi_over_2=M_PI / 2.0;
+  int Airymap_x;
+  int Airymap_y;
+  int Airymap_half_size;
+  int Airymap_size;
+  int Airymap_output_x;
+  int Airymap_output_y;
+  double *Airymap_red_p;
+  double *Airymap_green_p;
+  double *Airymap_blue_p;
+  double rgb_red;
+  double rgb_green;
+  double rgb_blue;
+
+  Airymap_half_size=bsr_config->Airy_disk_max_extent;
+  Airymap_size=(Airymap_half_size * 2) + 1;
 
   //
   // read and process each line of input file and render stars to image
@@ -284,28 +299,77 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
       // if star is within raster bounds, write to thread buffer to send to main thread for integration in final image
       //
       if ((output_x >= 0) && (output_x < bsr_config->camera_res_x) && (output_y >= 0) && (output_y < bsr_config->camera_res_y)) {
-        // put pixel in my thread buffer
-        if (bsr_state->thread_buffer_index == bsr_config->per_thread_buffer) {
-          // end of our section of thread_buf, rewind
-          bsr_state->thread_buffer_index=0;
-          bsr_state->thread_buf_p-=bsr_config->per_thread_buffer;
-        }
-        success=0;
-        while (success == 0) {
-          // check if we've written a pixel to this location before and it has not been read/cleared by main thread yet
-          if ((bsr_state->thread_buf_p->status_left == 0) && (bsr_state->thread_buf_p->status_right == 0)) {
-            bsr_state->thread_buf_p->status_left=1;
-            bsr_state->thread_buf_p->image_offset=(bsr_config->camera_res_x * output_y) + output_x;
-            bsr_state->thread_buf_p->r=(star_linear_intensity * bsr_state->rgb_red[color_temperature]);
-            bsr_state->thread_buf_p->g=(star_linear_intensity * bsr_state->rgb_green[color_temperature]);
-            bsr_state->thread_buf_p->b=(star_linear_intensity * bsr_state->rgb_blue[color_temperature]);
-            bsr_state->thread_buf_p->status_right=1;
-            bsr_state->thread_buf_p++;
-            bsr_state->thread_buffer_index++;
-            success=1;
-          } // end if buffer slot is available
-        } // end while success=0
-      } // end if within image raster
+        if (bsr_config->Airy_disk == 1) {
+          //
+          // Airy disk mode, use Airy disk maps to find all pixel values for this star
+          //
+          Airymap_red_p=bsr_state->Airymap_red;
+          Airymap_green_p=bsr_state->Airymap_green;
+          Airymap_blue_p=bsr_state->Airymap_blue;
+          rgb_red=bsr_state->rgb_red[color_temperature];
+          rgb_green=bsr_state->rgb_green[color_temperature];
+          rgb_blue=bsr_state->rgb_blue[color_temperature];
+          for (Airymap_y=0; Airymap_y < Airymap_size; Airymap_y++) {
+            for (Airymap_x=0; Airymap_x < Airymap_size; Airymap_x++) {
+              Airymap_output_x=output_x - Airymap_half_size + Airymap_x;
+              Airymap_output_y=output_y - Airymap_half_size + Airymap_y;
+              if ((Airymap_output_x >= 0) && (Airymap_output_x < bsr_config->camera_res_x) && (Airymap_output_y >= 0) && (Airymap_output_y < bsr_config->camera_res_y)
+                && ((*Airymap_red_p > 0.0) || (*Airymap_green_p > 0.0) || (*Airymap_blue_p > 0.0))) {
+                //
+                // Airymap pixel is within image raster, put in my thread buffer
+                //
+                if (bsr_state->thread_buffer_index == bsr_config->per_thread_buffer) {
+                  // end of our section of thread_buf, rewind
+                  bsr_state->thread_buffer_index=0;
+                  bsr_state->thread_buf_p-=bsr_config->per_thread_buffer;
+                }
+                success=0;
+                while (success == 0) {
+                  // check if we've written a pixel to this location before and it has not been read/cleared by main thread yet
+                  if ((bsr_state->thread_buf_p->status_left == 0) && (bsr_state->thread_buf_p->status_right == 0)) {
+                    bsr_state->thread_buf_p->status_left=1;
+                    bsr_state->thread_buf_p->image_offset=(bsr_config->camera_res_x * Airymap_output_y) + Airymap_output_x;
+                    bsr_state->thread_buf_p->r=(star_linear_intensity * *Airymap_red_p * rgb_red);
+                    bsr_state->thread_buf_p->g=(star_linear_intensity * *Airymap_green_p * rgb_green);
+                    bsr_state->thread_buf_p->b=(star_linear_intensity * *Airymap_blue_p * rgb_blue);
+                    bsr_state->thread_buf_p->status_right=1;
+                    bsr_state->thread_buf_p++;
+                    bsr_state->thread_buffer_index++;
+                    success=1;
+                  } // end if buffer slot is available
+                } // end while success=0
+              } // end if Airymap pixel is within image raster
+              Airymap_red_p++;
+              Airymap_green_p++;
+              Airymap_blue_p++;
+            } // end for Airymap_x
+          } // end for Airymap_y
+        } else {
+          //
+          // not Airy disk mode, put a single pixel for this star in my thread buffer
+          //
+          if (bsr_state->thread_buffer_index == bsr_config->per_thread_buffer) {
+            // end of our section of thread_buf, rewind
+            bsr_state->thread_buffer_index=0;
+            bsr_state->thread_buf_p-=bsr_config->per_thread_buffer;
+          }
+          success=0;
+          while (success == 0) {
+            // check if we've written a pixel to this location before and it has not been read/cleared by main thread yet
+            if ((bsr_state->thread_buf_p->status_left == 0) && (bsr_state->thread_buf_p->status_right == 0)) {
+              bsr_state->thread_buf_p->status_left=1;
+              bsr_state->thread_buf_p->image_offset=(bsr_config->camera_res_x * output_y) + output_x;
+              bsr_state->thread_buf_p->r=(star_linear_intensity * bsr_state->rgb_red[color_temperature]);
+              bsr_state->thread_buf_p->g=(star_linear_intensity * bsr_state->rgb_green[color_temperature]);
+              bsr_state->thread_buf_p->b=(star_linear_intensity * bsr_state->rgb_blue[color_temperature]);
+              bsr_state->thread_buf_p->status_right=1;
+              bsr_state->thread_buf_p++;
+              bsr_state->thread_buffer_index++;
+              success=1;
+            } // end if buffer slot is available
+          } // end while success=0
+        } // end if Airy disk mode
+      } // end if star is within image raster
     } // end if within distance ranges
 
     //

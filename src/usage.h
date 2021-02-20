@@ -1,6 +1,6 @@
-#ifndef USAGE_H
-#define USAGE_H
+#ifndef BSR_USAGE_H
+#define BSR_USAGE_H
 
 void printUsage();
 
-#endif // USAGE_H
+#endif // BSR_USAGE_H

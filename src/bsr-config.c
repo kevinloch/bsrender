@@ -9,29 +9,32 @@ void initConfig(bsr_config_t *bsr_config) {
   strcpy(bsr_config->data_file_directory, "./galaxydata");
   bsr_config->num_threads=16;
   bsr_config->per_thread_buffer=50000;
-  bsr_config->min_parallax_quality=10;
-  bsr_config->render_distance_min=0.0;
-  bsr_config->render_distance_max=1.0E99;
-  bsr_config->render_distance_selector=0;
-  bsr_config->draw_cross_hairs=0;
-  bsr_config->draw_grid_lines=0;
   bsr_config->cgi_mode=0;
   bsr_config->cgi_max_res_x=33000;
   bsr_config->cgi_max_res_y=17000;
   bsr_config->cgi_min_parallax_quality=0;
+  bsr_config->min_parallax_quality=10;
+  bsr_config->render_distance_min=0.0;
+  bsr_config->render_distance_max=1.0E99;
+  bsr_config->render_distance_selector=0;
+  bsr_config->draw_crosshairs=0;
+  bsr_config->draw_grid_lines=0;
+  bsr_config->sRGB_gamma=1;
   bsr_config->camera_res_x=2000;
   bsr_config->camera_res_y=1000;
   bsr_config->camera_fov=360.0;
-  bsr_config->camera_wb_temp=4200.0;
   bsr_config->camera_pixel_limit_mag=7.0;
   bsr_config->camera_pixel_limit=pow(100.0, (-bsr_config->camera_pixel_limit_mag / 5.0));
   bsr_config->camera_pixel_limit_mode=0;
+  bsr_config->camera_wb_temp=4200.0;
   bsr_config->camera_color_saturation=4.0;
+  bsr_config->camera_gamma=1.0;
   bsr_config->camera_projection=0;
   bsr_config->spherical_orientation=0;
   bsr_config->Mollewide_iterations=5;
-  bsr_config->camera_gamma=1.0;
-  bsr_config->sRGB_gamma=1;
+  bsr_config->Airy_disk=0;
+  bsr_config->Airy_disk_first_null=3.0;
+  bsr_config->Airy_disk_max_extent=50;
   bsr_config->camera_icrs_x=0.0;
   bsr_config->camera_icrs_y=0.0;
   bsr_config->camera_icrs_z=0.0;
@@ -141,7 +144,7 @@ void checkOptionStr(char *config_str,  char *option, char *value, char *matchstr
 void setOptionValue(bsr_config_t *bsr_config, char *option, char *value, int from_cgi) {
   if (from_cgi == 0) {
     //
-    // values that can be set from config file or command line only (not cgi query_string)
+    // privileged values that can be set from config file or command line only (not cgi query_string)
     //
     checkOptionStr(bsr_config->data_file_directory, option, value, "data_file_directory");
     checkOptionInt(&bsr_config->num_threads, option, value, "num_threads");
@@ -159,21 +162,24 @@ void setOptionValue(bsr_config_t *bsr_config, char *option, char *value, int fro
   checkOptionDouble(&bsr_config->render_distance_min, option, value, "render_distance_min");
   checkOptionDouble(&bsr_config->render_distance_max, option, value, "render_distance_max");
   checkOptionInt(&bsr_config->render_distance_selector, option, value, "render_distance_selector");
-  checkOptionBool(&bsr_config->draw_cross_hairs, option, value, "draw_cross_hairs");
+  checkOptionBool(&bsr_config->draw_crosshairs, option, value, "draw_crosshairs");
   checkOptionBool(&bsr_config->draw_grid_lines, option, value, "draw_grid_lines");
+  checkOptionBool(&bsr_config->sRGB_gamma, option, value, "sRGB_gamma");
   checkOptionInt(&bsr_config->camera_res_x, option, value, "camera_res_x");
   checkOptionInt(&bsr_config->camera_res_y, option, value, "camera_res_y");
   checkOptionDouble(&bsr_config->camera_fov, option, value, "camera_fov");
-  checkOptionDouble(&bsr_config->camera_wb_temp, option, value, "camera_wb_temp");
   checkOptionDouble(&bsr_config->camera_pixel_limit_mag, option, value, "camera_pixel_limit_mag");
   bsr_config->camera_pixel_limit=pow(100.0, (-bsr_config->camera_pixel_limit_mag / 5.0));
   checkOptionInt(&bsr_config->camera_pixel_limit_mode, option, value, "camera_pixel_limit_mode");
+  checkOptionDouble(&bsr_config->camera_wb_temp, option, value, "camera_wb_temp");
   checkOptionDouble(&bsr_config->camera_color_saturation, option, value, "camera_color_saturation");
+  checkOptionDouble(&bsr_config->camera_gamma, option, value, "camera_gamma");
   checkOptionInt(&bsr_config->camera_projection, option, value, "camera_projection");
   checkOptionInt(&bsr_config->spherical_orientation, option, value, "spherical_orientation");
   checkOptionInt(&bsr_config->Mollewide_iterations, option, value, "Mollewide_iterations");
-  checkOptionDouble(&bsr_config->camera_gamma, option, value, "camera_gamma");
-  checkOptionBool(&bsr_config->sRGB_gamma, option, value, "sRGB_gamma");
+  checkOptionBool(&bsr_config->Airy_disk, option, value, "Airy_disk");
+  checkOptionDouble(&bsr_config->Airy_disk_first_null, option, value, "Airy_disk_first_null");
+  checkOptionInt(&bsr_config->Airy_disk_max_extent, option, value, "Airy_disk_max_extent");
   checkOptionDouble(&bsr_config->camera_icrs_x, option, value, "camera_icrs_x");
   checkOptionDouble(&bsr_config->camera_icrs_y, option, value, "camera_icrs_y");
   checkOptionDouble(&bsr_config->camera_icrs_z, option, value, "camera_icrs_z");
