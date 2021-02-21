@@ -314,7 +314,7 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
               Airymap_output_x=output_x - Airymap_half_size + Airymap_x;
               Airymap_output_y=output_y - Airymap_half_size + Airymap_y;
               if ((Airymap_output_x >= 0) && (Airymap_output_x < bsr_config->camera_res_x) && (Airymap_output_y >= 0) && (Airymap_output_y < bsr_config->camera_res_y)
-                && ((*Airymap_red_p > 0.0) || (*Airymap_green_p > 0.0) || (*Airymap_blue_p > 0.0))) {
+                && (*Airymap_red_p > 0.0) && (*Airymap_green_p > 0.0) && (*Airymap_blue_p > 0.0)) {
                 //
                 // Airymap pixel is within image raster, put in my thread buffer
                 //
