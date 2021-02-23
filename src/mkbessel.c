@@ -9,7 +9,7 @@ int main(int argc, char **cargv) {
   double bessel_J1;
   double x;
   double x_increment=0.1;
-  double x_max=255.0;
+  double x_max=1023.0;
   int i;
   int j;
   double theta;

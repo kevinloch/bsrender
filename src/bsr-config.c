@@ -17,6 +17,8 @@ void initConfig(bsr_config_t *bsr_config) {
   bsr_config->render_distance_min=0.0;
   bsr_config->render_distance_max=1.0E99;
   bsr_config->render_distance_selector=0;
+  bsr_config->star_color_min=0.0;
+  bsr_config->star_color_max=1.0E99;
   bsr_config->draw_crosshairs=0;
   bsr_config->draw_grid_lines=0;
   bsr_config->sRGB_gamma=1;
@@ -26,6 +28,7 @@ void initConfig(bsr_config_t *bsr_config) {
   bsr_config->camera_pixel_limit_mag=7.0;
   bsr_config->camera_pixel_limit=pow(100.0, (-bsr_config->camera_pixel_limit_mag / 5.0));
   bsr_config->camera_pixel_limit_mode=0;
+  bsr_config->camera_wb_enable=1;
   bsr_config->camera_wb_temp=4200.0;
   bsr_config->camera_color_saturation=4.0;
   bsr_config->camera_gamma=1.0;
@@ -35,6 +38,12 @@ void initConfig(bsr_config_t *bsr_config) {
   bsr_config->Airy_disk=0;
   bsr_config->Airy_disk_first_null=3.0;
   bsr_config->Airy_disk_max_extent=50;
+  bsr_config->red_filter_long_limit=700.0;
+  bsr_config->red_filter_short_limit=596.0;
+  bsr_config->green_filter_long_limit=584.0;
+  bsr_config->green_filter_short_limit=497.0;
+  bsr_config->blue_filter_long_limit=506.0;
+  bsr_config->blue_filter_short_limit=418.0;
   bsr_config->camera_icrs_x=0.0;
   bsr_config->camera_icrs_y=0.0;
   bsr_config->camera_icrs_z=0.0;
@@ -162,6 +171,8 @@ void setOptionValue(bsr_config_t *bsr_config, char *option, char *value, int fro
   checkOptionDouble(&bsr_config->render_distance_min, option, value, "render_distance_min");
   checkOptionDouble(&bsr_config->render_distance_max, option, value, "render_distance_max");
   checkOptionInt(&bsr_config->render_distance_selector, option, value, "render_distance_selector");
+  checkOptionDouble(&bsr_config->star_color_min, option, value, "star_color_min");
+  checkOptionDouble(&bsr_config->star_color_max, option, value, "star_color_max");
   checkOptionBool(&bsr_config->draw_crosshairs, option, value, "draw_crosshairs");
   checkOptionBool(&bsr_config->draw_grid_lines, option, value, "draw_grid_lines");
   checkOptionBool(&bsr_config->sRGB_gamma, option, value, "sRGB_gamma");
@@ -171,6 +182,7 @@ void setOptionValue(bsr_config_t *bsr_config, char *option, char *value, int fro
   checkOptionDouble(&bsr_config->camera_pixel_limit_mag, option, value, "camera_pixel_limit_mag");
   bsr_config->camera_pixel_limit=pow(100.0, (-bsr_config->camera_pixel_limit_mag / 5.0));
   checkOptionInt(&bsr_config->camera_pixel_limit_mode, option, value, "camera_pixel_limit_mode");
+  checkOptionBool(&bsr_config->camera_wb_enable, option, value, "camera_wb_enable");
   checkOptionDouble(&bsr_config->camera_wb_temp, option, value, "camera_wb_temp");
   checkOptionDouble(&bsr_config->camera_color_saturation, option, value, "camera_color_saturation");
   checkOptionDouble(&bsr_config->camera_gamma, option, value, "camera_gamma");
@@ -180,6 +192,12 @@ void setOptionValue(bsr_config_t *bsr_config, char *option, char *value, int fro
   checkOptionBool(&bsr_config->Airy_disk, option, value, "Airy_disk");
   checkOptionDouble(&bsr_config->Airy_disk_first_null, option, value, "Airy_disk_first_null");
   checkOptionInt(&bsr_config->Airy_disk_max_extent, option, value, "Airy_disk_max_extent");
+  checkOptionDouble(&bsr_config->red_filter_long_limit, option, value, "red_filter_long_limit");
+  checkOptionDouble(&bsr_config->red_filter_short_limit, option, value, "red_filter_short_limit");
+  checkOptionDouble(&bsr_config->green_filter_long_limit, option, value, "green_filter_long_limit");
+  checkOptionDouble(&bsr_config->green_filter_short_limit, option, value, "green_filter_short_limit");
+  checkOptionDouble(&bsr_config->blue_filter_long_limit, option, value, "blue_filter_long_limit");
+  checkOptionDouble(&bsr_config->blue_filter_short_limit, option, value, "blue_filter_short_limit");
   checkOptionDouble(&bsr_config->camera_icrs_x, option, value, "camera_icrs_x");
   checkOptionDouble(&bsr_config->camera_icrs_y, option, value, "camera_icrs_y");
   checkOptionDouble(&bsr_config->camera_icrs_z, option, value, "camera_icrs_z");

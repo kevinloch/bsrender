@@ -62,19 +62,22 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
     star_z=star_record.icrs_z - bsr_config->camera_icrs_z;
     star_r=sqrt(pow(star_x, 2.0) + pow(star_y, 2.0) + pow(star_z, 2.0));
 
+    //
+    // extract color_temperature from combined field
+    //
+    color_temperature=star_record.intensity_and_temperature & 0x00000000fffffffful;
+
     // 
     // only continue if star distance is within min-max range from selected point (0=camera, 1=target)
+    // and color temperature is within allowed range
     //
     if (bsr_config->render_distance_selector == 0) { // selected point is camera
       render_distance=star_r; // star distance from camera
     } else { // selected point is target
       render_distance=sqrt(pow((star_record.icrs_x - bsr_config->target_icrs_x), 2.0) + pow((star_record.icrs_y - bsr_config->target_icrs_y), 2.0) + pow((star_record.icrs_z - bsr_config->target_icrs_z), 2.0)); // important, use un-rotated coordinates
     }
-    if ((render_distance >= bsr_config->render_distance_min) && (render_distance <= bsr_config->render_distance_max)) {
-      //
-      // extract color_temperature from combined field
-      //
-      color_temperature=star_record.intensity_and_temperature & 0x00000000fffffffful;
+    if ((render_distance >= bsr_config->render_distance_min) && (render_distance <= bsr_config->render_distance_max)\
+     && (color_temperature >= bsr_config->star_color_min) && (color_temperature <= bsr_config->star_color_max)) {
 
       //
       // extract star intensity from combined field and adjust for distance from camera

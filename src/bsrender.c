@@ -143,13 +143,6 @@ int main(int argc, char **argv) {
   }
 
   //
-  // set colors to standard CIE wavelengths
-  //
-  bsr_config.red_center=700.0E-9;
-  bsr_config.green_center=546.1E-9;
-  bsr_config.blue_center=435.8E-9;
-
-  //
   // initialize total execution timer and display major performance affecting options
   //
   if (bsr_config.cgi_mode != 1) {
@@ -166,10 +159,21 @@ int main(int argc, char **argv) {
   //
   // initialize RGB color lookup tables
   //
+  if (bsr_config.cgi_mode != 1) {
+    clock_gettime(CLOCK_REALTIME, &starttime);
+    printf("Initializing rgb color tables...");
+    fflush(stdout);
+  }
   bsr_state.rgb_red=rgb_red;
   bsr_state.rgb_green=rgb_green;
   bsr_state.rgb_blue=rgb_blue;
   initRGBTables(&bsr_config, &bsr_state);
+  if (bsr_config.cgi_mode != 1) {
+    clock_gettime(CLOCK_REALTIME, &endtime);
+    elapsed_time=((double)(endtime.tv_sec - 1500000000) + ((double)endtime.tv_nsec / 1.0E9)) - ((double)(starttime.tv_sec - 1500000000) + ((double)starttime.tv_nsec) / 1.0E9);
+    printf(" (%.3fs)\n", elapsed_time);
+    fflush(stdout);
+  }
 
   //
   // allocate memory for Airy disk maps and initialize

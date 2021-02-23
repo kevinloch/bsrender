@@ -37,7 +37,7 @@ double makeAiryMap(double *Airymap, int max_r, int half_oversampling, double pix
       pixel_x=(double)(pixel_x_index - max_r);
       pixel_y=(double)(pixel_y_index - max_r);
       pixel_r=sqrt((pixel_x * pixel_x) + (pixel_y * pixel_y));
-      if ((pixel_r <= (double)max_r) && ((pixel_r * pixel_scaling_factor) <= 255)) {
+      if ((pixel_r <= (double)max_r) && ((pixel_r * pixel_scaling_factor) <= 1023)) {
         *Airymap_p=0.0;
         for (oversample_y_index=0; oversample_y_index < oversampling; oversample_y_index++) {
           for (oversample_x_index=0; oversample_x_index < oversampling; oversample_x_index++) {
@@ -48,7 +48,7 @@ double makeAiryMap(double *Airymap, int max_r, int half_oversampling, double pix
             Bessel_x_index=(int)((Bessel_x * 10) + 0.5);
             if ((oversample_r == 0) || (Bessel_x_index == 0)) {
               *Airymap_p+=I0;
-            } else if (Bessel_x_index > 2550) {
+            } else if (Bessel_x_index > 10230) {
               *Airymap_p=0.0; // ignore if beyond range of Bessel.h (too many orders of diffraction)
               oversample_x_index=(oversampling + 1);
               oversample_y_index=(oversampling + 1);
@@ -84,13 +84,23 @@ int initAiryMaps(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   double I0_green;
   double I0_blue;
   double Airymap_sum;
+  double red_center;
+  double green_center;
+  double blue_center;
+
+  //
+  // calculate center wavelengths for each color channel
+  //
+  red_center=bsr_config->red_filter_short_limit + ((bsr_config->red_filter_long_limit - bsr_config->red_filter_short_limit) / 2.0);
+  green_center=bsr_config->green_filter_short_limit + ((bsr_config->green_filter_long_limit - bsr_config->green_filter_short_limit) / 2.0);
+  blue_center=bsr_config->blue_filter_short_limit + ((bsr_config->blue_filter_long_limit - bsr_config->blue_filter_short_limit) / 2.0);
 
   //
   // calculate Airy disk scaling factors (pixels) for each color.  Green is defined in config with Airy_disk_first_null
   //
   pixel_scaling_factor_green=3.8317 / (double)bsr_config->Airy_disk_first_null;
-  pixel_scaling_factor_red=pixel_scaling_factor_green * bsr_config->green_center / bsr_config->red_center;
-  pixel_scaling_factor_blue=pixel_scaling_factor_green * bsr_config->green_center / bsr_config->blue_center; 
+  pixel_scaling_factor_red=pixel_scaling_factor_green * green_center / red_center;
+  pixel_scaling_factor_blue=pixel_scaling_factor_green * green_center / blue_center;
   
   // calculate pixel oversampling for each color to make full use of 10x Bessel function resolution from Bessel.h
   // and minimum of 11x11
@@ -115,8 +125,8 @@ int initAiryMaps(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   // calculate center intensity calibration for each color
   //
   I0_green=1.16823 / pow((double)(bsr_config->Airy_disk_first_null * oversampling_green), 2.0);
-  I0_red=1.16823 * pow(bsr_config->green_center, 2.0) / (pow(bsr_config->red_center, 2.0) * pow((double)(bsr_config->Airy_disk_first_null * oversampling_red), 2.0));
-  I0_blue=1.16823 * pow(bsr_config->green_center, 2.0) / (pow(bsr_config->blue_center, 2.0)  *pow((double)(bsr_config->Airy_disk_first_null * oversampling_blue), 2.0));
+  I0_red=1.16823 * pow(green_center, 2.0) / (pow(red_center, 2.0) * pow((double)(bsr_config->Airy_disk_first_null * oversampling_red), 2.0));
+  I0_blue=1.16823 * pow(green_center, 2.0) / (pow(blue_center, 2.0)  *pow((double)(bsr_config->Airy_disk_first_null * oversampling_blue), 2.0));
 
   //
   // generate Airy disk map for each color

@@ -17,7 +17,7 @@
   white-space: nowrap;
 }
 #settings_style {
-  min-width: 25%;
+  min-width: 100px;
   display: table-cell;
   background-color:#e0e0e0;
   padding:20px;
@@ -63,6 +63,14 @@ img {
       if (tmpvalue != null) {
         settings_form.render_distance_selector.value = tmpvalue;
       }
+      tmpvalue = search.get("star_color_min");
+      if (tmpvalue != null) {
+        settings_form.star_color_min.value = tmpvalue;
+      }
+      tmpvalue = search.get("star_color_max");
+      if (tmpvalue != null) {
+        settings_form.star_color_max.value = tmpvalue;
+      }
       tmpvalue = search.get("draw_crosshairs");
       if (tmpvalue == "yes") {
         settings_form.draw_crosshairs.checked = true;
@@ -95,6 +103,10 @@ img {
       if (tmpvalue != null) {
         settings_form.camera_pixel_limit_mode.value = tmpvalue;
       }
+      tmpvalue = search.get("camera_wb_enable");
+      if (tmpvalue != null) {
+        settings_form.camera_wb_enable.value = tmpvalue;
+      }
       tmpvalue = search.get("camera_wb_temp");
       if (tmpvalue != null) {
         settings_form.camera_wb_temp.value = tmpvalue;
@@ -126,6 +138,30 @@ img {
       tmpvalue = search.get("Airy_disk_max_extent");
       if (tmpvalue != null) {
         settings_form.Airy_disk_max_extent.value = tmpvalue;
+      }
+      tmpvalue = search.get("red_filter_long_limit");
+      if (tmpvalue != null) {
+        settings_form.red_filter_long_limit.value = tmpvalue;
+      }
+      tmpvalue = search.get("red_filter_short_limit");
+      if (tmpvalue != null) {
+        settings_form.red_filter_short_limit.value = tmpvalue;
+      }
+      tmpvalue = search.get("green_filter_long_limit");
+      if (tmpvalue != null) {
+        settings_form.green_filter_long_limit.value = tmpvalue;
+      }
+      tmpvalue = search.get("green_filter_short_limit");
+      if (tmpvalue != null) {
+        settings_form.green_filter_short_limit.value = tmpvalue;
+      }
+      tmpvalue = search.get("blue_filter_long_limit");
+      if (tmpvalue != null) {
+        settings_form.blue_filter_long_limit.value = tmpvalue;
+      }
+      tmpvalue = search.get("blue_filter_short_limit");
+      if (tmpvalue != null) {
+        settings_form.blue_filter_short_limit.value = tmpvalue;
       }
       tmpvalue = search.get("camera_icrs_x");
       if (tmpvalue != null) {
@@ -194,6 +230,8 @@ min_parallax_quality=${settings_form.min_parallax_quality.value}&\
 render_distance_min=${settings_form.render_distance_min.value}&\
 render_distance_max=${settings_form.render_distance_max.value}&\
 render_distance_selector=${settings_form.render_distance_selector.value}&\
+star_color_min=${settings_form.star_color_min.value}&\
+star_color_max=${settings_form.star_color_max.value}&\
 draw_crosshairs=${settings_form.draw_crosshairs.value}&\
 draw_grid_lines=${settings_form.draw_grid_lines.value}&\
 sRGB_gamma=${settings_form.sRGB_gamma.value}&\
@@ -202,6 +240,7 @@ camera_res_y=${settings_form.camera_res_y.value}&\
 camera_fov=${settings_form.camera_fov.value}&\
 camera_pixel_limit_mag=${settings_form.camera_pixel_limit_mag.value}&\
 camera_pixel_limit_mode=${settings_form.camera_pixel_limit_mode.value}&\
+camera_wb_enable=${settings_form.camera_wb_enable.value}&\
 camera_wb_temp=${settings_form.camera_wb_temp.value}&\
 camera_color_saturation=${settings_form.camera_color_saturation.value}&\
 camera_gamma=${settings_form.camera_gamma.value}&\
@@ -210,6 +249,12 @@ spherical_orientation=${settings_form.spherical_orientation.value}&\
 Airy_disk=${settings_form.Airy_disk.value}&\
 Airy_disk_first_null=${settings_form.Airy_disk_first_null.value}&\
 Airy_disk_max_extent=${settings_form.Airy_disk_max_extent.value}&\
+red_filter_long_limit=${settings_form.red_filter_long_limit.value}&\
+red_filter_short_limit=${settings_form.red_filter_short_limit.value}&\
+green_filter_long_limit=${settings_form.green_filter_long_limit.value}&\
+green_filter_short_limit=${settings_form.green_filter_short_limit.value}&\
+blue_filter_long_limit=${settings_form.blue_filter_long_limit.value}&\
+blue_filter_short_limit=${settings_form.blue_filter_short_limit.value}&\
 camera_icrs_x=${settings_form.camera_icrs_x.value}&\
 camera_icrs_y=${settings_form.camera_icrs_y.value}&\
 camera_icrs_z=${settings_form.camera_icrs_z.value}&\
@@ -239,8 +284,8 @@ camera_tilt=${settings_form.camera_tilt.value}`;
   <main role="main">
     <div id="box_style">
       <div id="settings_style">
-        <h3>General Rendering Options</h3>
         <form name="settings_form">
+        <h3>General Rendering Options</h3>
           <button type="reset">reset to defaults</button>&nbsp;<button type="button" onClick="updateImage()">Render</button>
           <p>
           <label for="rendering_server">Rendering server</label>
@@ -260,7 +305,7 @@ camera_tilt=${settings_form.camera_tilt.value}`;
           </select>
           <label for="min_parallax_quality">parallax / error</label>
           <br><label for="render_distance_min">Minimum render distance</label>
-          <input type="text" name="render_distance_min" id="render_distance_min" value="0.0E0"> parsecs
+          <input type="text" name="render_distance_min" id="render_distance_min" value="0.0"> parsecs
           <br><label for="render_distance_max">Maximum render distance</label>
           <input type="text" name="render_distance_max" id="render_distance_max" value="1.0E99"> parsecs
           <br><label for "render_distance_selector">Render distance measured from</label>
@@ -268,6 +313,10 @@ camera_tilt=${settings_form.camera_tilt.value}`;
             <option value="0" selected>Camera</option>
             <option value="1">Target</option>
           </select>
+          <br><label for="star_color_min">Minimum star temperature</label>
+          <input type="text" name="star_color_min" id="star_color_min" value="0.0"> K
+          <br><label for="star_color_max">Maximum star termperature</label>
+          <input type="text" name="star_color_max" id="star_color_max" value="1.0E99"> K
           <br><label for "draw_crosshairs">Draw crosshairs</label>
           <select name="draw_crosshairs" id="draw_crosshairs">
             <option value="no" selected>no</option>
@@ -283,7 +332,7 @@ camera_tilt=${settings_form.camera_tilt.value}`;
             <option value="yes" selected>yes</option>
             <option value="no">no</option>
           </select>
-          <h3>Camera Options</h3>
+        <h3>Camera Options</h3>
           <label for "camera_res_x">Horizontal resolution</label>
           <input type="text" id="camera_res_x" name="camera_res_x" value="2000">
           <br><label for "camera_res_y">Vertical resolution</label>
@@ -291,13 +340,18 @@ camera_tilt=${settings_form.camera_tilt.value}`;
           <br><label for "camera_fov">Field of view</label>
           <input type="text" id="camera_fov" name="camera_fov" value="360"> deg
           <br><label for "camera_pixel_limit_mag">Pixel intensity limit</label>
-          <input type="text" id="camera_pixel_limit_mag" name="camera_pixel_limit_mag" value="7.0"> magnitude
+          <input type="text" id="camera_pixel_limit_mag" name="camera_pixel_limit_mag" value="8.0"> magnitude
           <br><label for "camera_pixel_limit_mode">Pixel intensity limit mode</label>
           <select name="camera_pixel_limit_mode" id="camera_pixel_limit_mode">
-            <option value="0">Saturate to white</option>
+            <option value="0" selected>Saturate to white</option>
             <option value="1">Preserve color</option>
           </select>
-          <br><label for "camera_wb_temp">White balance temp</label>
+          <br><label for "camera_wb_enable">Enable white balance</label>
+          <select name="camera_wb_enable" id="camera_wb_enable">
+            <option value="no">no</option>
+            <option value="yes" selected>yes</option>
+          </select>
+          <br><label for "camera_wb_temp">White balance temperature</label>
           <input type="text" id="camera_wb_temp" name="camera_wb_temp" value="4200"> K
           <br><label for "camera_color_saturation">Color saturation</label>
           <input type="text" id="camera_color_saturation" name="camera_color_saturation" value="4">
@@ -324,43 +378,56 @@ camera_tilt=${settings_form.camera_tilt.value}`;
           <input type="text" id="Airy_disk_first_null" name="Airy_disk_first_null" value="0.5"> pixels
           <br><label for "Airy_disk_max_extent">Maximum extent of Airy disk</label>
           <input type="text" id="Airy_disk_max_extent" name="Airy_disk_max_extent" value="3"> pixels
-          <h3>Camera Position (ICRS coordinates)</h3>
-            <label for "camera_icrs_x>x</label>
-            <input type="text" id="camera_icrs_x" name="camera_icrs_x" value="0.0"> parsecs
-            <br><label for "camera_icrs_y>y</label>
-            <input type="text" id="camera_icrs_y" name="camera_icrs_y" value="0.0"> parsecs
-            <br><label for "camera_icrs_z>z</label>
-            <input type="text" id="camera_icrs_z" name="camera_icrs_z" value="0.0"> parsecs
-            <p>or<p>
-            <label for "camera_icrs_ra>ra</label>
-            <input type="text" id="camera_icrs_ra" name="camera_icrs_ra" value="0.0"> deg
-            <br><label for "camera_icrs_dec>dec</label>
-            <input type="text" id="camera_icrs_dec" name="camera_icrs_dec" value="0.0"> deg
-            <br><label for "camera_icrs_r>r</label>
-            <input type="text" id="camera_icrs_r" name="camera_icrs_r" value="0.0"> parsecs
-          <h3>Target Position (ICRS coordinates)</h3>
-            <label for "target_icrs_x>x</label>
-            <input type="text" id="target_icrs_x" name="target_icrs_x" value="0.0"> parsecs
-            <br><label for "target_icrs_y>y</label>
-            <input type="text" id="target_icrs_y" name="target_icrs_y" value="0.0"> parsecs
-            <br><label for "target_icrs_z>z</label>
-            <input type="text" id="target_icrs_z" name="target_icrs_z" value="0.0"> parsecs
-            <p>or<p>
-            <label for "target_icrs_ra>ra</label>
-            <input type="text" id="target_icrs_ra" name="target_icrs_ra" value="266.4168371"> deg
-            <br><label for "target_icrs_dec>dec</label>
-            <input type="text" id="target_icrs_dec" name="target_icrs_dec" value="-29.0078106"> deg
-            <br><label for "target_icrs_r>r</label>
-            <input type="text" id="target_icrs_r" name="target_icrs_r" value="8178.0"> parsec
-          <h3>Camera Rotation/Pan/Tilt</h3>
-            (After aiming at target) 
-            <p>
-            <label for "camera_rotation">Rotate</label>
-            <input type="text" id="camera_rotation" name="camera_rotation" value="-58.6"> deg
-            <br><label for "camera_pan">Pan</label>
-            <input type="text" id="camera_pan" name="camera_pan" value="0.0"> deg
-            <br><label for "camera_tilt">Tilt</label>
-            <input type="text" id="camera_tilt" name="camera_tilt" value="0.0"> deg
+        <h3>Color Bandpass Filter Options</h3>
+          <label for "red_filter_long_limit">Red filter long cutoff</label>
+          <input type="text" id="red_filter_long_limit" name="red_filter_long_limit" value="700.0"> nm
+          <br><label for "red_filter_short_limit">Red filter short cutoff</label>
+          <input type="text" id="red_filter_short_limit" name="red_filter_short_limit" value="596.0"> nm
+          <br><label for "green_filter_long_limit">Green filter long cutoff</label>
+          <input type="text" id="green_filter_long_limit" name="green_filter_long_limit" value="584.0"> nm
+          <br><label for "green_filter_short_limit">Green filter short cutoff</label>
+          <input type="text" id="green_filter_short_limit" name="green_filter_short_limit" value="497.0"> nm
+          <br><label for "blue_filter_long_limit">Blue filter long cutoff</label>
+          <input type="text" id="blue_filter_long_limit" name="blue_filter_long_limit" value="506.0"> nm
+          <br><label for "blue_filter_short_limit">Blue filter short cutoff</label>
+          <input type="text" id="blue_filter_short_limit" name="blue_filter_short_limit" value="418.0"> nm
+        <h3>Camera Position (ICRS coordinates)</h3>
+          <label for "camera_icrs_x>x</label>
+          <input type="text" id="camera_icrs_x" name="camera_icrs_x" value="0.0"> parsecs
+          <br><label for "camera_icrs_y>y</label>
+          <input type="text" id="camera_icrs_y" name="camera_icrs_y" value="0.0"> parsecs
+          <br><label for "camera_icrs_z>z</label>
+          <input type="text" id="camera_icrs_z" name="camera_icrs_z" value="0.0"> parsecs
+          <p>or<p>
+          <label for "camera_icrs_ra>ra</label>
+          <input type="text" id="camera_icrs_ra" name="camera_icrs_ra" value="0.0"> deg
+          <br><label for "camera_icrs_dec>dec</label>
+          <input type="text" id="camera_icrs_dec" name="camera_icrs_dec" value="0.0"> deg
+          <br><label for "camera_icrs_r>r</label>
+          <input type="text" id="camera_icrs_r" name="camera_icrs_r" value="0.0"> parsecs
+        <h3>Target Position (ICRS coordinates)</h3>
+          <label for "target_icrs_x>x</label>
+          <input type="text" id="target_icrs_x" name="target_icrs_x" value="0.0"> parsecs
+          <br><label for "target_icrs_y>y</label>
+          <input type="text" id="target_icrs_y" name="target_icrs_y" value="0.0"> parsecs
+          <br><label for "target_icrs_z>z</label>
+          <input type="text" id="target_icrs_z" name="target_icrs_z" value="0.0"> parsecs
+          <p>or<p>
+          <label for "target_icrs_ra>ra</label>
+          <input type="text" id="target_icrs_ra" name="target_icrs_ra" value="266.4168371"> deg
+          <br><label for "target_icrs_dec>dec</label>
+          <input type="text" id="target_icrs_dec" name="target_icrs_dec" value="-29.0078106"> deg
+          <br><label for "target_icrs_r>r</label>
+          <input type="text" id="target_icrs_r" name="target_icrs_r" value="8178.0"> parsec
+        <h3>Camera Rotation/Pan/Tilt</h3>
+          (After aiming at target) 
+          <p>
+          <label for "camera_rotation">Rotate</label>
+          <input type="text" id="camera_rotation" name="camera_rotation" value="-58.6"> deg
+          <br><label for "camera_pan">Pan</label>
+          <input type="text" id="camera_pan" name="camera_pan" value="0.0"> deg
+          <br><label for "camera_tilt">Tilt</label>
+          <input type="text" id="camera_tilt" name="camera_tilt" value="0.0"> deg
           <p>
           <button type="reset">reset to defaults</button>&nbsp;<button type="button" onClick="updateImage()">Render</button>
         </form>
@@ -377,7 +444,7 @@ camera_tilt=${settings_form.camera_tilt.value}`;
     </div>
   </main>
   <footer id="footer">
-    sample-frontend.html from bsrender v0.9.0-dev-24
+    sample-frontend.html from bsrender v0.9.0-dev-25
   </footer>
 </body>
 </html>
