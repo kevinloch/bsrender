@@ -29,7 +29,7 @@ void initConfig(bsr_config_t *bsr_config) {
   bsr_config->camera_pixel_limit=pow(100.0, (-bsr_config->camera_pixel_limit_mag / 5.0));
   bsr_config->camera_pixel_limit_mode=0;
   bsr_config->camera_wb_enable=1;
-  bsr_config->camera_wb_temp=4200.0;
+  bsr_config->camera_wb_temp=4300.0;
   bsr_config->camera_color_saturation=4.0;
   bsr_config->camera_gamma=1.0;
   bsr_config->camera_projection=0;
@@ -38,12 +38,12 @@ void initConfig(bsr_config_t *bsr_config) {
   bsr_config->Airy_disk=0;
   bsr_config->Airy_disk_first_null=3.0;
   bsr_config->Airy_disk_max_extent=50;
-  bsr_config->red_filter_long_limit=700.0;
-  bsr_config->red_filter_short_limit=596.0;
-  bsr_config->green_filter_long_limit=584.0;
-  bsr_config->green_filter_short_limit=497.0;
-  bsr_config->blue_filter_long_limit=506.0;
-  bsr_config->blue_filter_short_limit=418.0;
+  bsr_config->red_filter_long_limit=710.0;
+  bsr_config->red_filter_short_limit=590.0;
+  bsr_config->green_filter_long_limit=590.0;
+  bsr_config->green_filter_short_limit=495.0;
+  bsr_config->blue_filter_long_limit=495.0;
+  bsr_config->blue_filter_short_limit=405.0;
   bsr_config->camera_icrs_x=0.0;
   bsr_config->camera_icrs_y=0.0;
   bsr_config->camera_icrs_z=0.0;

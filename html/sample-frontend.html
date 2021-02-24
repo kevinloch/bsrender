@@ -292,16 +292,16 @@ camera_tilt=${settings_form.camera_tilt.value}`;
           <input type="text" name="rendering_server" id="rendering_server" size="40" value="http://bsrender.kevinloch.com/r/">
           <br><label for="min_parallax_quality">Minimum parallax quality</label>
           <select name="min_parallax_quality" id="min_parallax_quality">
-            <option value="100">100</option>
-            <option value="50">50</option>
-            <option value="30">30</option>
-            <option value="20">20</option>
-            <option value="10" selected>10</option>
-            <option value="5">5</option>
-            <option value="3">3</option>
-            <option value="2">2</option>
-            <option value="1">1</option>
-            <option value="0">0</option>
+            <option value="0">0 [1.47B stars]</option>
+            <option value="1">1 [763M stars]</option>
+            <option value="2">2 [479M stars]</option>
+            <option value="3">3 [320M stars]</option>
+            <option value="5">5 [192M stars]</option>
+            <option value="10" selected>10 [98M stars]</option>
+            <option value="20">20 [49M stars]</option>
+            <option value="30">30 [31M stars]</option>
+            <option value="50">50 [16M stars]</option>
+            <option value="100">100 [5.8M] stars</option>
           </select>
           <label for="min_parallax_quality">parallax / error</label>
           <br><label for="render_distance_min">Minimum render distance</label>
@@ -352,7 +352,7 @@ camera_tilt=${settings_form.camera_tilt.value}`;
             <option value="yes" selected>yes</option>
           </select>
           <br><label for "camera_wb_temp">White balance temperature</label>
-          <input type="text" id="camera_wb_temp" name="camera_wb_temp" value="4200"> K
+          <input type="text" id="camera_wb_temp" name="camera_wb_temp" value="4300"> K
           <br><label for "camera_color_saturation">Color saturation</label>
           <input type="text" id="camera_color_saturation" name="camera_color_saturation" value="4">
           <br><label for "camera_gamma">Gamma</label>
@@ -371,8 +371,8 @@ camera_tilt=${settings_form.camera_tilt.value}`;
           </select>
           <br><label for "Airy_disk">Enable Airy disks</label>
           <select name="Airy_disk" id="Airy_disk">
-            <option value="yes">yes</option>
             <option value="no" selected>no</option>
+            <option value="yes">yes</option>
           </select> Caution: Airy disks render very slowly
           <br><label for "Airy_disk_first_null">Radius of first Airy disk null</label>
           <input type="text" id="Airy_disk_first_null" name="Airy_disk_first_null" value="0.5"> pixels
@@ -380,17 +380,17 @@ camera_tilt=${settings_form.camera_tilt.value}`;
           <input type="text" id="Airy_disk_max_extent" name="Airy_disk_max_extent" value="3"> pixels
         <h3>Color Bandpass Filter Options</h3>
           <label for "red_filter_long_limit">Red filter long cutoff</label>
-          <input type="text" id="red_filter_long_limit" name="red_filter_long_limit" value="700.0"> nm
+          <input type="text" id="red_filter_long_limit" name="red_filter_long_limit" value="710.0"> nm
           <br><label for "red_filter_short_limit">Red filter short cutoff</label>
-          <input type="text" id="red_filter_short_limit" name="red_filter_short_limit" value="596.0"> nm
+          <input type="text" id="red_filter_short_limit" name="red_filter_short_limit" value="590.0"> nm
           <br><label for "green_filter_long_limit">Green filter long cutoff</label>
-          <input type="text" id="green_filter_long_limit" name="green_filter_long_limit" value="584.0"> nm
+          <input type="text" id="green_filter_long_limit" name="green_filter_long_limit" value="590.0"> nm
           <br><label for "green_filter_short_limit">Green filter short cutoff</label>
-          <input type="text" id="green_filter_short_limit" name="green_filter_short_limit" value="497.0"> nm
+          <input type="text" id="green_filter_short_limit" name="green_filter_short_limit" value="495.0"> nm
           <br><label for "blue_filter_long_limit">Blue filter long cutoff</label>
-          <input type="text" id="blue_filter_long_limit" name="blue_filter_long_limit" value="506.0"> nm
+          <input type="text" id="blue_filter_long_limit" name="blue_filter_long_limit" value="495.0"> nm
           <br><label for "blue_filter_short_limit">Blue filter short cutoff</label>
-          <input type="text" id="blue_filter_short_limit" name="blue_filter_short_limit" value="418.0"> nm
+          <input type="text" id="blue_filter_short_limit" name="blue_filter_short_limit" value="405.0"> nm
         <h3>Camera Position (ICRS coordinates)</h3>
           <label for "camera_icrs_x>x</label>
           <input type="text" id="camera_icrs_x" name="camera_icrs_x" value="0.0"> parsecs
@@ -444,7 +444,7 @@ camera_tilt=${settings_form.camera_tilt.value}`;
     </div>
   </main>
   <footer id="footer">
-    sample-frontend.html from bsrender v0.9.0-dev-25
+    sample-frontend.html from bsrender v0.9.0-dev-26
   </footer>
 </body>
 </html>
