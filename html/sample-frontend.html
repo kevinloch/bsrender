@@ -73,11 +73,19 @@ img {
       }
       tmpvalue = search.get("draw_crosshairs");
       if (tmpvalue == "yes") {
-        settings_form.draw_crosshairs.checked = true;
+        settings_form.draw_crosshairs.value = tmpvalue;
       }
       tmpvalue = search.get("draw_grid_lines");
-      if (tmpvalue == "yes") {
-        settings_form.draw_grid_lines.checked = true;
+      if (tmpvalue != null) {
+        settings_form.draw_grid_lines.value = tmpvalue;
+      }
+      tmpvalue = search.get("Gaussian_blur_radius");
+      if (tmpvalue != null) {
+        settings_form.Gaussian_blur_radius.value = tmpvalue;
+      }
+      tmpvalue = search.get("output_scaling_factor");
+      if (tmpvalue != null) {
+        settings_form.output_scaling_factor.value = tmpvalue;
       }
       tmpvalue = search.get("sRGB_gamma");
       if (tmpvalue != null) {
@@ -234,6 +242,8 @@ star_color_min=${settings_form.star_color_min.value}&\
 star_color_max=${settings_form.star_color_max.value}&\
 draw_crosshairs=${settings_form.draw_crosshairs.value}&\
 draw_grid_lines=${settings_form.draw_grid_lines.value}&\
+Gaussian_blur_radius=${settings_form.Gaussian_blur_radius.value}&\
+output_scaling_factor=${settings_form.output_scaling_factor.value}&\
 sRGB_gamma=${settings_form.sRGB_gamma.value}&\
 camera_res_x=${settings_form.camera_res_x.value}&\
 camera_res_y=${settings_form.camera_res_y.value}&\
@@ -327,6 +337,10 @@ camera_tilt=${settings_form.camera_tilt.value}`;
             <option value="no" selected>no</option>
             <option value="yes">yes</option>
           </select>
+          <br><label for="Gaussian_blur_radius">Gaussian blur radius</label>
+          <input type="text" name="Gaussian_blur_radius" id="Gaussian_blur_radius" value="0.0">
+          <br><label for="output_scaling_factor">Output scaling factor</label>
+          <input type="text" name="output_scaling_factor" id="output_scaling_factor" value="1.0">
           <br><label for "sRGB_gamma">Enable sRGB encoding gamma</label>
           <select name="sRGB_gamma" id="sRGB_gamma">
             <option value="yes" selected>yes</option>
@@ -444,7 +458,7 @@ camera_tilt=${settings_form.camera_tilt.value}`;
     </div>
   </main>
   <footer id="footer">
-    sample-frontend.html from bsrender v0.9.0-dev-26
+    sample-frontend.html from bsrender v0.9.0-dev-29
   </footer>
 </body>
 </html>

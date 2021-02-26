@@ -1,7 +1,7 @@
 #ifndef BSRENDER_H
 #define BSRENDER_H
 
-#define BSR_VERSION "0.9-dev-26"
+#define BSR_VERSION "0.9-dev-29"
 
 #define _GNU_SOURCE // needed for strcasestr in string.h
 #include <stdint.h> // needed for uint64_t
@@ -32,7 +32,12 @@ typedef struct {
   thread_buffer_t *thread_buf; // globally mmaped
   thread_buffer_t *thread_buf_p; // used locally by each thread
   int thread_buffer_index; // used locally by each thread
-  pixel_composition_t *image_composition_buf; // globally mmaped
+  pixel_composition_t *image_composition_buf;
+  pixel_composition_t *image_blur_buf;
+  pixel_composition_t *image_resize_buf; 
+  pixel_composition_t *current_image_buf;
+  int current_image_res_x;
+  int current_image_res_y;
   double *rgb_red;
   double *rgb_green;
   double *rgb_blue;
@@ -68,6 +73,10 @@ typedef struct {
   int cgi_max_res_x;
   int cgi_max_res_y;
   int cgi_min_parallax_quality;
+  int cgi_allow_Airy_disk;
+  double cgi_max_Airy_disk_camera_fov;
+  double cgi_min_Airy_disk_first_null;
+  int cgi_max_Airy_disk_max_extent;
   int min_parallax_quality;
   double render_distance_min;
   double render_distance_max;
@@ -76,6 +85,8 @@ typedef struct {
   double star_color_max;
   int draw_crosshairs;
   int draw_grid_lines;
+  double Gaussian_blur_radius;
+  double output_scaling_factor;
   int sRGB_gamma;
   int camera_res_x;
   int camera_res_y;

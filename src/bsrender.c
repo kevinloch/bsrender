@@ -24,6 +24,7 @@
 #include "init-state.h"
 #include "cgi.h"
 #include "diffraction.h"
+#include "post-process.h"
 
 int processCmdArgs(bsr_config_t *bsr_config, int argc, char **argv) {
   int i;
@@ -222,6 +223,9 @@ int main(int argc, char **argv) {
     image_composition_p->b=0.0;
     image_composition_p++;
   }
+  bsr_state.current_image_buf=bsr_state.image_composition_buf;
+  bsr_state.current_image_res_x=bsr_config.camera_res_x;
+  bsr_state.current_image_res_y=bsr_config.camera_res_y;
   if (bsr_config.cgi_mode != 1) {
     clock_gettime(CLOCK_REALTIME, &endtime);
     elapsed_time=((double)(endtime.tv_sec - 1500000000) + ((double)endtime.tv_nsec / 1.0E9)) - ((double)(starttime.tv_sec - 1500000000) + ((double)starttime.tv_nsec) / 1.0E9);
@@ -521,6 +525,11 @@ int main(int argc, char **argv) {
     }
 
     //
+    // main thread: post processing
+    //
+    postProcess(&bsr_config, &bsr_state);
+
+    //
     // main thread: output png file
     //
     writePNGFile(&bsr_config, &bsr_state);
@@ -558,7 +567,7 @@ int main(int argc, char **argv) {
     if (input_file_pq000 != NULL) {
       fclose(input_file_pq000);
     }
-    free(bsr_state.image_composition_buf);
+    free(bsr_state.current_image_buf);
     munmap(bsr_state.thread_buf, thread_buffer_size);
     munmap(status_array, status_array_size);
 
@@ -568,7 +577,7 @@ int main(int argc, char **argv) {
     if (bsr_config.cgi_mode != 1) {
       clock_gettime(CLOCK_REALTIME, &overall_endtime);
       elapsed_time=((double)(overall_endtime.tv_sec - 1500000000) + ((double)overall_endtime.tv_nsec / 1.0E9)) - ((double)(overall_starttime.tv_sec - 1500000000) + ((double)overall_starttime.tv_nsec) / 1.0E9);
-      printf("Rendered %ld stars to %.2f megapixels, total runtime: %.3fs\n", star_count, ((double)(bsr_config.camera_res_x * bsr_config.camera_res_y) / 1.0E6), elapsed_time);
+      printf("Rendered %ld stars to %.2f megapixels, total runtime: %.3fs\n", star_count, ((double)(bsr_state.current_image_res_x * bsr_state.current_image_res_y) / 1.0E6), elapsed_time);
       fflush(stdout);
     }
 

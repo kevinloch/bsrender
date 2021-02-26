@@ -48,7 +48,7 @@ double makeAiryMap(double *Airymap, int max_r, int half_oversampling, double pix
             Bessel_x_index=(int)((Bessel_x * 10) + 0.5);
             if ((oversample_r == 0) || (Bessel_x_index == 0)) {
               *Airymap_p+=I0;
-            } else if (Bessel_x_index > 10230) {
+            } else if (Bessel_x_index > 10229) {
               *Airymap_p=0.0; // ignore if beyond range of Bessel.h (too many orders of diffraction)
               oversample_x_index=(oversampling + 1);
               oversample_y_index=(oversampling + 1);

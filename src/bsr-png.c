@@ -7,15 +7,15 @@
 #include "cgi.h"
 
 int writePNGFile(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
-  pixel_composition_t *image_composition_p;
+  pixel_composition_t *current_image_p;
   png_byte *image_output_buf;
   png_byte *image_output_p;
   double pixel_r;
   double pixel_g;
   double pixel_b;
   int i;
-  int x;
-  int y;
+  int output_x;
+  int output_y;
   FILE *output_file=NULL;
   png_structp png_ptr;
   png_infop info_ptr;
@@ -25,22 +25,31 @@ int writePNGFile(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   struct timespec starttime;
   struct timespec endtime;
   double elapsed_time;
-  double inv_camera_pixel_limit;
   double one_over_2dot4;
+  int output_res_x;
+  int output_res_y;
 
   //
   // display status message if not in cgi mode
   //
   if (bsr_config->cgi_mode != 1) {
     clock_gettime(CLOCK_REALTIME, &starttime);
-    printf("Post-processing and converting to 8-bits per color...");
+    printf("Converting to 8-bits per color...");
     fflush(stdout);
   }
 
   //
-  // allocate memory for image output buffer (8 bits per color rgb) and initialize
+  // get current image pointer and resolution
   //
-  image_output_buf = (png_byte *)malloc(bsr_config->camera_res_x * bsr_config->camera_res_y * 3 * sizeof(png_byte));
+  current_image_p=bsr_state->current_image_buf;
+  output_res_x=bsr_state->current_image_res_x;
+  output_res_y=bsr_state->current_image_res_y;
+
+
+  //
+  // allocate memory for image output buffer (8 bits per color rgb)
+  //
+  image_output_buf=(png_byte *)malloc(output_res_x * output_res_y * 3 * sizeof(png_byte));
   if (image_output_buf == NULL) {
     if (bsr_config->cgi_mode != 1) {
       printf("Error: could not allocate memory for image output buffer\n");
@@ -49,7 +58,8 @@ int writePNGFile(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
     return(1);
   }
   image_output_p=image_output_buf;
-  for (i=0; i < (bsr_config->camera_res_x * bsr_config->camera_res_y); i++) {
+/*
+  for (i=0; i < (output_res_x * output_res_y); i++) {
     *image_output_p=0;
     image_output_p++;
     *image_output_p=0;
@@ -57,11 +67,12 @@ int writePNGFile(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
     *image_output_p=0;
     image_output_p++;
   }
+*/
 
   //
   // allocate memory for row_pointers
   //
-  row_pointers=(png_bytep *)malloc(bsr_config->camera_res_y * sizeof(png_bytep));
+  row_pointers=(png_bytep *)malloc(output_res_y * sizeof(png_bytep));
   if (row_pointers == NULL) {
     if (bsr_config->cgi_mode != 1) {
       printf("Error: could not allocate memory for libpng row_pointers\n");
@@ -71,51 +82,31 @@ int writePNGFile(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   }
 
   //
-  // convert double precision pixel_composition_buf to 8 bit image_
+  // convert double precision image buffer to 8-bits per color
   //
-  image_composition_p=bsr_state->image_composition_buf;
   image_output_p=image_output_buf;
-  x=0;
-  y=0;
+  output_x=0;
+  output_y=0;
   row_pointers[0]=image_output_p;
-  inv_camera_pixel_limit = 1.0 / bsr_config->camera_pixel_limit;
   one_over_2dot4=1.0 / 2.4;
-  for (i=0; i < (bsr_config->camera_res_x * bsr_config->camera_res_y); i++) {
+  for (i=0; i < (output_res_x * output_res_y); i++) {
 
     //
     // set new row pointer if we have reached end of row
     //
-    if (x == bsr_config->camera_res_x) {
-      x=0;
-      y++;
-      row_pointers[y]=image_output_p;
+    if (output_x == output_res_x) {
+      output_x=0;
+      output_y++;
+      row_pointers[output_y]=image_output_p;
     }
 
     //
-    // convert flux values to output range ~0-1.0 with camera sensitivity reference level = 1.0
+    // copy pixel data from current_image_buf
     //
-    pixel_r=image_composition_p->r * inv_camera_pixel_limit;
-    pixel_g=image_composition_p->g * inv_camera_pixel_limit;
-    pixel_b=image_composition_p->b * inv_camera_pixel_limit;
-  
-    //
-    // optionally apply camera gamma setting
-    //
-    if (bsr_config->camera_gamma != 1.0) { // this is expensive so only if not 1.0
-      pixel_r=pow(pixel_r, bsr_config->camera_gamma);
-      pixel_g=pow(pixel_g, bsr_config->camera_gamma);
-      pixel_b=pow(pixel_b, bsr_config->camera_gamma);
-    }
-    
-    //
-    // limit pixel intensity to range [0..1]
-    //
-    if (bsr_config->camera_pixel_limit_mode == 0) {
-      limitIntensity(&pixel_r, &pixel_g, &pixel_b);
-    } else if (bsr_config->camera_pixel_limit_mode == 1) {
-      limitIntensityPreserveColor(&pixel_r, &pixel_g, &pixel_b);
-    }
-    
+    pixel_r=current_image_p->r;
+    pixel_g=current_image_p->g;
+    pixel_b=current_image_p->b;
+
     //
     // optionally apply sRGB gamma
     //
@@ -139,7 +130,7 @@ int writePNGFile(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
     }    
 
     //
-    // convert r,g,b to 8 bit values
+    // convert r,g,b to 8 bit values and copy to 8-bit output buffer
     //
     *image_output_p=(unsigned char)((pixel_r * 255.0) + 0.5);
     image_output_p++;
@@ -148,8 +139,8 @@ int writePNGFile(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
     *image_output_p=(unsigned char)((pixel_b * 255.0) + 0.5);
     image_output_p++;
 
-    x++;
-    image_composition_p++;
+    output_x++;
+    current_image_p++;
   }
 
   //
@@ -199,7 +190,7 @@ int writePNGFile(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   //
   // write PNG header
   //
-  png_set_IHDR(png_ptr, info_ptr, bsr_config->camera_res_x, bsr_config->camera_res_y, bit_depth, color_type, PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE);
+  png_set_IHDR(png_ptr, info_ptr, output_res_x, output_res_y, bit_depth, color_type, PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE);
   png_write_info(png_ptr, info_ptr);
   // wringe PNG image data
   png_write_image(png_ptr, row_pointers);

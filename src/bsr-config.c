@@ -13,6 +13,10 @@ void initConfig(bsr_config_t *bsr_config) {
   bsr_config->cgi_max_res_x=33000;
   bsr_config->cgi_max_res_y=17000;
   bsr_config->cgi_min_parallax_quality=0;
+  bsr_config->cgi_allow_Airy_disk=1;
+  bsr_config->cgi_max_Airy_disk_camera_fov=20.0;
+  bsr_config->cgi_min_Airy_disk_first_null=0.3;
+  bsr_config->cgi_max_Airy_disk_max_extent=100;
   bsr_config->min_parallax_quality=10;
   bsr_config->render_distance_min=0.0;
   bsr_config->render_distance_max=1.0E99;
@@ -21,6 +25,8 @@ void initConfig(bsr_config_t *bsr_config) {
   bsr_config->star_color_max=1.0E99;
   bsr_config->draw_crosshairs=0;
   bsr_config->draw_grid_lines=0;
+  bsr_config->Gaussian_blur_radius=0.0;
+  bsr_config->output_scaling_factor=1.0;
   bsr_config->sRGB_gamma=1;
   bsr_config->camera_res_x=2000;
   bsr_config->camera_res_y=1000;
@@ -36,8 +42,8 @@ void initConfig(bsr_config_t *bsr_config) {
   bsr_config->spherical_orientation=0;
   bsr_config->Mollewide_iterations=5;
   bsr_config->Airy_disk=0;
-  bsr_config->Airy_disk_first_null=3.0;
-  bsr_config->Airy_disk_max_extent=50;
+  bsr_config->Airy_disk_first_null=0.5;
+  bsr_config->Airy_disk_max_extent=3;
   bsr_config->red_filter_long_limit=710.0;
   bsr_config->red_filter_short_limit=590.0;
   bsr_config->green_filter_long_limit=590.0;
@@ -151,10 +157,10 @@ void checkOptionStr(char *config_str,  char *option, char *value, char *matchstr
 }
 
 void setOptionValue(bsr_config_t *bsr_config, char *option, char *value, int from_cgi) {
+  //
+  // privileged values that can be set from config file or command line only (not cgi query_string)
+  //
   if (from_cgi == 0) {
-    //
-    // privileged values that can be set from config file or command line only (not cgi query_string)
-    //
     checkOptionStr(bsr_config->data_file_directory, option, value, "data_file_directory");
     checkOptionInt(&bsr_config->num_threads, option, value, "num_threads");
     checkOptionInt(&bsr_config->per_thread_buffer, option, value, "per_thread_buffer");
@@ -162,6 +168,10 @@ void setOptionValue(bsr_config_t *bsr_config, char *option, char *value, int fro
     checkOptionInt(&bsr_config->cgi_max_res_x, option, value, "cgi_max_res_x");
     checkOptionInt(&bsr_config->cgi_max_res_y, option, value, "cgi_max_res_y");
     checkOptionInt(&bsr_config->cgi_min_parallax_quality, option, value, "cgi_min_parallax_quality");
+    checkOptionBool(&bsr_config->cgi_allow_Airy_disk, option, value, "cgi_allow_Airy_disk");
+    checkOptionDouble(&bsr_config->cgi_max_Airy_disk_camera_fov, option, value, "cgi_max_Airy_disk_camera_fov");
+    checkOptionDouble(&bsr_config->cgi_min_Airy_disk_first_null, option, value, "cgi_min_Airy_disk_first_null");
+    checkOptionInt(&bsr_config->cgi_max_Airy_disk_max_extent, option, value, "cgi_max_Airy_disk_max_extent");
   }
 
   //
@@ -175,6 +185,8 @@ void setOptionValue(bsr_config_t *bsr_config, char *option, char *value, int fro
   checkOptionDouble(&bsr_config->star_color_max, option, value, "star_color_max");
   checkOptionBool(&bsr_config->draw_crosshairs, option, value, "draw_crosshairs");
   checkOptionBool(&bsr_config->draw_grid_lines, option, value, "draw_grid_lines");
+  checkOptionDouble(&bsr_config->Gaussian_blur_radius, option, value, "Gaussian_blur_radius");
+  checkOptionDouble(&bsr_config->output_scaling_factor, option, value, "output_scaling_factor");
   checkOptionBool(&bsr_config->sRGB_gamma, option, value, "sRGB_gamma");
   checkOptionInt(&bsr_config->camera_res_x, option, value, "camera_res_x");
   checkOptionInt(&bsr_config->camera_res_y, option, value, "camera_res_y");
@@ -385,6 +397,15 @@ int validateCGIOptions(bsr_config_t *bsr_config) {
   }
   if (bsr_config->min_parallax_quality < bsr_config->cgi_min_parallax_quality) {
     bsr_config->min_parallax_quality=bsr_config->cgi_min_parallax_quality;
+  }
+  if ((bsr_config->cgi_allow_Airy_disk == 0) || (bsr_config->camera_fov > bsr_config->cgi_max_Airy_disk_camera_fov)) {
+    bsr_config->Airy_disk=0;
+  }
+  if (bsr_config->Airy_disk_first_null < bsr_config->cgi_min_Airy_disk_first_null) {
+    bsr_config->Airy_disk_first_null=bsr_config->cgi_min_Airy_disk_first_null;
+  }
+  if (bsr_config->Airy_disk_max_extent > bsr_config->cgi_max_Airy_disk_max_extent) {
+    bsr_config->Airy_disk_max_extent=bsr_config->cgi_max_Airy_disk_max_extent;
   }
 
   return(0);
