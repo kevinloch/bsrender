@@ -37,7 +37,7 @@ double makeAiryMap(double *Airymap, int max_r, int half_oversampling, double pix
       pixel_x=(double)(pixel_x_index - max_r);
       pixel_y=(double)(pixel_y_index - max_r);
       pixel_r=sqrt((pixel_x * pixel_x) + (pixel_y * pixel_y));
-      if ((pixel_r <= (double)max_r) && ((pixel_r * pixel_scaling_factor) <= 1023)) {
+      if ((pixel_r <= (double)max_r) && ((pixel_r * pixel_scaling_factor) <= 2370)) {
         *Airymap_p=0.0;
         for (oversample_y_index=0; oversample_y_index < oversampling; oversample_y_index++) {
           for (oversample_x_index=0; oversample_x_index < oversampling; oversample_x_index++) {
@@ -48,7 +48,7 @@ double makeAiryMap(double *Airymap, int max_r, int half_oversampling, double pix
             Bessel_x_index=(int)((Bessel_x * 10) + 0.5);
             if ((oversample_r == 0) || (Bessel_x_index == 0)) {
               *Airymap_p+=I0;
-            } else if (Bessel_x_index > 10229) {
+            } else if (Bessel_x_index > 23710) {
               *Airymap_p=0.0; // ignore if beyond range of Bessel.h (too many orders of diffraction)
               oversample_x_index=(oversampling + 1);
               oversample_y_index=(oversampling + 1);

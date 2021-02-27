@@ -15,14 +15,13 @@ int GaussianBlur(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   int blur_y;
   int source_x;
   int source_y;
-  int matrix_x;
-  int matrix_y;
+  int kernel_i;
   int current_image_res_x;
   int current_image_res_y;
   int current_image_offset;
-  double *G_matrix_array;
-  double *G_matrix_p;
-  double G_matrix_sum;
+  double *G_kernel_array;
+  double *G_kernel_p;
+  double G_kernel_sum;
   double G;
   struct timespec starttime;
   struct timespec endtime;
@@ -35,7 +34,7 @@ int GaussianBlur(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   double G_b;
 
   //
-  // determine Gaussian matrix size
+  // determine Gaussian kernel size
   //
   radius=bsr_config->Gaussian_blur_radius;
   sample_size=((int)ceil(radius) * 6) + 1;
@@ -51,41 +50,37 @@ int GaussianBlur(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   }
 
   //
-  // allocate memory for Gaussian matrix
+  // allocate memory for 1D Gaussian kernel
   //
-  G_matrix_array=(double *)malloc(sample_size * sample_size * sizeof(double));
-  if (G_matrix_array == NULL) {
+  G_kernel_array=(double *)malloc(sample_size * sizeof(double));
+  if (G_kernel_array == NULL) {
     if (bsr_config->cgi_mode != 1) {
-      printf("Error: could not allocate memory for image blur buffer\n");
+      printf("Error: could not allocate memory for Gaussian blur kernel\n");
       fflush(stdout);
     }
     return(1);
   }
 
   //
-  // generate Gaussian matrix
+  // generate 1D Gaussian kernel
   //
-  G_matrix_sum=0.0;
-  G_matrix_p=G_matrix_array;
-  for (matrix_y=-half_sample_size+1; matrix_y < half_sample_size; matrix_y++) {
-    for (matrix_x=-half_sample_size+1; matrix_x < half_sample_size; matrix_x++) {
-      G=exp(-(((double)matrix_x * (double)matrix_x) + ((double)matrix_y * (double)matrix_y)) / (2.0 * radius * radius) / (2.0 * M_PI * radius * radius)  );
-      G_matrix_sum+=G;
-      *G_matrix_p=G;
-      G_matrix_p++;
-    } // end for matrix_x
-  } // end for matrix_y
+  G_kernel_sum=0.0;
+  G_kernel_p=G_kernel_array;
+  for (kernel_i=-half_sample_size+1; kernel_i < half_sample_size; kernel_i++) {
+    G=exp(-(double)kernel_i * (double)kernel_i / (2.0 * radius * radius)) / sqrt(2.0 * M_PI * radius * radius);
+    G_kernel_sum+=G;
+    *G_kernel_p=G;
+    G_kernel_p++;
+  } // end for kernel
 
   //
-  // normalize Gaussian matrix
+  // normalize Gaussian kernel
   //
-  G_matrix_p=G_matrix_array;
-  for (matrix_y=-half_sample_size+1; matrix_y < half_sample_size; matrix_y++) {
-    for (matrix_x=-half_sample_size+1; matrix_x < half_sample_size; matrix_x++) {
-      *G_matrix_p/=G_matrix_sum;
-      G_matrix_p++;
-    } // end for matrix_x
-  } // end for matrix_y
+  G_kernel_p=G_kernel_array;
+  for (kernel_i=-half_sample_size+1; kernel_i < half_sample_size; kernel_i++) {
+    *G_kernel_p/=G_kernel_sum;
+    G_kernel_p++;
+  } // end for kernel
 
   //
   // get current image pointer and resolution
@@ -110,7 +105,7 @@ int GaussianBlur(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   }
 
   //
-  // apply Gaussian matrix to each pixel and put output in blur buffer
+  // apply Gaussian 1D kernel to each pixel horizontally and put output in blur buffer
   //
   blur_x=0;
   blur_y=0;
@@ -122,26 +117,23 @@ int GaussianBlur(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
     }
 
     //
-    // apply Gaussian matrix to this pixel
+    // apply Gaussian kernel to this pixel horizontally
     //
     G_r=0.0;
     G_g=0.0;
     G_b=0.0;
-    G_matrix_p=G_matrix_array;
-    for (matrix_y=-half_sample_size+1; matrix_y < half_sample_size; matrix_y++) {
-      source_y=blur_y + matrix_y;
-      for (matrix_x=-half_sample_size+1; matrix_x < half_sample_size; matrix_x++) {
-        source_x=blur_x + matrix_x;
-        current_image_offset=(source_y * blur_res_x) + source_x;
-        current_image_p=bsr_state->current_image_buf + current_image_offset;
-        if ((source_x >= 0) && (source_x < current_image_res_x) && (source_y >= 0) && (source_y < current_image_res_y)) {
-          G_r+=(current_image_p->r * *G_matrix_p);
-          G_g+=(current_image_p->g * *G_matrix_p);
-          G_b+=(current_image_p->b * *G_matrix_p);
-          G_matrix_p++;
-        } // end if within current image bounds
-      } // end for matrix_x
-    } // end for matrix_y
+    G_kernel_p=G_kernel_array;
+    for (kernel_i=-half_sample_size+1; kernel_i < half_sample_size; kernel_i++) {
+      source_x=blur_x + kernel_i;
+      current_image_offset=(blur_y * blur_res_x) + source_x;
+      current_image_p=bsr_state->current_image_buf + current_image_offset;
+      if ((source_x >= 0) && (source_x < current_image_res_x)) {
+        G_r+=(current_image_p->r * *G_kernel_p);
+        G_g+=(current_image_p->g * *G_kernel_p);
+        G_b+=(current_image_p->b * *G_kernel_p);
+        G_kernel_p++;
+      } // end if within current image bounds
+    } // end for kernel
 
     //
     // copy blurred pixel to blur buffer
@@ -155,12 +147,53 @@ int GaussianBlur(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   } // end for blur_i
 
   //
-  // free old image buffer and update current_image_buf pointer
+  // apply Gaussian 1D kernel to each pixel vertically and put output back in 'current_image_buffer'
   //
-  free(bsr_state->current_image_buf);
-  bsr_state->current_image_buf=bsr_state->image_blur_buf;
-  bsr_state->current_image_res_x=blur_res_x;
-  bsr_state->current_image_res_y=blur_res_y;
+  blur_x=0;
+  blur_y=0;
+  // note swapping buffers to go back to 'current_image_buffer' so some variable names are backwards
+  current_image_p=bsr_state->image_blur_buf;
+  image_blur_p=bsr_state->current_image_buf;
+  for (blur_i=0; blur_i < (blur_res_x * blur_res_y); blur_i++) {
+    if (blur_x == blur_res_x) {
+      blur_x=0;
+      blur_y++;
+    }
+
+    //
+    // apply Gaussian kernel to this pixel vertically
+    //
+    G_r=0.0;
+    G_g=0.0;
+    G_b=0.0;
+    G_kernel_p=G_kernel_array;
+    for (kernel_i=-half_sample_size+1; kernel_i < half_sample_size; kernel_i++) {
+      source_y=blur_y + kernel_i;
+      current_image_offset=(source_y * blur_res_x) + blur_x;
+      current_image_p=bsr_state->image_blur_buf + current_image_offset;
+      if ((source_y >= 0) && (source_y < current_image_res_y)) {
+        G_r+=(current_image_p->r * *G_kernel_p);
+        G_g+=(current_image_p->g * *G_kernel_p);
+        G_b+=(current_image_p->b * *G_kernel_p);
+        G_kernel_p++;
+      } // end if within current image bounds
+    } // end for kernel
+
+    //
+    // copy blurred pixel to blur buffer
+    //
+    image_blur_p->r=G_r;
+    image_blur_p->g=G_g;
+    image_blur_p->b=G_b;
+
+    blur_x++;
+    image_blur_p++;
+  } // end for blur_i
+
+  //
+  // free image blur buffer
+  //
+  free(bsr_state->image_blur_buf);
 
   //
   // display execution time if not in cgi mode
