@@ -102,7 +102,7 @@ int postProcess(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   //
   // optionally blur image
   //
-  if (bsr_config->Gaussian_blur_radius > 0) {
+  if (bsr_config->Gaussian_blur_radius > 0.0) {
     GaussianBlur(bsr_config, bsr_state); 
   }
 

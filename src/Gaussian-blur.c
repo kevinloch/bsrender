@@ -38,8 +38,8 @@ int GaussianBlur(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   // determine Gaussian matrix size
   //
   radius=bsr_config->Gaussian_blur_radius;
-  sample_size=(ceil(radius) * 6) + 1;
-  half_sample_size=(ceil(radius) * 3) + 1;
+  sample_size=((int)ceil(radius) * 6) + 1;
+  half_sample_size=((int)ceil(radius) * 3) + 1;
 
   //
   // display status message if not in cgi mode

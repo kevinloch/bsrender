@@ -3,8 +3,6 @@ int limitIntensity(double *pixel_r, double *pixel_g, double *pixel_b) {
   //
   // limit pixel to range 0.0-1.0 without regard to color
   //
-/*
-  // pixel should never be negative
   if (*pixel_r < 0.0) {
     *pixel_r=0.0;
   }
@@ -14,7 +12,7 @@ int limitIntensity(double *pixel_r, double *pixel_g, double *pixel_b) {
   if (*pixel_b < 0.0) {
     *pixel_b=0.0;
   }
-*/
+
   if (*pixel_r > 1.0) {
     *pixel_r=1.0;
   }
@@ -34,8 +32,6 @@ int limitIntensityPreserveColor(double *pixel_r, double *pixel_g, double *pixel_
   //
   // limit pixel to range 0.0-1.0 while maintaining color (max channel=1.0)
   //
-/*
-  // pixel should never be negative 
   if (*pixel_r < 0) {
     *pixel_r=0;
   }
@@ -45,7 +41,7 @@ int limitIntensityPreserveColor(double *pixel_r, double *pixel_g, double *pixel_
   if (*pixel_b < 0) {
     *pixel_b=0;
   }
-*/
+
   if ((*pixel_r > 1.0) || (*pixel_g > 1.0) || (*pixel_b > 1.0)) {
     pixel_max=0;
     if (*pixel_r > pixel_max) {

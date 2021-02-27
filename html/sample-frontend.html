@@ -8,7 +8,7 @@
 <style>
 #nav {
   background-color:#e0e0e0;
-  padding:20px;
+  padding:10px;
   text-align: center;
 }
 #box_style {
@@ -17,24 +17,35 @@
   white-space: nowrap;
 }
 #settings_style {
-  min-width: 100px;
+  width: 400px;
   display: table-cell;
   background-color:#e0e0e0;
-  padding:20px;
+  padding: 10px;
   white-space: normal;
+}
+#button_style {
+  text-align: center;
 }
 #rendering_style {
   display: table-cell;
   vertical-align: top;
-  padding: 20px;
+  padding: 10px;
   white-space: normal;
 }
 #footer {
-  padding:20px;
+  padding: 10px;
+  text-align: center;
+}
+#centered {
   text-align: center;
 }
 img {
   max-width: 100%;
+}
+label {
+  display: inline-block;
+  width: 200px;
+  text-align: right;
 }
 </style>
   <meta charset="utf-8">
@@ -295,12 +306,16 @@ camera_tilt=${settings_form.camera_tilt.value}`;
     <div id="box_style">
       <div id="settings_style">
         <form name="settings_form">
-        <h3>General Rendering Options</h3>
+           <div id="button_style">
           <button type="reset">reset to defaults</button>&nbsp;<button type="button" onClick="updateImage()">Render</button>
+           </div>
+          <p>
+        <fieldset>
+        <legend>General Rendering Options</legend>
           <p>
           <label for="rendering_server">Rendering server</label>
-          <input type="text" name="rendering_server" id="rendering_server" size="40" value="http://bsrender.kevinloch.com/r/">
-          <br><label for="min_parallax_quality">Minimum parallax quality</label>
+          <input type="text" name="rendering_server" id="rendering_server" size="30" value="http://bsrender.kevinloch.com/r/">
+          <br><label for="min_parallax_quality">Min parallax quality</label>
           <select name="min_parallax_quality" id="min_parallax_quality">
             <option value="0">0 [1.47B stars]</option>
             <option value="1">1 [763M stars]</option>
@@ -313,20 +328,19 @@ camera_tilt=${settings_form.camera_tilt.value}`;
             <option value="50">50 [16M stars]</option>
             <option value="100">100 [5.8M] stars</option>
           </select>
-          <label for="min_parallax_quality">parallax / error</label>
-          <br><label for="render_distance_min">Minimum render distance</label>
-          <input type="text" name="render_distance_min" id="render_distance_min" value="0.0"> parsecs
-          <br><label for="render_distance_max">Maximum render distance</label>
-          <input type="text" name="render_distance_max" id="render_distance_max" value="1.0E99"> parsecs
-          <br><label for "render_distance_selector">Render distance measured from</label>
+          <br><label for="render_distance_min">Min render distance (parsec)</label>
+          <input type="text" name="render_distance_min" id="render_distance_min" size="12" value="0.0">
+          <br><label for="render_distance_max">Max render distance (parsec)</label>
+          <input type="text" name="render_distance_max" id="render_distance_max" size="12" value="1.0E99">
+          <br><label for "render_distance_selector">Render distance from</label>
           <select name="render_distance_selector" id="render_distance_selector">
             <option value="0" selected>Camera</option>
             <option value="1">Target</option>
           </select>
-          <br><label for="star_color_min">Minimum star temperature</label>
-          <input type="text" name="star_color_min" id="star_color_min" value="0.0"> K
-          <br><label for="star_color_max">Maximum star termperature</label>
-          <input type="text" name="star_color_max" id="star_color_max" value="1.0E99"> K
+          <br><label for="star_color_min">Min star temperature (K)</label>
+          <input type="text" name="star_color_min" id="star_color_min" size="12" value="0.0">
+          <br><label for="star_color_max">Max star termperature (K)</label>
+          <input type="text" name="star_color_max" id="star_color_max" size="12" value="1.0E99">
           <br><label for "draw_crosshairs">Draw crosshairs</label>
           <select name="draw_crosshairs" id="draw_crosshairs">
             <option value="no" selected>no</option>
@@ -338,23 +352,25 @@ camera_tilt=${settings_form.camera_tilt.value}`;
             <option value="yes">yes</option>
           </select>
           <br><label for="Gaussian_blur_radius">Gaussian blur radius</label>
-          <input type="text" name="Gaussian_blur_radius" id="Gaussian_blur_radius" value="0.0">
+          <input type="text" name="Gaussian_blur_radius" id="Gaussian_blur_radius" size="12" value="0.0">
           <br><label for="output_scaling_factor">Output scaling factor</label>
-          <input type="text" name="output_scaling_factor" id="output_scaling_factor" value="1.0">
+          <input type="text" name="output_scaling_factor" id="output_scaling_factor" size="12" value="1.0">
           <br><label for "sRGB_gamma">Enable sRGB encoding gamma</label>
           <select name="sRGB_gamma" id="sRGB_gamma">
             <option value="yes" selected>yes</option>
             <option value="no">no</option>
           </select>
-        <h3>Camera Options</h3>
+        </fieldset>
+        <fieldset>
+        <legend>Camera Options</legend>
           <label for "camera_res_x">Horizontal resolution</label>
-          <input type="text" id="camera_res_x" name="camera_res_x" value="2000">
+          <input type="text" id="camera_res_x" name="camera_res_x" size="12" value="2000">
           <br><label for "camera_res_y">Vertical resolution</label>
-          <input type="text" id="camera_res_y" name="camera_res_y" value="1000">
-          <br><label for "camera_fov">Field of view</label>
-          <input type="text" id="camera_fov" name="camera_fov" value="360"> deg
-          <br><label for "camera_pixel_limit_mag">Pixel intensity limit</label>
-          <input type="text" id="camera_pixel_limit_mag" name="camera_pixel_limit_mag" value="8.0"> magnitude
+          <input type="text" id="camera_res_y" name="camera_res_y" size="12" value="1000">
+          <br><label for "camera_fov">Field of view (deg)</label>
+          <input type="text" id="camera_fov" name="camera_fov" size="12" value="360">
+          <br><label for "camera_pixel_limit_mag">Pixel intensity limit (mag)</label>
+          <input type="text" id="camera_pixel_limit_mag" name="camera_pixel_limit_mag" size="12" value="8.0">
           <br><label for "camera_pixel_limit_mode">Pixel intensity limit mode</label>
           <select name="camera_pixel_limit_mode" id="camera_pixel_limit_mode">
             <option value="0" selected>Saturate to white</option>
@@ -365,12 +381,12 @@ camera_tilt=${settings_form.camera_tilt.value}`;
             <option value="no">no</option>
             <option value="yes" selected>yes</option>
           </select>
-          <br><label for "camera_wb_temp">White balance temperature</label>
-          <input type="text" id="camera_wb_temp" name="camera_wb_temp" value="4300"> K
+          <br><label for "camera_wb_temp">White balance (K)</label>
+          <input type="text" id="camera_wb_temp" name="camera_wb_temp" size="12" value="4300">
           <br><label for "camera_color_saturation">Color saturation</label>
-          <input type="text" id="camera_color_saturation" name="camera_color_saturation" value="4">
+          <input type="text" id="camera_color_saturation" name="camera_color_saturation" size="12" value="4">
           <br><label for "camera_gamma">Gamma</label>
-          <input type="text" id="camera_gamma" name="camera_gamma" value="1.0">
+          <input type="text" id="camera_gamma" name="camera_gamma" size="12" value="1.0">
           <br><label for "camera_projection">Raster projection mode</label>
           <select name="camera_projection" id="camera_projection">
             <option value="0">lat/lon (equirectangular)</option>
@@ -378,72 +394,102 @@ camera_tilt=${settings_form.camera_tilt.value}`;
             <option value="2">Hammer</option>
             <option value="3">Mollewide</option>
           </select>
-          <br><label for "spherical_orientation">Orientation for spherical projection</label>
+          <br><label for "spherical_orientation">Spherical orientation</label>
           <select name="spherical_orientation" id="spherical_orientation">
             <option value="0">forward centered</option>
             <option value="1">side-by-side</option>
           </select>
+          <p>
+          <div id="centered"> 
+            <em>Caution: Airy disks render very slowly
+            <br>and are disabled for fov > 20 deg</em>
+          </div>
           <br><label for "Airy_disk">Enable Airy disks</label>
           <select name="Airy_disk" id="Airy_disk">
             <option value="no" selected>no</option>
             <option value="yes">yes</option>
-          </select> Caution: Airy disks render very slowly
-          <br><label for "Airy_disk_first_null">Radius of first Airy disk null</label>
-          <input type="text" id="Airy_disk_first_null" name="Airy_disk_first_null" value="0.5"> pixels
-          <br><label for "Airy_disk_max_extent">Maximum extent of Airy disk</label>
-          <input type="text" id="Airy_disk_max_extent" name="Airy_disk_max_extent" value="3"> pixels
-        <h3>Color Bandpass Filter Options</h3>
-          <label for "red_filter_long_limit">Red filter long cutoff</label>
-          <input type="text" id="red_filter_long_limit" name="red_filter_long_limit" value="710.0"> nm
+          </select>
+          <br><label for "Airy_disk_first_null">Airy disk first null (pixels)</label>
+          <input type="text" id="Airy_disk_first_null" name="Airy_disk_first_null" size="12" value="0.5">
+          <br><label for "Airy_disk_max_extent">Airy disk max extent (pixels)</label>
+          <input type="text" id="Airy_disk_max_extent" name="Airy_disk_max_extent" size="12" value="3">
+        </fieldset>
+        <fieldset>
+        <legend>Color Bandpass Filter Options</legend>
+          <div id="centered">
+            <em>wavelength in nm</em>
+          </div>
+          <br><label for "red_filter_long_limit">Red filter long cutoff</label>
+          <input type="text" id="red_filter_long_limit" name="red_filter_long_limit" size="12" value="710.0">
           <br><label for "red_filter_short_limit">Red filter short cutoff</label>
-          <input type="text" id="red_filter_short_limit" name="red_filter_short_limit" value="590.0"> nm
+          <input type="text" id="red_filter_short_limit" name="red_filter_short_limit" size="12" value="590.0">
           <br><label for "green_filter_long_limit">Green filter long cutoff</label>
-          <input type="text" id="green_filter_long_limit" name="green_filter_long_limit" value="590.0"> nm
+          <input type="text" id="green_filter_long_limit" name="green_filter_long_limit" size="12" value="590.0">
           <br><label for "green_filter_short_limit">Green filter short cutoff</label>
-          <input type="text" id="green_filter_short_limit" name="green_filter_short_limit" value="495.0"> nm
+          <input type="text" id="green_filter_short_limit" name="green_filter_short_limit" size="12" value="495.0">
           <br><label for "blue_filter_long_limit">Blue filter long cutoff</label>
-          <input type="text" id="blue_filter_long_limit" name="blue_filter_long_limit" value="495.0"> nm
+          <input type="text" id="blue_filter_long_limit" name="blue_filter_long_limit" size="12" value="495.0">
           <br><label for "blue_filter_short_limit">Blue filter short cutoff</label>
-          <input type="text" id="blue_filter_short_limit" name="blue_filter_short_limit" value="405.0"> nm
-        <h3>Camera Position (ICRS coordinates)</h3>
-          <label for "camera_icrs_x>x</label>
-          <input type="text" id="camera_icrs_x" name="camera_icrs_x" value="0.0"> parsecs
+          <input type="text" id="blue_filter_short_limit" name="blue_filter_short_limit" size="12" value="405.0">
+        </fieldset>
+        <fieldset>
+        <legend>Camera Position</legend>
+          <div id="centered"> 
+            <em>ICRS coordinates (parsec, deg)</em>
+          </div>
+          <br><label for "camera_icrs_x>x</label>
+          <input type="text" id="camera_icrs_x" name="camera_icrs_x" size="12" value="0.0">
           <br><label for "camera_icrs_y>y</label>
-          <input type="text" id="camera_icrs_y" name="camera_icrs_y" value="0.0"> parsecs
+          <input type="text" id="camera_icrs_y" name="camera_icrs_y" size="12" value="0.0">
           <br><label for "camera_icrs_z>z</label>
-          <input type="text" id="camera_icrs_z" name="camera_icrs_z" value="0.0"> parsecs
-          <p>or<p>
+          <input type="text" id="camera_icrs_z" name="camera_icrs_z" size="12" value="0.0">
+          <p>
+          <div id="centered">or</div>
+          <p>
           <label for "camera_icrs_ra>ra</label>
-          <input type="text" id="camera_icrs_ra" name="camera_icrs_ra" value="0.0"> deg
+          <input type="text" id="camera_icrs_ra" name="camera_icrs_ra" size="12" value="0.0">
           <br><label for "camera_icrs_dec>dec</label>
-          <input type="text" id="camera_icrs_dec" name="camera_icrs_dec" value="0.0"> deg
+          <input type="text" id="camera_icrs_dec" name="camera_icrs_dec" size="12" value="0.0">
           <br><label for "camera_icrs_r>r</label>
-          <input type="text" id="camera_icrs_r" name="camera_icrs_r" value="0.0"> parsecs
-        <h3>Target Position (ICRS coordinates)</h3>
-          <label for "target_icrs_x>x</label>
-          <input type="text" id="target_icrs_x" name="target_icrs_x" value="0.0"> parsecs
+          <input type="text" id="camera_icrs_r" name="camera_icrs_r" size="12" value="0.0">
+        </fieldset>
+        <fieldset>
+        <legend>Target Position</legend>
+          <div id="centered">
+            <em>ICRS coordinates (parsec, deg)</em>
+          </div>
+          <br><label for "target_icrs_x>x</label>
+          <input type="text" id="target_icrs_x" name="target_icrs_x" size="12" value="0.0">
           <br><label for "target_icrs_y>y</label>
-          <input type="text" id="target_icrs_y" name="target_icrs_y" value="0.0"> parsecs
+          <input type="text" id="target_icrs_y" name="target_icrs_y" size="12" value="0.0">
           <br><label for "target_icrs_z>z</label>
-          <input type="text" id="target_icrs_z" name="target_icrs_z" value="0.0"> parsecs
-          <p>or<p>
+          <input type="text" id="target_icrs_z" name="target_icrs_z" size="12" value="0.0">
+          <p>
+          <div id="centered">or</div>
+          <p>
           <label for "target_icrs_ra>ra</label>
-          <input type="text" id="target_icrs_ra" name="target_icrs_ra" value="266.4168371"> deg
+          <input type="text" id="target_icrs_ra" name="target_icrs_ra" size="12" value="266.4168371">
           <br><label for "target_icrs_dec>dec</label>
-          <input type="text" id="target_icrs_dec" name="target_icrs_dec" value="-29.0078106"> deg
+          <input type="text" id="target_icrs_dec" name="target_icrs_dec" size="12" value="-29.0078106">
           <br><label for "target_icrs_r>r</label>
-          <input type="text" id="target_icrs_r" name="target_icrs_r" value="8178.0"> parsec
-        <h3>Camera Rotation/Pan/Tilt</h3>
-          (After aiming at target) 
-          <p>
-          <label for "camera_rotation">Rotate</label>
-          <input type="text" id="camera_rotation" name="camera_rotation" value="-58.6"> deg
+          <input type="text" id="target_icrs_r" name="target_icrs_r" size="12" value="8178.0">
+        </fieldset>
+        <fieldset>
+        <legend>Camera Rotation/Pan/Tilt</legend>
+          <div id="centered">
+            <em>After aiming at target</em>
+          </div>
+          <br><label for "camera_rotation">Rotate</label>
+          <input type="text" id="camera_rotation" name="camera_rotation" size="12" value="-58.6">
           <br><label for "camera_pan">Pan</label>
-          <input type="text" id="camera_pan" name="camera_pan" value="0.0"> deg
+          <input type="text" id="camera_pan" name="camera_pan" size="12" value="0.0">
           <br><label for "camera_tilt">Tilt</label>
-          <input type="text" id="camera_tilt" name="camera_tilt" value="0.0"> deg
+          <input type="text" id="camera_tilt" name="camera_tilt" size="12" value="0.0">
+        </fieldset>
           <p>
+          <div id="button_style">
           <button type="reset">reset to defaults</button>&nbsp;<button type="button" onClick="updateImage()">Render</button>
+          </div>
         </form>
       </div>
       <script>
@@ -458,7 +504,7 @@ camera_tilt=${settings_form.camera_tilt.value}`;
     </div>
   </main>
   <footer id="footer">
-    sample-frontend.html from bsrender v0.9.0-dev-29
+    sample-frontend.html from bsrender v0.9.0-dev-30
   </footer>
 </body>
 </html>

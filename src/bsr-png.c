@@ -108,6 +108,15 @@ int writePNGFile(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
     pixel_b=current_image_p->b;
 
     //
+    // limit pixel intensity to range [0..1]
+    //
+    if (bsr_config->camera_pixel_limit_mode == 0) {
+      limitIntensity(&pixel_r, &pixel_g, &pixel_b);
+    } else if (bsr_config->camera_pixel_limit_mode == 1) {
+      limitIntensityPreserveColor(&pixel_r, &pixel_g, &pixel_b);
+    }
+
+    //
     // optionally apply sRGB gamma
     //
     if (bsr_config->sRGB_gamma == 1) {
