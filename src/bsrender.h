@@ -1,10 +1,12 @@
 #ifndef BSRENDER_H
 #define BSRENDER_H
 
-#define BSR_VERSION "0.9-dev-31"
+#define BSR_VERSION "0.9-dev-33"
 
 #define _GNU_SOURCE // needed for strcasestr in string.h
 #include <stdint.h> // needed for uint64_t
+
+#include <unistd.h>
 
 typedef struct {
   double icrs_x;
@@ -32,12 +34,16 @@ typedef struct {
   thread_buffer_t *thread_buf; // globally mmaped
   thread_buffer_t *thread_buf_p; // used locally by each thread
   int thread_buffer_index; // used locally by each thread
-  pixel_composition_t *image_composition_buf;
-  pixel_composition_t *image_blur_buf;
+  pixel_composition_t *image_composition_buf; // globally mmaped
+  pixel_composition_t *image_blur_buf; // globally mmaped
   pixel_composition_t *image_resize_buf; 
   pixel_composition_t *current_image_buf;
+  int num_worker_threads;
+  pid_t my_pid;
+  pid_t master_pid;
   int current_image_res_x;
   int current_image_res_y;
+  int *status_array;
   double *rgb_red;
   double *rgb_green;
   double *rgb_blue;
@@ -72,12 +78,14 @@ typedef struct {
   int cgi_mode;
   int cgi_max_res_x;
   int cgi_max_res_y;
-  int cgi_min_parallax_quality;
+  int cgi_Gaia_min_parallax_quality;
   int cgi_allow_Airy_disk;
   double cgi_max_Airy_disk_camera_fov;
   double cgi_min_Airy_disk_first_null;
   int cgi_max_Airy_disk_max_extent;
-  int min_parallax_quality;
+  int enable_Gaia;
+  int Gaia_min_parallax_quality;
+  int enable_external;
   double render_distance_min;
   double render_distance_max;
   int render_distance_selector;

@@ -58,9 +58,17 @@ label {
       if (tmpvalue != null) {
         settings_form.rendering_server.value = tmpvalue;
       }
-      tmpvalue = search.get("min_parallax_quality");
+      tmpvalue = search.get("enable_Gaia");
       if (tmpvalue != null) {
-        settings_form.min_parallax_quality.value = tmpvalue;
+        settings_form.enable_Gaia.value = tmpvalue;
+      }
+      tmpvalue = search.get("Gaia_min_parallax_quality");
+      if (tmpvalue != null) {
+        settings_form.Gaia_min_parallax_quality.value = tmpvalue;
+      }
+      tmpvalue = search.get("enable_external");
+      if (tmpvalue != null) {
+        settings_form.enable_external.value = tmpvalue;
       }
       tmpvalue = search.get("render_distance_min");
       if (tmpvalue != null) {
@@ -245,7 +253,9 @@ label {
     };
     function updateImage() {
       let src = `${settings_form.rendering_server.value}?\
-min_parallax_quality=${settings_form.min_parallax_quality.value}&\
+enable_Gaia=${settings_form.enable_Gaia.value}&\
+Gaia_min_parallax_quality=${settings_form.Gaia_min_parallax_quality.value}&\
+enable_external=${settings_form.enable_external.value}&\
 render_distance_min=${settings_form.render_distance_min.value}&\
 render_distance_max=${settings_form.render_distance_max.value}&\
 render_distance_selector=${settings_form.render_distance_selector.value}&\
@@ -315,8 +325,13 @@ camera_tilt=${settings_form.camera_tilt.value}`;
           <p>
           <label for="rendering_server">Rendering server</label>
           <input type="text" name="rendering_server" id="rendering_server" size="30" value="http://bsrender.kevinloch.com/r/">
-          <br><label for="min_parallax_quality">Min parallax quality</label>
-          <select name="min_parallax_quality" id="min_parallax_quality">
+          <br><label for "enable_Gaia">Show Gaia stars</label>
+          <select name="enable_Gaia" id="enable_Gaia">
+            <option value="yes" selected>yes</option>
+            <option value="no">no</option>
+          </select>
+          <br><label for="Gaia_min_parallax_quality">Gaia min parallax quality</label>
+          <select name="Gaia_min_parallax_quality" id="Gaia_min_parallax_quality">
             <option value="0">0 [1.47B stars]</option>
             <option value="1">1 [763M stars]</option>
             <option value="2">2 [479M stars]</option>
@@ -327,6 +342,11 @@ camera_tilt=${settings_form.camera_tilt.value}`;
             <option value="30">30 [31M stars]</option>
             <option value="50">50 [16M stars]</option>
             <option value="100">100 [5.8M] stars</option>
+          </select>
+          <br><label for "enable_external">Show non-Gaia stars</label>
+          <select name="enable_external" id="enable_external">
+            <option value="yes" selected>yes</option>
+            <option value="no">no</option>
           </select>
           <br><label for="render_distance_min">Min render distance (parsec)</label>
           <input type="text" name="render_distance_min" id="render_distance_min" size="12" value="0.0">
@@ -355,10 +375,10 @@ camera_tilt=${settings_form.camera_tilt.value}`;
           <input type="text" name="Gaussian_blur_radius" id="Gaussian_blur_radius" size="12" value="0.0">
           <br><label for="output_scaling_factor">Output scaling factor</label>
           <input type="text" name="output_scaling_factor" id="output_scaling_factor" size="12" value="1.0">
-          <br><label for "sRGB_gamma">Enable sRGB encoding gamma</label>
+          <br><label for "sRGB_gamma">sRGB encoding gamma</label>
           <select name="sRGB_gamma" id="sRGB_gamma">
-            <option value="yes" selected>yes</option>
-            <option value="no">no</option>
+            <option value="yes" selected>on</option>
+            <option value="nof">off</option>
           </select>
         </fieldset>
         <fieldset>
@@ -387,7 +407,7 @@ camera_tilt=${settings_form.camera_tilt.value}`;
           <input type="text" id="camera_color_saturation" name="camera_color_saturation" size="12" value="4">
           <br><label for "camera_gamma">Gamma</label>
           <input type="text" id="camera_gamma" name="camera_gamma" size="12" value="1.0">
-          <br><label for "camera_projection">Raster projection mode</label>
+          <br><label for "camera_projection">Raster projection</label>
           <select name="camera_projection" id="camera_projection">
             <option value="0">lat/lon (equirectangular)</option>
             <option value="1">spherical</option>
@@ -412,7 +432,7 @@ camera_tilt=${settings_form.camera_tilt.value}`;
           <br><label for "Airy_disk_first_null">Airy disk first null (pixels)</label>
           <input type="text" id="Airy_disk_first_null" name="Airy_disk_first_null" size="12" value="0.5">
           <br><label for "Airy_disk_max_extent">Airy disk max extent (pixels)</label>
-          <input type="text" id="Airy_disk_max_extent" name="Airy_disk_max_extent" size="12" value="3">
+          <input type="text" id="Airy_disk_max_extent" name="Airy_disk_max_extent" size="12" value="10">
         </fieldset>
         <fieldset>
         <legend>Color Bandpass Filter Options</legend>
@@ -504,7 +524,7 @@ camera_tilt=${settings_form.camera_tilt.value}`;
     </div>
   </main>
   <footer id="footer">
-    sample-frontend.html from bsrender v0.9.0-dev-31
+    sample-frontend.html from bsrender v0.9.0-dev-33
   </footer>
 </body>
 </html>

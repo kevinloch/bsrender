@@ -12,12 +12,14 @@ void initConfig(bsr_config_t *bsr_config) {
   bsr_config->cgi_mode=0;
   bsr_config->cgi_max_res_x=33000;
   bsr_config->cgi_max_res_y=17000;
-  bsr_config->cgi_min_parallax_quality=0;
+  bsr_config->cgi_Gaia_min_parallax_quality=0;
   bsr_config->cgi_allow_Airy_disk=1;
   bsr_config->cgi_max_Airy_disk_camera_fov=20.0;
   bsr_config->cgi_min_Airy_disk_first_null=0.3;
   bsr_config->cgi_max_Airy_disk_max_extent=100;
-  bsr_config->min_parallax_quality=10;
+  bsr_config->enable_Gaia=1;
+  bsr_config->Gaia_min_parallax_quality=10;
+  bsr_config->enable_external=1;
   bsr_config->render_distance_min=0.0;
   bsr_config->render_distance_max=1.0E99;
   bsr_config->render_distance_selector=0;
@@ -43,7 +45,7 @@ void initConfig(bsr_config_t *bsr_config) {
   bsr_config->Mollewide_iterations=5;
   bsr_config->Airy_disk=0;
   bsr_config->Airy_disk_first_null=0.5;
-  bsr_config->Airy_disk_max_extent=3;
+  bsr_config->Airy_disk_max_extent=10;
   bsr_config->red_filter_long_limit=710.0;
   bsr_config->red_filter_short_limit=590.0;
   bsr_config->green_filter_long_limit=590.0;
@@ -167,7 +169,7 @@ void setOptionValue(bsr_config_t *bsr_config, char *option, char *value, int fro
     checkOptionBool(&bsr_config->cgi_mode, option, value, "cgi_mode");
     checkOptionInt(&bsr_config->cgi_max_res_x, option, value, "cgi_max_res_x");
     checkOptionInt(&bsr_config->cgi_max_res_y, option, value, "cgi_max_res_y");
-    checkOptionInt(&bsr_config->cgi_min_parallax_quality, option, value, "cgi_min_parallax_quality");
+    checkOptionInt(&bsr_config->cgi_Gaia_min_parallax_quality, option, value, "cgi_Gaia_min_parallax_quality");
     checkOptionBool(&bsr_config->cgi_allow_Airy_disk, option, value, "cgi_allow_Airy_disk");
     checkOptionDouble(&bsr_config->cgi_max_Airy_disk_camera_fov, option, value, "cgi_max_Airy_disk_camera_fov");
     checkOptionDouble(&bsr_config->cgi_min_Airy_disk_first_null, option, value, "cgi_min_Airy_disk_first_null");
@@ -177,7 +179,9 @@ void setOptionValue(bsr_config_t *bsr_config, char *option, char *value, int fro
   //
   // values that can be set from config file, command line, or cgi query_string
   //
-  checkOptionInt(&bsr_config->min_parallax_quality, option, value, "min_parallax_quality");
+  checkOptionBool(&bsr_config->enable_Gaia, option, value, "enable_Gaia");
+  checkOptionInt(&bsr_config->Gaia_min_parallax_quality, option, value, "Gaia_min_parallax_quality");
+  checkOptionBool(&bsr_config->enable_external, option, value, "enable_external");
   checkOptionDouble(&bsr_config->render_distance_min, option, value, "render_distance_min");
   checkOptionDouble(&bsr_config->render_distance_max, option, value, "render_distance_max");
   checkOptionInt(&bsr_config->render_distance_selector, option, value, "render_distance_selector");
@@ -395,8 +399,8 @@ int validateCGIOptions(bsr_config_t *bsr_config) {
   if (bsr_config->camera_res_y > bsr_config->cgi_max_res_y) {
     bsr_config->camera_res_y=bsr_config->cgi_max_res_y;
   }
-  if (bsr_config->min_parallax_quality < bsr_config->cgi_min_parallax_quality) {
-    bsr_config->min_parallax_quality=bsr_config->cgi_min_parallax_quality;
+  if (bsr_config->Gaia_min_parallax_quality < bsr_config->cgi_Gaia_min_parallax_quality) {
+    bsr_config->Gaia_min_parallax_quality=bsr_config->cgi_Gaia_min_parallax_quality;
   }
   if ((bsr_config->cgi_allow_Airy_disk == 0) || (bsr_config->camera_fov > bsr_config->cgi_max_Airy_disk_camera_fov)) {
     bsr_config->Airy_disk=0;

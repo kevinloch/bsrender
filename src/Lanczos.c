@@ -158,9 +158,8 @@ int resizeLanczos(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   }
 
   //
-  // free old image buffer and update current_image_buf pointer
+  // update current_image_buf pointer
   //
-  free(bsr_state->current_image_buf);
   bsr_state->current_image_buf=bsr_state->image_resize_buf;
   bsr_state->current_image_res_x=resize_res_x;
   bsr_state->current_image_res_y=resize_res_y;

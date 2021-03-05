@@ -18,6 +18,7 @@ Key features:
   - Stars can be selected by parallax quality (parallax over error), distance from camera or target, and color temperature
   - Optional Gaussian blur and/or Lanczos2 output scaling.  This allows very high resolution renderings to be smoothed and downsampled without using 3rd party image manipulation tools
   - Good performance when the data files can be cached in ram.  On an AWS c6gd.12xlarge instance (48vcpu/96Gram) the full pq0 dataset (1.4B stars) can be rendered in 14 seconds at 2k resolution.  The pq10 set (98M stars) renders in 2 seconds.
+  - Support for user-supplied stars.  This can be used to add the Sun and other stars that are too bright or dim to have their parallax measured by the Gaia satellite.
   
 Installation:
 
@@ -26,7 +27,9 @@ Installation:
   - Compile with make (make on Linux and Mac w/Xcode, gmake on FreeBSD).  There is no 'configure' script yet
   - To extract and process your own data files, make sure the ./gaia_source contains the Gaia EDR3 compresed csv files
     - run 'gaia-edr3-extract.sh'
-    - run 'mkgalaxy'
+    - run 'mkgalaxy' to generate the data files for Gaia stars
+    - edit 'external.csv' for user-supplied stars
+    - run 'mkexternal' to generate the data files for user-supplied stars
   - To download sample data files (43GB total size) run the script 'getgalaxydata.sh'.  It will download the data files to the current directory
   - Move galaxy-pq*.dat files to ./galaxydata or path specified in config file or -d comand line option
   - Edit options in bsrender.cfg for desired rendering settings.  Make sure bsrender.cfg is in current directory or use -c command line option to specify name and location

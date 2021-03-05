@@ -1,11 +1,11 @@
 //
-// Billion Star 3D Rendering Engine Proof of Concept
+// Billion Star 3D Rendering Engine
 // Kevin M. Loch
 //
 // pre-processor for the ESA Gaia EDR3 star dataset
 //
 // This program creates binary data files for use by the rendering engine
-// Data is sorted into separate files by "paralax quality" which is the value of the 'parallax_over_error' field in the GEDR3 data set
+// Data is sorted into separate files by "Gaia paralax quality" which is the value of the 'parallax_over_error' field in the GEDR3 data set
 // galaxy-pq030 for example has stars with a minimum parallax quality of 30.0, but less than the next highest tier (50.0)
 //
 // The format of the binary data files is given by the star_record data type
@@ -20,8 +20,6 @@
 // where intensity_and_temperature has a single precision value for the the normalized (to vega at 1 parsec) flux in the 32 MSB,
 // and the color temperature of the star as an unsigned integer between 0..32767 in the 32 LSB.
 // For speed in the rendering engine no byte-order checking/setting is done so the data files must be generated on a compatible platform for the rendering engine.
-// There are no headers to the data files so they can be concatenated to make different combinations (like 'cat galaxy-pq100.dat galaxy-pq050.dat galaxy-pq030.dat, galaxy-pq020.dat, galaxy-pq010.dat > upto10.dat') 
-// as the rendering engine only works with a single "galaxy.dat" file for now
 //
 
 #include "bsrender.h" // needs to be first to get GNU_SOURCE define for strcasestr
@@ -431,7 +429,7 @@ int main(int argc, char **argv) {
   double ra_rad;
   double dec_rad;
   double magnitude;
-  double linear_intensity; // flux relative to vega
+  double linear_intensity; // intensity relative to vega
 
   //
   // settings for calibration and parallax override
@@ -458,7 +456,7 @@ int main(int argc, char **argv) {
   printf("init, Opening input file gaia-edr3-extracted.csv\n");
   input_file=fopen("gaia-edr3-extracted.csv", "rb");
   if (input_file == NULL) {
-    printf("init, Error: could not open extracted.csv\n");
+    printf("init, Error: could not open gaia-edr3-extracted.csv\n");
     fflush(stdout);
     return(1);
   }
@@ -786,7 +784,7 @@ int main(int argc, char **argv) {
     //
     // periodic status
     //
-    if ((input_count % 1000000) == 0) {
+    if ((input_count > 0) && ((input_count % 1000000) == 0)) {
       printf("status, input records: %9lld, pq000: %8lld, pq001: %8lld, pq002: %8lld, pq003: %8lld, pq005: %8lld, pq010: %8lld, pq020: %8lld, pq030: %8lld, pq050: %8lld, pq100: %8lld, no parallax: %8lld, parallax unusable: %8lld\n", input_count, pq000_count, pq001_count, pq002_count, pq003_count, pq005_count, pq010_count, pq020_count, pq030_count, pq050_count, pq100_count, discard_parms_count, discard_parallax_count);
     }
 

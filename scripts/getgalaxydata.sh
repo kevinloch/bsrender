@@ -10,6 +10,7 @@
 #
 datahost="https://kevinloch.com"
 #
+wget --no-check-certificate ${datahost}/bsrender/sample_data/0.9.0/galaxy-external.dat
 wget --no-check-certificate ${datahost}/bsrender/sample_data/0.9.0/galaxy-pq100.dat
 wget --no-check-certificate ${datahost}/bsrender/sample_data/0.9.0/galaxy-pq050.dat
 wget --no-check-certificate ${datahost}/bsrender/sample_data/0.9.0/galaxy-pq030.dat
