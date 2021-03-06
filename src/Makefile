@@ -9,7 +9,7 @@ DEPS = Lanczos.h post-process.h Gaussian-blur.h rgb.h diffraction.h cgi.h init-s
 all: mkgalaxy mkexternal bsrender
 
 clean:
-	rm -f mkbessel mkgalaxy bsrender *.o
+	rm -f mkbessel mkgalaxy mkexternal bsrender *.o
 
 $(OBJ): %.o : %.c $(DEPS)
 	$(CC) $(CFLAGS) -c -o $@ $<

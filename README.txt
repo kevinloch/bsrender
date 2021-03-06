@@ -27,9 +27,9 @@ Installation:
   - Compile with make (make on Linux and Mac w/Xcode, gmake on FreeBSD).  There is no 'configure' script yet
   - To extract and process your own data files, make sure the ./gaia_source contains the Gaia EDR3 compresed csv files
     - run 'gaia-edr3-extract.sh'
-    - run 'mkgalaxy' to generate the data files for Gaia stars
-    - edit 'external.csv' for user-supplied stars
-    - run 'mkexternal' to generate the data files for user-supplied stars
+    - run 'mkgalaxy' in the same directory as gaia-edr3-extracted.csv to generate the data files for Gaia stars
+    - edit 'external/external.csv' for user-supplied stars
+    - run 'mkexternal' in the same directory as external.csv to generate the data files for user-supplied stars
   - To download sample data files (43GB total size) run the script 'getgalaxydata.sh'.  It will download the data files to the current directory
   - Move galaxy-pq*.dat files to ./galaxydata or path specified in config file or -d comand line option
   - Edit options in bsrender.cfg for desired rendering settings.  Make sure bsrender.cfg is in current directory or use -c command line option to specify name and location

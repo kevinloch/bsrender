@@ -19,7 +19,7 @@ void initConfig(bsr_config_t *bsr_config) {
   bsr_config->cgi_max_Airy_disk_max_extent=100;
   bsr_config->enable_Gaia=1;
   bsr_config->Gaia_min_parallax_quality=10;
-  bsr_config->enable_external=1;
+  bsr_config->enable_external=0;
   bsr_config->render_distance_min=0.0;
   bsr_config->render_distance_max=1.0E99;
   bsr_config->render_distance_selector=0;
