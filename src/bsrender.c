@@ -70,7 +70,8 @@ int processCmdArgs(bsr_config_t *bsr_config, int argc, char **argv) {
 
 int main(int argc, char **argv) {
   bsr_config_t bsr_config;
-  bsr_state_t bsr_state;
+  bsr_state_t *bsr_state;
+  bsr_thread_state_t perthread;
   char file_path[1024];
   FILE *input_file_external=NULL;
   FILE *input_file_pq100=NULL;
@@ -90,9 +91,11 @@ int main(int argc, char **argv) {
   struct timespec starttime;
   struct timespec endtime;
   double elapsed_time;
-  size_t composition_buffer_size;
-  size_t blur_buffer_size;
-  size_t status_array_size;
+  size_t bsr_state_size=0;
+  size_t composition_buffer_size=0;
+  size_t blur_buffer_size=0;
+  size_t resize_buffer_size=0;
+  size_t status_array_size=0;
   int i;
   double rgb_red[32768];
   double rgb_green[32768];
@@ -106,7 +109,7 @@ int main(int argc, char **argv) {
   int main_thread_buffer_index;
   int buffer_is_empty;
   int empty_passes;
-  long star_count;
+  long star_count=0;
   int Airymap_xy;
 
   //
@@ -134,11 +137,26 @@ int main(int argc, char **argv) {
   }
 
   //
+  // allocate shared memory for bsr_state
+  //
+  mmap_protection=PROT_READ | PROT_WRITE;
+  mmap_visibility=MAP_SHARED | MAP_ANONYMOUS;
+  bsr_state_size=sizeof(bsr_state_t);
+  bsr_state=(bsr_state_t *)mmap(NULL, bsr_state_size, mmap_protection, mmap_visibility, -1, 0);
+  if (bsr_state == NULL) {
+    if (bsr_config.cgi_mode != 1) {
+      printf("Error: could not allocate shared memory for bsr_state\n");
+    }
+    return(1);
+  }
+  bsr_state->perthread=&perthread;
+
+  //
   // calculate number of rendering threads to be forked
   //
-  bsr_state.num_worker_threads=bsr_config.num_threads-1;
-  if (bsr_state.num_worker_threads < 1) {
-    bsr_state.num_worker_threads=1;
+  bsr_state->num_worker_threads=bsr_config.num_threads-1;
+  if (bsr_state->num_worker_threads < 1) {
+    bsr_state->num_worker_threads=1;
   }
 
   //
@@ -147,9 +165,9 @@ int main(int argc, char **argv) {
   if (bsr_config.cgi_mode != 1) {
     clock_gettime(CLOCK_REALTIME, &overall_starttime);
     if (bsr_config.enable_Gaia == 1) {
-      printf("Minimum Gaia parallax quality: %d, total threads: %d, buffers per rendering thread: %d stars\n", bsr_config.Gaia_min_parallax_quality, (bsr_state.num_worker_threads + 1), bsr_config.per_thread_buffer);
+      printf("Minimum Gaia parallax quality: %d, total threads: %d, buffers per rendering thread: %d stars\n", bsr_config.Gaia_min_parallax_quality, (bsr_state->num_worker_threads + 1), bsr_config.per_thread_buffer);
     } else {
-      printf("Total threads: %d, buffers per rendering thread: %d stars\n", (bsr_state.num_worker_threads + 1), bsr_config.per_thread_buffer);
+      printf("Total threads: %d, buffers per rendering thread: %d stars\n", (bsr_state->num_worker_threads + 1), bsr_config.per_thread_buffer);
     }
     fflush(stdout);
   }
@@ -157,7 +175,7 @@ int main(int argc, char **argv) {
   //
   // initialize bsr_state (setup camera target)
   //
-  initState(&bsr_config, &bsr_state);
+  initState(&bsr_config, bsr_state);
 
   //
   // initialize RGB color lookup tables
@@ -167,10 +185,10 @@ int main(int argc, char **argv) {
     printf("Initializing rgb color tables...");
     fflush(stdout);
   }
-  bsr_state.rgb_red=rgb_red;
-  bsr_state.rgb_green=rgb_green;
-  bsr_state.rgb_blue=rgb_blue;
-  initRGBTables(&bsr_config, &bsr_state);
+  bsr_state->rgb_red=rgb_red;
+  bsr_state->rgb_green=rgb_green;
+  bsr_state->rgb_blue=rgb_blue;
+  initRGBTables(&bsr_config, bsr_state);
   if (bsr_config.cgi_mode != 1) {
     clock_gettime(CLOCK_REALTIME, &endtime);
     elapsed_time=((double)(endtime.tv_sec - 1500000000) + ((double)endtime.tv_nsec / 1.0E9)) - ((double)(starttime.tv_sec - 1500000000) + ((double)starttime.tv_nsec) / 1.0E9);
@@ -189,10 +207,10 @@ int main(int argc, char **argv) {
     }
     Airymap_xy=(bsr_config.Airy_disk_max_extent * 2) + 1;
     Airymap_size=Airymap_xy * Airymap_xy * sizeof(double);
-    bsr_state.Airymap_red=(double *)malloc(Airymap_size);
-    bsr_state.Airymap_green=(double *)malloc(Airymap_size);
-    bsr_state.Airymap_blue=(double *)malloc(Airymap_size);
-    initAiryMaps(&bsr_config, &bsr_state);
+    bsr_state->Airymap_red=(double *)malloc(Airymap_size);
+    bsr_state->Airymap_green=(double *)malloc(Airymap_size);
+    bsr_state->Airymap_blue=(double *)malloc(Airymap_size);
+    initAiryMaps(&bsr_config, bsr_state);
     if (bsr_config.cgi_mode != 1) {
       clock_gettime(CLOCK_REALTIME, &endtime);
       elapsed_time=((double)(endtime.tv_sec - 1500000000) + ((double)endtime.tv_nsec / 1.0E9)) - ((double)(starttime.tv_sec - 1500000000) + ((double)starttime.tv_nsec) / 1.0E9);
@@ -212,24 +230,24 @@ int main(int argc, char **argv) {
   mmap_protection=PROT_READ | PROT_WRITE;
   mmap_visibility=MAP_SHARED | MAP_ANONYMOUS;
   composition_buffer_size=bsr_config.camera_res_x * bsr_config.camera_res_y * sizeof(pixel_composition_t);
-  bsr_state.image_composition_buf=(pixel_composition_t *)mmap(NULL, composition_buffer_size, mmap_protection, mmap_visibility, -1, 0);
-  if (bsr_state.image_composition_buf == NULL) {
+  bsr_state->image_composition_buf=(pixel_composition_t *)mmap(NULL, composition_buffer_size, mmap_protection, mmap_visibility, -1, 0);
+  if (bsr_state->image_composition_buf == NULL) {
     if (bsr_config.cgi_mode != 1) {
       printf("Error: could not allocate shared memory for image composition buffer\n");
     }
     return(1);
   }
   // initialize (clear) image composition buffer
-  image_composition_p=bsr_state.image_composition_buf;
+  image_composition_p=bsr_state->image_composition_buf;
   for (i=0; i < (bsr_config.camera_res_x * bsr_config.camera_res_y); i++) {
     image_composition_p->r=0.0;
     image_composition_p->g=0.0;
     image_composition_p->b=0.0;
     image_composition_p++;
   }
-  bsr_state.current_image_buf=bsr_state.image_composition_buf;
-  bsr_state.current_image_res_x=bsr_config.camera_res_x;
-  bsr_state.current_image_res_y=bsr_config.camera_res_y;
+  bsr_state->current_image_buf=bsr_state->image_composition_buf;
+  bsr_state->current_image_res_x=bsr_config.camera_res_x;
+  bsr_state->current_image_res_y=bsr_config.camera_res_y;
   if (bsr_config.cgi_mode != 1) {
     clock_gettime(CLOCK_REALTIME, &endtime);
     elapsed_time=((double)(endtime.tv_sec - 1500000000) + ((double)endtime.tv_nsec / 1.0E9)) - ((double)(starttime.tv_sec - 1500000000) + ((double)starttime.tv_nsec) / 1.0E9);
@@ -244,10 +262,29 @@ int main(int argc, char **argv) {
     mmap_protection=PROT_READ | PROT_WRITE;
     mmap_visibility=MAP_SHARED | MAP_ANONYMOUS;
     blur_buffer_size=bsr_config.camera_res_x * bsr_config.camera_res_y * sizeof(pixel_composition_t);
-    bsr_state.image_blur_buf=(pixel_composition_t *)mmap(NULL, blur_buffer_size, mmap_protection, mmap_visibility, -1, 0);
-    if (bsr_state.image_blur_buf == NULL) {
+    bsr_state->image_blur_buf=(pixel_composition_t *)mmap(NULL, blur_buffer_size, mmap_protection, mmap_visibility, -1, 0);
+    if (bsr_state->image_blur_buf == NULL) {
       if (bsr_config.cgi_mode != 1) {
         printf("Error: could not allocate shared memory for image blur buffer\n");
+        fflush(stdout);
+      }
+      return(1);
+    }
+  }
+
+  //
+  // allocate shared memory for image resize buffer if needed
+  //
+  if (bsr_config.output_scaling_factor != 1.0) {
+    bsr_state->resize_res_x=(int)(((double)bsr_config.camera_res_x * bsr_config.output_scaling_factor) + 0.5);
+    bsr_state->resize_res_y=(int)(((double)bsr_config.camera_res_y * bsr_config.output_scaling_factor) + 0.5);
+    mmap_protection=PROT_READ | PROT_WRITE;
+    mmap_visibility=MAP_SHARED | MAP_ANONYMOUS;
+    resize_buffer_size=bsr_state->resize_res_x * bsr_state->resize_res_y * sizeof(pixel_composition_t);
+    bsr_state->image_resize_buf=(pixel_composition_t *)mmap(NULL, resize_buffer_size, mmap_protection, mmap_visibility, -1, 0);
+    if (bsr_state->image_resize_buf == NULL) {
+      if (bsr_config.cgi_mode != 1) {
+        printf("Error: could not allocate shared memory for image resize buffer\n");
         fflush(stdout);
       }
       return(1);
@@ -265,26 +302,26 @@ int main(int argc, char **argv) {
   if (bsr_config.per_thread_buffer < 1) {
     bsr_config.per_thread_buffer=1;
   }
-  thread_buffer_count=bsr_state.num_worker_threads * bsr_config.per_thread_buffer;
+  thread_buffer_count=bsr_state->num_worker_threads * bsr_config.per_thread_buffer;
   thread_buffer_size=thread_buffer_count * sizeof(thread_buffer_t);
-  bsr_state.thread_buf=(thread_buffer_t *)mmap(NULL, thread_buffer_size, mmap_protection, mmap_visibility, -1, 0);
-  if (bsr_state.thread_buf == NULL) {
+  bsr_state->thread_buf=(thread_buffer_t *)mmap(NULL, thread_buffer_size, mmap_protection, mmap_visibility, -1, 0);
+  if (bsr_state->thread_buf == NULL) {
     if (bsr_config.cgi_mode != 1) {
       printf("Error: could not allocate shared memory for thread buffer\n");
     }
     return(1);
   }
   // initialize thread buffer
-  main_thread_buf_p=bsr_state.thread_buf;
-  for (i=0; i < (bsr_state.num_worker_threads * bsr_config.per_thread_buffer); i++) {
+  main_thread_buf_p=bsr_state->thread_buf;
+  for (i=0; i < (bsr_state->num_worker_threads * bsr_config.per_thread_buffer); i++) {
     main_thread_buf_p->status_left=0;
     main_thread_buf_p->status_right=0;
     main_thread_buf_p++;
   }
   // allocate shared memory for thread status array
-  status_array_size=(bsr_state.num_worker_threads + 1) * sizeof(int);
-  bsr_state.status_array=(int *)mmap(NULL, status_array_size, mmap_protection, mmap_visibility, -1, 0);
-  if (bsr_state.status_array == NULL) {
+  status_array_size=(bsr_state->num_worker_threads + 1) * sizeof(int);
+  bsr_state->status_array=(int *)mmap(NULL, status_array_size, mmap_protection, mmap_visibility, -1, 0);
+  if (bsr_state->status_array == NULL) {
     if (bsr_config.cgi_mode != 1) {
       printf("Error: could not allocate shared memory for thread status array\n");
     }
@@ -438,75 +475,75 @@ int main(int argc, char **argv) {
   //
   // fork rendering threads
   //
-  bsr_state.master_pid=getpid();
-  if (bsr_state.num_worker_threads > 0) {
-    for (i=1; i <= bsr_state.num_worker_threads; i++) {
-      bsr_state.my_pid=getpid();
-      if (bsr_state.my_pid == bsr_state.master_pid) {
-        bsr_state.my_thread_id=i; // this gets inherited by forked process
-        bsr_state.status_array[i]=0;
+  bsr_state->master_pid=getpid();
+  if (bsr_state->num_worker_threads > 0) {
+    for (i=1; i <= bsr_state->num_worker_threads; i++) {
+      bsr_state->perthread->my_pid=getpid();
+      if (bsr_state->perthread->my_pid == bsr_state->master_pid) {
+        bsr_state->perthread->my_thread_id=i; // this gets inherited by forked process
+        bsr_state->status_array[i]=0;
         fork();
       }
     }
   }
-  bsr_state.my_pid=getpid();
-  if (bsr_state.my_pid == bsr_state.master_pid) {
-    bsr_state.my_thread_id=0;
+  bsr_state->perthread->my_pid=getpid();
+  if (bsr_state->perthread->my_pid == bsr_state->master_pid) {
+    bsr_state->perthread->my_thread_id=0;
   }
 
   // 
   // begin thread specific processing.  Rendering threads read data files and send pixles to main thread.  Main integrates these pixels into
   // the image composition buffer
   //
-  if (bsr_state.my_pid != bsr_state.master_pid) {
+  if (bsr_state->perthread->my_pid != bsr_state->master_pid) {
 
     //
     // rendering thread: set our thread buffer postion to the beginning of this threads block
     //
-    bsr_state.thread_buf_p=bsr_state.thread_buf + ((bsr_state.my_thread_id - 1) * bsr_config.per_thread_buffer);
-    bsr_state.thread_buffer_index=0; // index within this threads block
+    bsr_state->perthread->thread_buf_p=bsr_state->thread_buf + ((bsr_state->perthread->my_thread_id - 1) * bsr_config.per_thread_buffer);
+    bsr_state->perthread->thread_buffer_index=0; // index within this threads block
 
     //
     // worker thread: set input file and send to rendering function
     //
     if (bsr_config.enable_external == 1) {
-      processStars(&bsr_config, &bsr_state, input_file_external);
+      processStars(&bsr_config, bsr_state, input_file_external);
     } // end if enable external
     if (bsr_config.enable_Gaia == 1) {
-      processStars(&bsr_config, &bsr_state, input_file_pq100);
+      processStars(&bsr_config, bsr_state, input_file_pq100);
       if (bsr_config.Gaia_min_parallax_quality < 100) {
-        processStars(&bsr_config, &bsr_state, input_file_pq050);
+        processStars(&bsr_config, bsr_state, input_file_pq050);
       }
       if (bsr_config.Gaia_min_parallax_quality < 50) {
-        processStars(&bsr_config, &bsr_state, input_file_pq030);
+        processStars(&bsr_config, bsr_state, input_file_pq030);
       }
       if (bsr_config.Gaia_min_parallax_quality < 30) {
-        processStars(&bsr_config, &bsr_state, input_file_pq020);
+        processStars(&bsr_config, bsr_state, input_file_pq020);
       }
       if (bsr_config.Gaia_min_parallax_quality < 20) {
-        processStars(&bsr_config, &bsr_state, input_file_pq010);
+        processStars(&bsr_config, bsr_state, input_file_pq010);
       }
       if (bsr_config.Gaia_min_parallax_quality < 10) {
-        processStars(&bsr_config, &bsr_state, input_file_pq005);
+        processStars(&bsr_config, bsr_state, input_file_pq005);
       }
       if (bsr_config.Gaia_min_parallax_quality < 05) {
-        processStars(&bsr_config, &bsr_state, input_file_pq003);
+        processStars(&bsr_config, bsr_state, input_file_pq003);
       }
       if (bsr_config.Gaia_min_parallax_quality < 03) {
-        processStars(&bsr_config, &bsr_state, input_file_pq002);
+        processStars(&bsr_config, bsr_state, input_file_pq002);
       }
       if (bsr_config.Gaia_min_parallax_quality < 02) {
-        processStars(&bsr_config, &bsr_state, input_file_pq001);
+        processStars(&bsr_config, bsr_state, input_file_pq001);
       }
       if (bsr_config.Gaia_min_parallax_quality < 01) {
-        processStars(&bsr_config, &bsr_state, input_file_pq000);
+        processStars(&bsr_config, bsr_state, input_file_pq000);
       }
     } // end if enable Gaia
 
     //
     // let main thread know we are done
     //
-    bsr_state.status_array[bsr_state.my_thread_id]=1;
+    bsr_state->status_array[bsr_state->perthread->my_thread_id]=1;
   } else {
 
     //
@@ -515,7 +552,7 @@ int main(int argc, char **argv) {
     star_count=0;
     empty_passes=0;
     while (empty_passes < 2) { // do second pass once empty
-      main_thread_buf_p=bsr_state.thread_buf;
+      main_thread_buf_p=bsr_state->thread_buf;
       buffer_is_empty=1;
       // scan buffer for new pixel data
       for (main_thread_buffer_index=0; main_thread_buffer_index < thread_buffer_count; main_thread_buffer_index++) {
@@ -525,7 +562,7 @@ int main(int argc, char **argv) {
           if (buffer_is_empty == 1) {
             buffer_is_empty=0; 
           }
-          image_composition_p=bsr_state.image_composition_buf + main_thread_buf_p->image_offset;
+          image_composition_p=bsr_state->image_composition_buf + main_thread_buf_p->image_offset;
           image_composition_p->r+=main_thread_buf_p->r;
           image_composition_p->g+=main_thread_buf_p->g;
           image_composition_p->b+=main_thread_buf_p->b;
@@ -539,8 +576,8 @@ int main(int argc, char **argv) {
       if (buffer_is_empty == 1) {
         // if buffer is completely empty, check if all threads are done
         all_workers_done=1;
-        for (i=1; i <= bsr_state.num_worker_threads; i++) {
-          if (bsr_state.status_array[i] == 0) {
+        for (i=1; i <= bsr_state->num_worker_threads; i++) {
+          if (bsr_state->status_array[i] == 0) {
             all_workers_done=0;
           }
         }
@@ -555,10 +592,10 @@ int main(int argc, char **argv) {
     // main thread: optionally draw overlays
     //
     if (bsr_config.draw_crosshairs == 1) {
-      drawCrossHairs(&bsr_config, &bsr_state);
+      drawCrossHairs(&bsr_config, bsr_state);
     }
     if (bsr_config.draw_grid_lines == 1) {
-      drawGridLines(&bsr_config, &bsr_state);
+      drawGridLines(&bsr_config, bsr_state);
     }
 
     //
@@ -575,13 +612,13 @@ int main(int argc, char **argv) {
   //
   // all threads: post processing
   //
-  postProcess(&bsr_config, &bsr_state);
+  postProcess(&bsr_config, bsr_state);
 
-  if (bsr_state.my_pid == bsr_state.master_pid) {
+  if (bsr_state->perthread->my_pid == bsr_state->master_pid) {
     //
     // main thread: output png file
     //
-    writePNGFile(&bsr_config, &bsr_state);
+    writePNGFile(&bsr_config, bsr_state);
 
     //
     // main thread: clean up
@@ -619,15 +656,20 @@ int main(int argc, char **argv) {
     if (input_file_pq000 != NULL) {
       fclose(input_file_pq000);
     }
-    if (bsr_state.image_composition_buf != NULL) {
-//      munmap(bsr_state.image_composition_buf, composition_buffer_size);
+    if (bsr_state->image_composition_buf != NULL) {
+      munmap(bsr_state->image_composition_buf, composition_buffer_size);
     }
-    if (bsr_state.image_resize_buf != NULL) {
-//      free(bsr_state.image_resize_buf);
-    //munmap(bsr_state.image_resize_buf);
+    if (bsr_state->image_blur_buf != NULL) {
+      munmap(bsr_state->image_blur_buf, blur_buffer_size);
     }
-    munmap(bsr_state.thread_buf, thread_buffer_size);
-    munmap(bsr_state.status_array, status_array_size);
+    if (bsr_state->image_resize_buf != NULL) {
+      munmap(bsr_state->image_resize_buf, resize_buffer_size);
+    }
+    munmap(bsr_state->thread_buf, thread_buffer_size);
+    munmap(bsr_state->status_array, status_array_size);
+    free(bsr_state->Airymap_red);
+    free(bsr_state->Airymap_green);
+    free(bsr_state->Airymap_blue);
 
     //
     // main thread: output total runtime
@@ -635,9 +677,14 @@ int main(int argc, char **argv) {
     if (bsr_config.cgi_mode != 1) {
       clock_gettime(CLOCK_REALTIME, &overall_endtime);
       elapsed_time=((double)(overall_endtime.tv_sec - 1500000000) + ((double)overall_endtime.tv_nsec / 1.0E9)) - ((double)(overall_starttime.tv_sec - 1500000000) + ((double)overall_starttime.tv_nsec) / 1.0E9);
-      printf("Rendered %ld stars to %.2f megapixels, total runtime: %.3fs\n", star_count, ((double)(bsr_state.current_image_res_x * bsr_state.current_image_res_y) / 1.0E6), elapsed_time);
+      printf("Rendered %ld stars to %.2f megapixels, total runtime: %.3fs\n", star_count, ((double)(bsr_state->current_image_res_x * bsr_state->current_image_res_y) / 1.0E6), elapsed_time);
       fflush(stdout);
     }
+
+    //
+    // clean up bsr_state
+    //
+    munmap(bsr_state, bsr_state_size);
   } // end if main thread
 
   return(0);

@@ -13,7 +13,6 @@ int resizeLanczos(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   int current_image_offset;
   int resize_res_x;
   int resize_res_y;
-  size_t resize_buffer_size;
   double source_w;
   double source_x_center;
   double source_y_center;
@@ -36,46 +35,56 @@ int resizeLanczos(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   int Lanczos_order;
   int current_image_res_x;
   int current_image_res_y;
+  int lines_per_thread;
+  volatile int cont;
+  int all_workers_done;
+  int i;
 
   //
-  // get current image resolution and calculate resize resolution
+  // all threads: get current image resolution and calculate resize resolution
   //
   current_image_res_x=bsr_state->current_image_res_x;
   current_image_res_y=bsr_state->current_image_res_y;
-  resize_res_x=(int)(((double)current_image_res_x * bsr_config->output_scaling_factor) + 0.5);
-  resize_res_y=(int)(((double)current_image_res_y * bsr_config->output_scaling_factor) + 0.5);
+  resize_res_x=bsr_state->resize_res_x;
+  resize_res_y=bsr_state->resize_res_y;
   source_w=1.0 / bsr_config->output_scaling_factor;
+  lines_per_thread=(int)ceil(((double)resize_res_y / (double)(bsr_state->num_worker_threads + 1)));
 
   //
-  // display status message if not in cgi mode
+  // main thread: display status message if not in cgi mode
   //
-  if (bsr_config->cgi_mode != 1) {
+  if ((bsr_state->perthread->my_pid == bsr_state->master_pid) && (bsr_config->cgi_mode != 1)) {
     clock_gettime(CLOCK_REALTIME, &starttime);
     printf("Resizing image from %dx%d to %dx%d...", current_image_res_x, current_image_res_y, resize_res_x, resize_res_y);
     fflush(stdout);
   }
 
-  // 
-  // allocate memory for image resize buffer
   //
-  resize_buffer_size=resize_res_x * resize_res_y * sizeof(pixel_composition_t);
-  bsr_state->image_resize_buf=(pixel_composition_t *)malloc(resize_buffer_size);
-  if (bsr_state->image_resize_buf == NULL) {
-    if (bsr_config->cgi_mode != 1) {
-      printf("Error: could not allocate memory for image resize buffer\n");
-      fflush(stdout);
+  // worker threads:  wait for main thread to say go
+  // main thread: tell worker threads to go
+  //
+  if (bsr_state->perthread->my_pid != bsr_state->master_pid) {
+    cont=0;
+    while (cont == 0) {
+      if (bsr_state->status_array[bsr_state->perthread->my_thread_id] == 20) {
+        cont=1;
+      }
     }
-    return(1);
-  }
+  } else {
+    // main thread
+    for (i=1; i <= bsr_state->num_worker_threads; i++) {
+      bsr_state->status_array[i]=20;
+    }
+  } // end if not main thread
 
   //
-  // copy rendered image to resize buffer using Lanczos interpolation
+  // all threads: copy rendered image to resize buffer using Lanczos interpolation
   //
   Lanczos_order=2;
   resize_x=0;
-  resize_y=0;
-  image_resize_p=bsr_state->image_resize_buf;
-  for (resize_i=0; resize_i < (resize_res_x * resize_res_y); resize_i++) {
+  resize_y=(bsr_state->perthread->my_thread_id * lines_per_thread);
+  image_resize_p=bsr_state->image_resize_buf + (bsr_state->perthread->my_thread_id * lines_per_thread * resize_res_x);
+  for (resize_i=0; ((resize_i < (resize_res_x * lines_per_thread)) && (resize_y < (resize_res_y - 1))); resize_i++) {
     if (resize_x == resize_res_x) {
       resize_x=0;
       resize_y++;
@@ -158,21 +167,54 @@ int resizeLanczos(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   }
 
   //
-  // update current_image_buf pointer
+  // worker threads: signal this thread is done and wait until main thread says we can continue to next step.
+  // main thread: wait until all other threads are done and then signal that they can continue to next step.
   //
-  bsr_state->current_image_buf=bsr_state->image_resize_buf;
-  bsr_state->current_image_res_x=resize_res_x;
-  bsr_state->current_image_res_y=resize_res_y;
+  if (bsr_state->perthread->my_pid != bsr_state->master_pid) {
+    bsr_state->status_array[bsr_state->perthread->my_thread_id]=21;
+    cont=0;
+    while (cont == 0) {
+      if (bsr_state->status_array[bsr_state->perthread->my_thread_id] == 22) {
+        cont=1;
+      }
+    }
+  } else {
+    all_workers_done=0;
+    while (all_workers_done == 0) {
+      all_workers_done=1;
+      for (i=1; i <= bsr_state->num_worker_threads; i++) {
+        if (bsr_state->status_array[i] != 21) {
+          all_workers_done=0;
+        }
+      }
+    }
+    //
+    // ready to continue, set all worker thread status to 22
+    //
+    for (i=1; i <= bsr_state->num_worker_threads; i++) {
+      bsr_state->status_array[i]=22;
+    }
+  } // end if not main thread
 
-  //
-  // output execution time if not in cgi mode
-  //
-  if (bsr_config->cgi_mode != 1) {
-    clock_gettime(CLOCK_REALTIME, &endtime);
-    elapsed_time=((double)(endtime.tv_sec - 1500000000) + ((double)endtime.tv_nsec / 1.0E9)) - ((double)(starttime.tv_sec - 1500000000) + ((double)starttime.tv_nsec) / 1.0E9);
-    printf(" (%.4fs)\n", elapsed_time);
-    fflush(stdout);
-  }
+
+  if (bsr_state->perthread->my_pid == bsr_state->master_pid) {
+    //
+    // main thread: update current_image_buf pointer
+    //
+    bsr_state->current_image_buf=bsr_state->image_resize_buf;
+    bsr_state->current_image_res_x=resize_res_x;
+    bsr_state->current_image_res_y=resize_res_y;
+
+    //
+    // main thread: output execution time if not in cgi mode
+    //
+    if (bsr_config->cgi_mode != 1) {
+      clock_gettime(CLOCK_REALTIME, &endtime);
+      elapsed_time=((double)(endtime.tv_sec - 1500000000) + ((double)endtime.tv_nsec / 1.0E9)) - ((double)(starttime.tv_sec - 1500000000) + ((double)starttime.tv_nsec) / 1.0E9);
+      printf(" (%.4fs)\n", elapsed_time);
+      fflush(stdout);
+    }
+  } // end if main thread
 
   return(0);
 }

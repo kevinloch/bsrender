@@ -1,7 +1,7 @@
 #ifndef BSRENDER_H
 #define BSRENDER_H
 
-#define BSR_VERSION "0.9-dev-33"
+#define BSR_VERSION "0.9-dev-34"
 
 #define _GNU_SOURCE // needed for strcasestr in string.h
 #include <stdint.h> // needed for uint64_t
@@ -31,18 +31,27 @@ typedef struct {
 } pixel_composition_t;
 
 typedef struct {
+  // these are not globally mmapped so they can be set differently by each thread after fork()
+  thread_buffer_t *thread_buf_p;
+  int thread_buffer_index;
+  int my_thread_id;
+  pid_t my_pid;
+} bsr_thread_state_t;
+
+typedef struct {
+  // bsr_state is globally mmapped so these should be the same in each thread
   thread_buffer_t *thread_buf; // globally mmaped
-  thread_buffer_t *thread_buf_p; // used locally by each thread
-  int thread_buffer_index; // used locally by each thread
   pixel_composition_t *image_composition_buf; // globally mmaped
   pixel_composition_t *image_blur_buf; // globally mmaped
-  pixel_composition_t *image_resize_buf; 
+  pixel_composition_t *image_resize_buf;  // globally mmaped
+  int resize_res_x;
+  int resize_res_y;
   pixel_composition_t *current_image_buf;
-  int num_worker_threads;
-  pid_t my_pid;
-  pid_t master_pid;
   int current_image_res_x;
   int current_image_res_y;
+  int num_worker_threads;
+  pid_t master_pid;
+  bsr_thread_state_t *perthread;
   int *status_array;
   double *rgb_red;
   double *rgb_green;
@@ -67,7 +76,6 @@ typedef struct {
   double target_3az_xy;
   double target_3az_xz;
   //double target_3az_yz;
-  int my_thread_id; // used locally by each thread
 } bsr_state_t;
 
 typedef struct {

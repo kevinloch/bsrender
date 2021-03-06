@@ -322,23 +322,23 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
                 //
                 // Airymap pixel is within image raster, put in my thread buffer
                 //
-                if (bsr_state->thread_buffer_index == bsr_config->per_thread_buffer) {
+                if (bsr_state->perthread->thread_buffer_index == bsr_config->per_thread_buffer) {
                   // end of our section of thread_buf, rewind
-                  bsr_state->thread_buffer_index=0;
-                  bsr_state->thread_buf_p-=bsr_config->per_thread_buffer;
+                  bsr_state->perthread->thread_buffer_index=0;
+                  bsr_state->perthread->thread_buf_p-=bsr_config->per_thread_buffer;
                 }
                 success=0;
                 while (success == 0) {
                   // check if we've written a pixel to this location before and it has not been read/cleared by main thread yet
-                  if ((bsr_state->thread_buf_p->status_left == 0) && (bsr_state->thread_buf_p->status_right == 0)) {
-                    bsr_state->thread_buf_p->status_left=1;
-                    bsr_state->thread_buf_p->image_offset=(bsr_config->camera_res_x * Airymap_output_y) + Airymap_output_x;
-                    bsr_state->thread_buf_p->r=(star_linear_intensity * *Airymap_red_p * rgb_red);
-                    bsr_state->thread_buf_p->g=(star_linear_intensity * *Airymap_green_p * rgb_green);
-                    bsr_state->thread_buf_p->b=(star_linear_intensity * *Airymap_blue_p * rgb_blue);
-                    bsr_state->thread_buf_p->status_right=1;
-                    bsr_state->thread_buf_p++;
-                    bsr_state->thread_buffer_index++;
+                  if ((bsr_state->perthread->thread_buf_p->status_left == 0) && (bsr_state->perthread->thread_buf_p->status_right == 0)) {
+                    bsr_state->perthread->thread_buf_p->status_left=1;
+                    bsr_state->perthread->thread_buf_p->image_offset=(bsr_config->camera_res_x * Airymap_output_y) + Airymap_output_x;
+                    bsr_state->perthread->thread_buf_p->r=(star_linear_intensity * *Airymap_red_p * rgb_red);
+                    bsr_state->perthread->thread_buf_p->g=(star_linear_intensity * *Airymap_green_p * rgb_green);
+                    bsr_state->perthread->thread_buf_p->b=(star_linear_intensity * *Airymap_blue_p * rgb_blue);
+                    bsr_state->perthread->thread_buf_p->status_right=1;
+                    bsr_state->perthread->thread_buf_p++;
+                    bsr_state->perthread->thread_buffer_index++;
                     success=1;
                   } // end if buffer slot is available
                 } // end while success=0
@@ -352,23 +352,23 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
           //
           // not Airy disk mode, put a single pixel for this star in my thread buffer
           //
-          if (bsr_state->thread_buffer_index == bsr_config->per_thread_buffer) {
+          if (bsr_state->perthread->thread_buffer_index == bsr_config->per_thread_buffer) {
             // end of our section of thread_buf, rewind
-            bsr_state->thread_buffer_index=0;
-            bsr_state->thread_buf_p-=bsr_config->per_thread_buffer;
+            bsr_state->perthread->thread_buffer_index=0;
+            bsr_state->perthread->thread_buf_p-=bsr_config->per_thread_buffer;
           }
           success=0;
           while (success == 0) {
             // check if we've written a pixel to this location before and it has not been read/cleared by main thread yet
-            if ((bsr_state->thread_buf_p->status_left == 0) && (bsr_state->thread_buf_p->status_right == 0)) {
-              bsr_state->thread_buf_p->status_left=1;
-              bsr_state->thread_buf_p->image_offset=(bsr_config->camera_res_x * output_y) + output_x;
-              bsr_state->thread_buf_p->r=(star_linear_intensity * bsr_state->rgb_red[color_temperature]);
-              bsr_state->thread_buf_p->g=(star_linear_intensity * bsr_state->rgb_green[color_temperature]);
-              bsr_state->thread_buf_p->b=(star_linear_intensity * bsr_state->rgb_blue[color_temperature]);
-              bsr_state->thread_buf_p->status_right=1;
-              bsr_state->thread_buf_p++;
-              bsr_state->thread_buffer_index++;
+            if ((bsr_state->perthread->thread_buf_p->status_left == 0) && (bsr_state->perthread->thread_buf_p->status_right == 0)) {
+              bsr_state->perthread->thread_buf_p->status_left=1;
+              bsr_state->perthread->thread_buf_p->image_offset=(bsr_config->camera_res_x * output_y) + output_x;
+              bsr_state->perthread->thread_buf_p->r=(star_linear_intensity * bsr_state->rgb_red[color_temperature]);
+              bsr_state->perthread->thread_buf_p->g=(star_linear_intensity * bsr_state->rgb_green[color_temperature]);
+              bsr_state->perthread->thread_buf_p->b=(star_linear_intensity * bsr_state->rgb_blue[color_temperature]);
+              bsr_state->perthread->thread_buf_p->status_right=1;
+              bsr_state->perthread->thread_buf_p++;
+              bsr_state->perthread->thread_buffer_index++;
               success=1;
             } // end if buffer slot is available
           } // end while success=0

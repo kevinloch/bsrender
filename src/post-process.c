@@ -22,7 +22,7 @@ int postProcess(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   //
   // main thread: camera_gamma, intensity limiting
   //
-  if (bsr_state->my_pid == bsr_state->master_pid) {
+  if (bsr_state->perthread->my_pid == bsr_state->master_pid) {
     //
     // shortcuts
     //
@@ -112,12 +112,10 @@ int postProcess(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   }
 
   //
-  // main thread: optionally resize image
+  // all threads: optionally resize image
   //
-  if (bsr_state->my_pid == bsr_state->master_pid) {
-    if (bsr_config->output_scaling_factor != 1.0) {
-      resizeLanczos(bsr_config, bsr_state);
-    }
+  if (bsr_config->output_scaling_factor != 1.0) {
+    resizeLanczos(bsr_config, bsr_state);
   }
 
   return(0);
