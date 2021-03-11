@@ -2,24 +2,24 @@
  Billion Star 3D Rendering Engine
  Kevin M. Loch
 
-  bsrender is a 3D rendering engine for the ESA's Gaia EDR3 data set of over a billion stars (with parallax data).  It generates PNG images from any position inside or outside the galaxy.  It can be run on the command line with .png file output or in cgi mode with html headers and png data written to stdout.  It uses direct rendering for every star without using tricks like pre-rendered frames.
+  bsrender is a 3D rendering engine for large star databases such as the ESA's Gaia EDR3 data set with over a billion stars.  It generates PNG images from any position inside or outside the galaxy and can be run from the command line or cgi mode.  Direct rendering is used for every star without the use of pre-rendered frames or low-res previews.
 
-  Sample binary galaxy data files are available at https://kevinloch.com/bsrender/sample_data/
-  Sample renderings are available at https://kevinloch.com/bsrender/sample_renderings/
   A live demonstration is available at https://kevinloch.com/galaxy/
+  Sample renderings are available at https://kevinloch.com/bsrender/sample_renderings/
+  Sample binary galaxy data files are available at https://kevinloch.com/bsrender/sample_data/
 
 Key features:
 
-  - 3D translations/rotations of camera position and aiming using ICRS spherical or Euclidian coordinates
+  - 3D translations and rotations of camera position and aiming using ICRS spherical or Euclidian coordinates
   - Customizable camera resolution, field of view, sensitivity, white balance, color saturation, and gamma
   - Camera color is accurately modeled with Planck spectrum and customizable bandpass filters for each color channel
   - Several raster projection modes are supported: lat/lon (equirectangular), Spherical (forward hemisphere centered), Spherical (front/rear hemispheres), Hammer, Mollewide
   - Optional Airy disks dramatically improve the appearance of fields with individual stars and clusters
   - Stars can be selected by parallax quality (parallax over error), distance from camera or target, and effective color temperature
-  - Optional Gaussian blur and/or Lanczos2 output scaling.  This allows very high resolution renderings to be smoothed and downsampled on server before downloading
-  - Good performance when the data files can be cached in ram.  On an AWS c6gd.12xlarge instance (48vcpu/96Gram) the full pq0 dataset (1.4B stars) can be rendered in 14 seconds at 2k resolution.  The pq10 set (98M stars) renders in 2 seconds.
-  - Support for user-supplied stars.  This can be used to add the Sun and other stars that are too bright or dim to have their parallax measured by the Gaia satellite.  A sample external.csv is provided with the Sun and about 100 stars too bright to be included in the Gaia dataset
-  - Effective star temperature is derived from Gaia bp/G and/or rp/G flux ratios
+  - Optional Gaussian blur and/or Lanczos2 output scaling.  This allows very high resolution renderings to be smoothed and downsampled on a server before downloading
+  - Good performance when the data files can be cached in ram.  On an AWS c6gd.12xlarge instance (48vcpu/96Gram) the full pq000 dataset (1.4B stars) can be rendered in 14 seconds at 2k resolution.  The default pq010 data set (98M stars) renders in just 2 seconds
+  - Support for user-supplied stars.  This can be used to add stars that are too bright or dim to have their parallax measured by the Gaia satellite.  A sample external.csv is provided with the Sun and about 100 stars too bright to be included in the Gaia dataset
+  - Effective star temperature (color) is derived from Gaia bp/G and/or rp/G flux ratios
   
 Installation:
 
@@ -73,7 +73,7 @@ Methodology:
 
   The rendering engine 'bsrender' uses these data files to generate a PNG file (or stream in CGI mode).  Extensive options for configuring rendering are provided through a configuration file 'bsrender.cfg' and most of those can also be set via CGI GET request.  
 
-  Before rendering begins an rgb table is initialized using the 'camera_wb_temp', 'camera_color_saturation', and camera color channel passband options.  A planck spectrum is simulated for the white balance temperature to generate white balance factors for each color channel.  Then r,g,b values (normalized to the integrated wide band flux) are calculated for each temperature between 0-32767K.   Later during rendering the r,g,b values for a star's effective temperature is multiplied by the linear star intensity (adjusted for distance) to generate the star's contribution to a pixel or Airy disk map of pixels.  If Airy disks are enabled then a pre-computed map of Airy disk pixel factors is generated. The first null of the Airy disk in the green channel is scaled to match 'Airy_disk_first_null'.  The included Bessel function table supports almost 1000 orders of diffraction and the maximum Airy disk total size is set by 'Airy_disk_max_extent'.
+  Before rendering begins an rgb table is initialized using the 'camera_wb_temp', 'camera_color_saturation', and camera color channel passband options.  A Planck spectrum is simulated for the white balance temperature to generate white balance factors for each color channel.  Then r,g,b values (normalized to the integrated wide band flux) are calculated for each temperature between 0-32767K.   Later during rendering the r,g,b values for a star's effective temperature is multiplied by the linear star intensity (adjusted for distance) to generate the star's contribution to a pixel or Airy disk map of pixels.  If Airy disks are enabled then a pre-computed map of Airy disk pixel factors is generated. The first null of the Airy disk in the green channel is scaled to match 'Airy_disk_first_null'.  The included Bessel function table supports almost 1000 orders of diffraction and the maximum Airy disk total size is set by 'Airy_disk_max_extent'.
 
   Stars can be filtered by parallax quality, distance from either camera or target, and effective color temperature.
 

@@ -846,7 +846,7 @@ int main(int argc, char **argv) {
 
           if ((all_invalid == 0) && ((bp_over_G_invalid == 0) || (rp_over_G_invalid == 0) || (bp_over_rp_invalid == 0))) {
             //
-            // we have at least one valid parameter to match against planck spectrum reference
+            // we have at least one valid parameter to match against Planck spectrum reference
             //
             bestmatch_temperature=0;
             if ((bp_over_rp_invalid == 0) && (phot_G_mean_flux < 1.0E3) && (phot_bp_mean_flux < 1.0E3) && (phot_rp_mean_flux < 1.0E3)) {
