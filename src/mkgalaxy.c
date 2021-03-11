@@ -28,6 +28,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <time.h>
+#include "bandpass-ratio.h"
 
 double calibrateParallax(double *parallax, int astrometric_params_solved, double G, double neff, double ecl_lat) {
   //
@@ -375,6 +377,11 @@ double calibrateParallax(double *parallax, int astrometric_params_solved, double
 }
 
 int main(int argc, char **argv) {
+  struct timespec overall_starttime;
+  struct timespec starttime;
+  struct timespec endtime;
+  double elapsed_time;
+  double overall_elapsed_time;
   FILE *input_file;
   FILE *output_file_pq000;
   FILE *output_file_pq001;
@@ -404,13 +411,32 @@ int main(int argc, char **argv) {
   long long pq030_count;
   long long pq050_count;
   long long pq100_count;
+  long long discard_no_flux_count;
   long long discard_parms_count;
   long long discard_parallax_count;
+  long long temperature_from_bp_G_count;
+  long long temperature_from_rp_G_count;
+  long long temperature_from_bp_rp_count;
+  long long temperature_from_nu_eff_count;
+  long long temperature_from_pseudocolor_count;
   const double flux_to_vega=5.3095E-11; // approximate conversion factor for phot_g_mean_flux to intensity relative to Vega
   float linear_1pc_intensity;
   uint64_t color_temperature;
   star_record_t star_record;
   int star_record_size=sizeof(star_record_t);
+  double bp_over_G_ref[32768];
+  double rp_over_G_ref[32768];
+  double bp_over_rp_ref[32768];
+  int i;
+  double rp_over_G;
+  double bp_over_G;
+  double bp_over_rp;
+  double bp_plus_rp_over_G;
+  int bestmatch_temperature;
+  int all_invalid;
+  int bp_over_G_invalid;
+  int rp_over_G_invalid;
+  int bp_over_rp_invalid;
 
   // fields imported from GEDR3
   char random_index[32];
@@ -421,8 +447,16 @@ int main(int argc, char **argv) {
   int astrometric_params_solved;
   double nu_eff_used_in_astrometry;
   double pseudocolor;
-  double phot_g_mean_flux;
+  double phot_G_mean_flux;
+  double phot_bp_mean_flux;
+  double phot_rp_mean_flux;
   double ecl_lat;
+
+  //
+  // initialize timers
+  //
+  clock_gettime(CLOCK_REALTIME, &overall_starttime);
+  clock_gettime(CLOCK_REALTIME, &starttime);
 
   // temp working vars
   double distance;
@@ -434,13 +468,20 @@ int main(int argc, char **argv) {
   //
   // settings for calibration and parallax override
   //
+  int bandpass_over_G=1;           // 1 = determine star temperature from rp/G and bp/G ratios.  0 = use 'nu_eff_used_in_astrometery' or 'pseudocolor' fields
   int calibrate_parallax_enable=1; // enable Lindegren et. al. parallax calibration
   int override_parallax_toolow=1;  // enforce minimum_parallax
   double minimum_parallax=0.015;   // minimum parallax in mas when override_parallax_toolow is set
 
   //
-  // print options
+  // print version and options
   //
+  printf("mkgalaxy version %s\n", BSR_VERSION);
+  if (bandpass_over_G == 1) {
+    printf("Star temperatures determined by r/G and bp/G ratios when available. Edit bandpass_over_G in mkgalaxy.c and recompile to change this option\n");
+  } else {
+    printf("Star temperatures determined by the 'nu_eff_used_in_astrometery' or 'pseudocolor'. Edit bandpass_over_G in mkgalaxy.c and recompile to enable temperature from bandpass ratios.\n");
+  }
   if (calibrate_parallax_enable == 1) {
     printf("Lindegren et. al. parallax calibration enabled.  Edit calibrate_parallax_enable in mkgalaxy.c and recompile to change this option\n");
   } else {
@@ -451,9 +492,15 @@ int main(int argc, char **argv) {
   }
 
   //
+  // init bandpass ratio tables
+  //
+  initBandpassRatioTables(rp_over_G_ref, bp_over_G_ref, bp_over_rp_ref);
+
+  //
   // attempt to open input file
   //
   printf("init, Opening input file gaia-edr3-extracted.csv\n");
+  fflush(stdout);
   input_file=fopen("gaia-edr3-extracted.csv", "rb");
   if (input_file == NULL) {
     printf("init, Error: could not open gaia-edr3-extracted.csv\n");
@@ -465,6 +512,7 @@ int main(int argc, char **argv) {
   // attempt to open ouptut files
   //
   printf("init, Opening output file galaxy-pq000.dat\n");
+  fflush(stdout);
   output_file_pq000=fopen("galaxy-pq000.dat", "wb");
   if (output_file_pq000 == NULL) {
     printf("init, Error: could not open galaxy-pq000.dat for writing\n");
@@ -472,6 +520,7 @@ int main(int argc, char **argv) {
     return(1);
   }
   printf("init, Opening output file galaxy-pq001.dat\n");
+  fflush(stdout);
   output_file_pq001=fopen("galaxy-pq001.dat", "wb");
   if (output_file_pq001 == NULL) {
     printf("init, Error: could not open galaxy-pq001.dat for writing\n");
@@ -479,6 +528,7 @@ int main(int argc, char **argv) {
     return(1);
   }
   printf("init, Opening output file galaxy-pq002.dat\n");
+  fflush(stdout);
   output_file_pq002=fopen("galaxy-pq002.dat", "wb");
   if (output_file_pq002 == NULL) {
     printf("init, Error: could not open galaxy-pq002.dat for writing\n");
@@ -486,6 +536,7 @@ int main(int argc, char **argv) {
     return(1);
   }
   printf("init, Opening output file galaxy-pq003.dat\n");
+  fflush(stdout);
   output_file_pq003=fopen("galaxy-pq003.dat", "wb");
   if (output_file_pq003 == NULL) {
     printf("init, Error: could not open galaxy-pq003.dat for writing\n");
@@ -493,6 +544,7 @@ int main(int argc, char **argv) {
     return(1);
   }
   printf("init, Opening output file galaxy-pq005.dat\n");
+  fflush(stdout);
   output_file_pq005=fopen("galaxy-pq005.dat", "wb");
   if (output_file_pq005 == NULL) {
     printf("init, Error: could not open galaxy-pq005.dat for writing\n");
@@ -500,6 +552,7 @@ int main(int argc, char **argv) {
     return(1);
   }
   printf("init, Opening output file galaxy-pq010.dat\n");
+  fflush(stdout);
   output_file_pq010=fopen("galaxy-pq010.dat", "wb");
   if (output_file_pq010 == NULL) {
     printf("init, Error: could not open galaxy-pq010.dat for writing\n");
@@ -507,6 +560,7 @@ int main(int argc, char **argv) {
     return(1);
   }
   printf("init, Opening output file galaxy-pq020.dat\n");
+  fflush(stdout);
   output_file_pq020=fopen("galaxy-pq020.dat", "wb");
   if (output_file_pq020 == NULL) {
     printf("init, Error: could not open galaxy-pq020.dat for writing\n");
@@ -514,6 +568,7 @@ int main(int argc, char **argv) {
     return(1);
   }
   printf("init, Opening output file galaxy-pq030.dat\n");
+  fflush(stdout);
   output_file_pq030=fopen("galaxy-pq030.dat", "wb");
   if (output_file_pq030 == NULL) {
     printf("init, Error: could not open galaxy-pq030.dat for writing\n");
@@ -521,6 +576,7 @@ int main(int argc, char **argv) {
     return(1);
   }
   printf("init, Opening output file galaxy-pq050.dat\n");
+  fflush(stdout);
   output_file_pq050=fopen("galaxy-pq050.dat", "wb");
   if (output_file_pq050 == NULL) {
     printf("init, Error: could not open galaxy-pq050.dat for writing\n");
@@ -528,6 +584,7 @@ int main(int argc, char **argv) {
     return(1);
   }
   printf("init, Opening output file galaxy-pq100.dat\n");
+  fflush(stdout);
   output_file_pq100=fopen("galaxy-pq100.dat", "wb");
   if (output_file_pq100 == NULL) {
     printf("init, Error: could not open galaxy-pq100.dat for writing\n");
@@ -539,6 +596,7 @@ int main(int argc, char **argv) {
   // read and process each line of input file
   //
   input_count=0;
+  discard_no_flux_count=0;
   discard_parms_count=0;
   discard_parallax_count=0;
   pq000_count=0;
@@ -551,6 +609,11 @@ int main(int argc, char **argv) {
   pq030_count=0;
   pq050_count=0;
   pq100_count=0;
+  temperature_from_bp_G_count=0;
+  temperature_from_rp_G_count=0;
+  temperature_from_bp_rp_count=0;
+  temperature_from_nu_eff_count=0;
+  temperature_from_pseudocolor_count=0;
   input_line_p=fgets(input_line, 256, input_file);
   while (input_line_p != NULL) {
 
@@ -559,7 +622,7 @@ int main(int argc, char **argv) {
     fflush(stdout);
 */
     //
-    // random_index,ra,dec,parallax,parallax_over_error,astrometric_params_solved,nu_eff_used_in_astrometry,pseudocolour,phot_g_mean_mag,ecl_lat
+    // random_index,ra,dec,parallax,parallax_over_error,astrometric_params_solved,nu_eff_used_in_astrometry,pseudocolour,phot_g_mean_flux,phot_bp_mean_flux,phot_rp_mean_flux,ecl_lat
     //
     if (input_line[0] != 'r') { // skip csv header lines
       input_count++;
@@ -645,13 +708,34 @@ int main(int argc, char **argv) {
       field_start=(field_end+1);
 
       //
-      // phot_g_mean_flux
+      // phot_G_mean_flux
       //
       field_end=strchr(field_start, ',');
       field_length=(field_end - field_start);
       strncpy(tmpstr, field_start, field_length);
       tmpstr[field_length]=0;
-      phot_g_mean_flux=strtod(tmpstr, NULL);
+      phot_G_mean_flux=strtod(tmpstr, NULL);
+      field_start=(field_end+1);
+
+      //
+      // phot_bp_mean_flux
+      //
+      field_end=strchr(field_start, ',');
+      field_length=(field_end - field_start);
+      strncpy(tmpstr, field_start, field_length);
+      tmpstr[field_length]=0;
+      phot_bp_mean_flux=strtod(tmpstr, NULL);
+      field_start=(field_end+1);
+
+      //
+      // phot_rp_mean_flux
+      //
+      field_end=strchr(field_start, ',');
+      field_length=(field_end - field_start);
+      strncpy(tmpstr, field_start, field_length);
+      tmpstr[field_length]=0;
+      phot_rp_mean_flux=strtod(tmpstr, NULL);
+      field_start=(field_end+1);
 
       //
       // ecl_lat
@@ -666,14 +750,14 @@ int main(int argc, char **argv) {
       ecl_lat=strtod(tmpstr, NULL);
 
       //
-      // only continue if record has parallax (5 parms solved or 6 parms solved)
+      // only continue if record has parallax (5 parms solved or 6 parms solved) and phot_G_mean_flux > 0
       //
-      if ((astrometric_params_solved == 31) || (astrometric_params_solved == 95)) {
+      if (((astrometric_params_solved == 31) || (astrometric_params_solved == 95)) && (phot_G_mean_flux > 0.0)) {
 
         //
         // transform flux to linear intensity relative to vega 
         //
-        linear_intensity=phot_g_mean_flux * flux_to_vega;
+        linear_intensity=phot_G_mean_flux * flux_to_vega;
 
         //
         // select correct color variable
@@ -688,7 +772,7 @@ int main(int argc, char **argv) {
         // optionally calibrate parallax according to Lindegren et. al
         //
         if (calibrate_parallax_enable == 1) {
-          magnitude=-2.5*log10(linear_intensity); // some stars have blank phot_g_mean_magnitude so we derive from the more reliable flux column
+          magnitude=-2.5*log10(linear_intensity); // some stars have blank phot_G_mean_magnitude so we derive from the more reliable flux column
           calibrateParallax(&parallax, astrometric_params_solved, magnitude, color_wavenumber, ecl_lat);
         }
 
@@ -720,15 +804,130 @@ int main(int argc, char **argv) {
           //
           linear_1pc_intensity=(float)(linear_intensity * pow(distance, 2.0));
 
+    //
+    // determine star effective color temperature
+    // try to use rp/G and bp/G ratios to determine effective temperature if this mode is enabled and rp and bp have flux
+    //
           //
-          // transofrm color_wavenumber to integer Kelvin blackbody temperature divided by 100 and clip extraneous values
+          // get ratios
           //
-          color_temperature=(uint64_t)((2897.771955 * color_wavenumber) + 0.5); // wein's displacement to convert to Kelvin
-          if (color_temperature < 0) {
-            color_temperature=0;
-          } else if (color_temperature > 32767) {
-            color_temperature=32767;
+          rp_over_G=phot_rp_mean_flux / phot_G_mean_flux;
+          bp_over_G=phot_bp_mean_flux / phot_G_mean_flux;
+          bp_over_rp=(bp_over_G / rp_over_G);
+          bp_plus_rp_over_G=(phot_bp_mean_flux + phot_rp_mean_flux) / phot_G_mean_flux;
+
+          //
+          // check for invalid parameters outside of allowable ranges
+          //
+          bp_over_G_invalid=0;
+          rp_over_G_invalid=0;
+          bp_over_rp_invalid=0;
+          all_invalid=0;
+          if ((bandpass_over_G != 1) || (phot_bp_mean_flux <= 0.0) || (phot_rp_mean_flux <= 0.0)) {
+             all_invalid=1;
           }
+          if ((bp_plus_rp_over_G < 1.0) || (bp_plus_rp_over_G > 2.6)) {
+            // note: we can't use this parameter to determine temperature because it is not unique from 1000K-32767K
+            // but we can use it to detect invalid data
+            all_invalid=1; 
+          }
+          if ((bp_over_rp < 0.0) || (bp_over_rp > 4.5)) {
+            bp_over_rp_invalid=1;
+          }
+          if ((rp_over_G > 2.0) && (bp_over_G > 1.0)) {
+            all_invalid=1;
+          }
+          if ((bp_over_G < 0.0) || (bp_over_G > 1.0)) {
+            bp_over_G_invalid=1;
+          }
+          if ((rp_over_G < 0.0) || (rp_over_G > 2.6)) {
+            rp_over_G_invalid=1;
+          }
+
+          if ((all_invalid == 0) && ((bp_over_G_invalid == 0) || (rp_over_G_invalid == 0) || (bp_over_rp_invalid == 0))) {
+            //
+            // we have at least one valid parameter to match against planck spectrum reference
+            //
+            bestmatch_temperature=0;
+            if ((bp_over_rp_invalid == 0) && (phot_G_mean_flux < 1.0E3) && (phot_bp_mean_flux < 1.0E3) && (phot_rp_mean_flux < 1.0E3)) {
+              // bp_over_rp may be more reliable for very faint stars
+              for (i=1000; ((i < 32768) && (bestmatch_temperature == 0)); i++) {
+                if (bp_over_rp_ref[i] > bp_over_rp) {
+                  bestmatch_temperature=i;
+                }
+              }
+              if (bestmatch_temperature == 0) {
+                bestmatch_temperature=32767;
+              }
+              temperature_from_bp_rp_count++;
+            } else if ((bp_over_rp_invalid == 0) && (bp_over_G > 0.6) && (rp_over_G > 0.6)) {
+              // definitely have excess somewhere or problem with G, bp/rp may be more reliable
+              for (i=1000; ((i < 32768) && (bestmatch_temperature == 0)); i++) {
+                if (bp_over_rp_ref[i] > bp_over_rp) {
+                  bestmatch_temperature=i;
+                }
+              }
+              if (bestmatch_temperature == 0) {
+                bestmatch_temperature=32767;
+              }
+              temperature_from_bp_rp_count++;
+            } else if (bp_over_G_invalid == 0) {
+              // prefer bp_over_G since it is much less likely to have excess than rp_over_G
+              for (i=1000; ((i < 32768) && (bestmatch_temperature == 0)); i++) {
+                if (bp_over_G_ref[i] > bp_over_G) {
+                  bestmatch_temperature=i;
+                }
+              }
+              if (bestmatch_temperature == 0) {
+                bestmatch_temperature=32767;
+              }
+              temperature_from_bp_G_count++;
+            } else if (rp_over_G_invalid == 0) {
+              for (i=1000; ((i < 32768) && (bestmatch_temperature == 0)); i++) {
+                if (rp_over_G_ref[i] < rp_over_G) {
+                  bestmatch_temperature=i;
+                }
+              }
+              if (bestmatch_temperature == 0) {
+                bestmatch_temperature=32767;
+              }
+              temperature_from_rp_G_count++;
+            } else {
+              for (i=1000; ((i < 32768) && (bestmatch_temperature == 0)); i++) {
+                if (bp_over_rp_ref[i] > bp_over_rp) {
+                  bestmatch_temperature=i;
+                }
+              }
+              if (bestmatch_temperature == 0) {
+                bestmatch_temperature=32767;
+              }
+              temperature_from_bp_rp_count++;
+            }
+            color_temperature=(uint64_t)bestmatch_temperature;
+
+/* for debugging color temps
+if (color_temperature > 10000) {
+printf("temp: %ld, G: %.7e, bp: %.7e, rp: %.7e, bp_over_G: %.7e, rp_over_G: %.7e, bp_over_rp: %.7e, bp_over_G_invalid: %d, rp_over_G_invalid: %d, bp_over_rp_invalid: %d\n", color_temperature, phot_G_mean_flux, phot_bp_mean_flux, phot_rp_mean_flux, bp_over_G, rp_over_G, bp_over_rp, bp_over_G_invalid, rp_over_G_invalid, bp_over_rp_invalid);
+fflush(stdout);
+}
+*/
+
+          } else {
+            //
+            // no valid parameters, transofrm color_wavenumber to integer Kelvin blackbody temperature and clip extraneous values
+            //
+            color_temperature=(uint64_t)((2897.771955 * color_wavenumber) + 0.5); // wein's displacement to convert to Kelvin
+            if (color_temperature < 1000) {
+              color_temperature=1000;
+            } else if (color_temperature > 32767) {
+              color_temperature=32767;
+            }
+            if (astrometric_params_solved == 31) {
+              temperature_from_nu_eff_count++;
+            } else if (astrometric_params_solved == 95) {
+              temperature_from_pseudocolor_count++;
+            }
+          } // end if some parameter is valid
 
           //
           // combine intensity and temperature into one 64 bit value
@@ -777,7 +976,11 @@ int main(int argc, char **argv) {
           discard_parallax_count++;
         } // end ignore if zero or negative parallax after corrections
       } else {
-        discard_parms_count++;
+        if (phot_G_mean_flux <= 0.0) {
+          discard_no_flux_count++;
+        } else {
+          discard_parms_count++;
+        }
       } // end ignore if not parms=5 or 6
     } // end ignore csv header lines
 
@@ -785,7 +988,13 @@ int main(int argc, char **argv) {
     // periodic status
     //
     if ((input_count > 0) && ((input_count % 1000000) == 0)) {
-      printf("status, input records: %9lld, pq000: %8lld, pq001: %8lld, pq002: %8lld, pq003: %8lld, pq005: %8lld, pq010: %8lld, pq020: %8lld, pq030: %8lld, pq050: %8lld, pq100: %8lld, no parallax: %8lld, parallax unusable: %8lld\n", input_count, pq000_count, pq001_count, pq002_count, pq003_count, pq005_count, pq010_count, pq020_count, pq030_count, pq050_count, pq100_count, discard_parms_count, discard_parallax_count);
+      clock_gettime(CLOCK_REALTIME, &endtime);
+      elapsed_time=((double)(endtime.tv_sec - 1500000000) + ((double)endtime.tv_nsec / 1.0E9)) - ((double)(starttime.tv_sec - 1500000000) + ((double)starttime.tv_nsec) / 1.0E9);
+      overall_elapsed_time=((double)(endtime.tv_sec - 1500000000) + ((double)endtime.tv_nsec / 1.0E9)) - ((double)(overall_starttime.tv_sec - 1500000000) + ((double)overall_starttime.tv_nsec) / 1.0E9);
+      printf("status, input records: %9lld, output records by parallax quality (pq000: %lld, pq001: %lld, pq002: %lld, pq003: %lld, pq005: %lld, pq010: %lld, pq020: %lld, pq030: %lld, pq050: %lld, pq100: %lld),\n",  input_count, pq000_count, pq001_count, pq002_count, pq003_count, pq005_count, pq010_count, pq020_count, pq030_count, pq050_count, pq100_count);
+      printf("  no parallax: %lld, parallax unusable: %lld, no_G_flux: %lld, color temp derived from (bp/G: %lld, rp/G: %lld, bp/rp: %lld, nu_eff_used_in_astrometry: %lld, pseudocolor: %lld), incremental time: %.3fs, total time: %.3fs\n", discard_parms_count, discard_parallax_count, discard_no_flux_count, temperature_from_bp_G_count, temperature_from_rp_G_count, temperature_from_bp_rp_count, temperature_from_nu_eff_count, temperature_from_pseudocolor_count, elapsed_time, overall_elapsed_time);
+      fflush(stdout);
+      clock_gettime(CLOCK_REALTIME, &starttime);
     }
 
     input_line_p=fgets(input_line, 256, input_file);
@@ -794,7 +1003,12 @@ int main(int argc, char **argv) {
   //
   // print final status 
   //
-  printf("status, input records: %9lld, pq000: %8lld, pq001: %8lld, pq002: %8lld, pq003: %8lld, pq005: %8lld, pq010: %8lld, pq020: %8lld, pq030: %8lld, pq050: %8lld, pq100: %8lld, no parallax: %8lld, parallax unusable: %8lld\n", input_count, pq000_count, pq001_count, pq002_count, pq003_count, pq005_count, pq010_count, pq020_count, pq030_count, pq050_count, pq100_count, discard_parms_count, discard_parallax_count);
+  clock_gettime(CLOCK_REALTIME, &endtime);
+  elapsed_time=((double)(endtime.tv_sec - 1500000000) + ((double)endtime.tv_nsec / 1.0E9)) - ((double)(starttime.tv_sec - 1500000000) + ((double)starttime.tv_nsec) / 1.0E9);
+  overall_elapsed_time=((double)(endtime.tv_sec - 1500000000) + ((double)endtime.tv_nsec / 1.0E9)) - ((double)(overall_starttime.tv_sec - 1500000000) + ((double)overall_starttime.tv_nsec) / 1.0E9);
+  printf("status, input records: %9lld, output records by parallax quality (pq000: %lld, pq001: %lld, pq002: %lld, pq003: %lld, pq005: %lld, pq010: %lld, pq020: %lld, pq030: %lld, pq050: %lld, pq100: %lld),\n",  input_count, pq000_count, pq001_count, pq002_count, pq003_count, pq005_count, pq010_count, pq020_count, pq030_count, pq050_count, pq100_count);
+  printf("  no parallax: %lld, parallax unusable: %lld, no_G_flux: %lld, color temp derived from (bp/G: %lld, rp/G: %lld, bp/rp: %lld, nu_eff_used_in_astrometry: %lld, pseudocolor: %lld), incremental time: %.3fs, total time: %.3fs\n", discard_parms_count, discard_parallax_count, discard_no_flux_count, temperature_from_bp_G_count, temperature_from_rp_G_count, temperature_from_bp_rp_count, temperature_from_nu_eff_count, temperature_from_pseudocolor_count, elapsed_time, overall_elapsed_time);
+  fflush(stdout);
 
   //
   // clean up

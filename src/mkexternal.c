@@ -55,6 +55,11 @@ int main(int argc, char **argv) {
   double linear_intensity; // intensity relative to vega
 
   //
+  // print version
+  //
+  printf("mkexternal version %s\n", BSR_VERSION);
+
+  //
   // attempt to open input file
   //
   printf("init, Opening input file external.csv\n");

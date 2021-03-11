@@ -1,6 +1,7 @@
 #include "bsrender.h" // needs to be first to get GNU_SOURCE define for strcasestr
 #include <stdio.h>
 #include <math.h>
+#include "Gaia-passbands.h"
 
 int initRGBTables(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
 //
@@ -18,9 +19,6 @@ int initRGBTables(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   double color_max;
   double color_min;
   double color_mid;
-
-  const double Gaia_Gband_long_limit=1050.0;
-  const double Gaia_Gband_short_limit=330.0;
   double wavelength_start;
   double wavelength_end;
   double wavelength;
@@ -79,7 +77,7 @@ int initRGBTables(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
       // omit unnecessary constants since we normalize relative to Gband after integrating
       specific_intensity=1.0 / (pow((wavelength * 1.0E-9), 5.0) * (exp(h * c  / (wavelength * 1.0E-9 * kb * temp)) - 1));
       if ((wavelength <= Gaia_Gband_long_limit) && (wavelength >= Gaia_Gband_short_limit)) {
-        Gband_intensity+=specific_intensity;
+        Gband_intensity+=(specific_intensity * getGaiaTransmissivityG((int)(wavelength + 0.5)));
       }
       if ((wavelength <= bsr_config->red_filter_long_limit) && (wavelength >= bsr_config->red_filter_short_limit)) {
         red_intensity+=specific_intensity;
@@ -96,9 +94,9 @@ int initRGBTables(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
     // normalize intensity values by comparing to G-band intensity because rgb values are mltiplied by G-band flux during rendering
     //
     if (Gband_intensity != 0.0) {
-      red_intensity = red_intensity / Gband_intensity;
-      green_intensity = green_intensity / Gband_intensity;
-      blue_intensity = blue_intensity / Gband_intensity;
+      red_intensity = Gaia_Gband_scalar * red_intensity / Gband_intensity;
+      green_intensity = Gaia_Gband_scalar * green_intensity / Gband_intensity;
+      blue_intensity = Gaia_Gband_scalar * blue_intensity / Gband_intensity;
     }
     red_wb_factor=green_intensity / red_intensity;
     green_wb_factor=1.0;
@@ -127,7 +125,7 @@ int initRGBTables(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
       // omit unnecessary constants since we normalize relative to Gband after integrating
       specific_intensity=1.0 / (pow((wavelength * 1.0E-9), 5.0) * (exp(h * c  / (wavelength * 1.0E-9 * kb * temp)) - 1));
       if ((wavelength <= Gaia_Gband_long_limit) && (wavelength >= Gaia_Gband_short_limit)) {
-        Gband_intensity+=specific_intensity;
+        Gband_intensity+=(specific_intensity * getGaiaTransmissivityG((int)(wavelength + 0.5)));
       }
       if ((wavelength <= bsr_config->red_filter_long_limit) && (wavelength >= bsr_config->red_filter_short_limit)) {
         red_intensity+=specific_intensity;
@@ -144,9 +142,9 @@ int initRGBTables(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
     // normalize intensity values by comparing to G-band intensity because rgb values are mltiplied by G-band flux during rendering
     //
     if (Gband_intensity != 0.0) {
-      red_intensity = red_wb_factor * red_intensity / Gband_intensity;
-      green_intensity = green_wb_factor * green_intensity / Gband_intensity;
-      blue_intensity = blue_wb_factor * blue_intensity / Gband_intensity;
+      red_intensity=(red_wb_factor * Gaia_Gband_scalar * red_intensity / Gband_intensity);
+      green_intensity=(green_wb_factor * Gaia_Gband_scalar * green_intensity / Gband_intensity);
+      blue_intensity=( blue_wb_factor * Gaia_Gband_scalar * blue_intensity / Gband_intensity);
     }
 
     //

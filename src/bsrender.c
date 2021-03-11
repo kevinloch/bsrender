@@ -128,12 +128,14 @@ int main(int argc, char **argv) {
   loadConfigFromFile(&bsr_config);
 
   //
-  // if cgi mode, print CGI output header and read query string
+  // if cgi mode, print CGI output header and read query string, otherwise print version
   //
   if (bsr_config.cgi_mode == 1) {
     printCGIheader();
     getCGIOptions(&bsr_config);
     validateCGIOptions(&bsr_config);
+  } else {
+    printf("bsrender version %s\n", BSR_VERSION);
   }
 
   //

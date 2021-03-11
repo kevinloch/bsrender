@@ -89,8 +89,6 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
 
       //
       // setup initial triple-azimuth (3az) variables for this star
-      // 3az is a hybrid of quaternions/versors and Euler angles.   It uses three full-circle orthoganal angles for redundancy to avoid problems around poles (gimbal lock) but can be
-      // very quickly converted into lat/lon raster when done rotating.
       //
       star_xy_r=sqrt(pow(star_x, 2.0) + pow(star_y, 2.0)); // may be used in future rotations or raster projections
       //star_xz_r=sqrt(pow(star_x, 2.0) + pow(star_z, 2.0)); // may be used in future rotations or raster projections

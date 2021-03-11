@@ -16,5 +16,5 @@ extract=gaia-edr3-extracted.csv
 for f in `ls gaia_source`
 do
   echo "Extracting from ${f}"
-  gzcat gaia_source/${f} | cut -f 4,6,8,10,12,36,38,39,67,99 -d "," >> ${extract}
+  gzcat gaia_source/${f} | cut -f 4,6,8,10,12,36,38,39,67,72,77,99 -d "," >> ${extract}
 done

@@ -42,8 +42,6 @@ int initState(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
 
   //
   // convert camera target x,y,z to triple-azimuth (3az) coordinates as seen from camera
-  // 3az is a hybrid of quaternions/versors and Euler angles.   It uses three full-circle orthoganal angles for redundancy to avoid problems around poles (gimbal lock) but can be
-  // very quickly converted into lat/lon raster when done rotating.
   //
   bsr_state->target_x=bsr_config->target_icrs_x - bsr_config->camera_icrs_x;
   bsr_state->target_y=bsr_config->target_icrs_y - bsr_config->camera_icrs_y;

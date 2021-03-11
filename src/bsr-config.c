@@ -38,7 +38,7 @@ void initConfig(bsr_config_t *bsr_config) {
   bsr_config->camera_pixel_limit_mode=0;
   bsr_config->camera_wb_enable=1;
   bsr_config->camera_wb_temp=4300.0;
-  bsr_config->camera_color_saturation=4.0;
+  bsr_config->camera_color_saturation=1.0;
   bsr_config->camera_gamma=1.0;
   bsr_config->camera_projection=0;
   bsr_config->spherical_orientation=0;

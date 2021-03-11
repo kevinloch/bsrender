@@ -58,16 +58,6 @@ int writePNGFile(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
     return(1);
   }
   image_output_p=image_output_buf;
-/*
-  for (i=0; i < (output_res_x * output_res_y); i++) {
-    *image_output_p=0;
-    image_output_p++;
-    *image_output_p=0;
-    image_output_p++;
-    *image_output_p=0;
-    image_output_p++;
-  }
-*/
 
   //
   // allocate memory for row_pointers
