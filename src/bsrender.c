@@ -579,7 +579,7 @@ int main(int argc, char **argv) {
         // if buffer is completely empty, check if all threads are done
         all_workers_done=1;
         for (i=1; i <= bsr_state->num_worker_threads; i++) {
-          if (bsr_state->status_array[i] == 0) {
+          if (bsr_state->status_array[i] < 1) {
             all_workers_done=0;
           }
         }

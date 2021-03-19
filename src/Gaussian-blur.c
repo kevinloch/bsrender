@@ -104,7 +104,7 @@ int GaussianBlur(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   if (bsr_state->perthread->my_pid != bsr_state->master_pid) {
     cont=0;
     while (cont == 0) {
-      if (bsr_state->status_array[bsr_state->perthread->my_thread_id] == 10) {
+      if (bsr_state->status_array[bsr_state->perthread->my_thread_id] >= 10) {
         cont=1;
       }
     }
@@ -165,7 +165,7 @@ int GaussianBlur(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
     bsr_state->status_array[bsr_state->perthread->my_thread_id]=11;
     cont=0;
     while (cont == 0) {
-      if (bsr_state->status_array[bsr_state->perthread->my_thread_id] == 12) {
+      if (bsr_state->status_array[bsr_state->perthread->my_thread_id] >= 12) {
         cont=1;
       }
     }
@@ -174,7 +174,7 @@ int GaussianBlur(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
     while (all_workers_done == 0) {
       all_workers_done=1;
       for (i=1; i <= bsr_state->num_worker_threads; i++) {
-        if (bsr_state->status_array[i] != 11) {
+        if (bsr_state->status_array[i] < 11) {
           all_workers_done=0;
         }
       }
@@ -238,7 +238,7 @@ int GaussianBlur(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
     bsr_state->status_array[bsr_state->perthread->my_thread_id]=13;
     cont=0;
     while (cont == 0) {
-      if (bsr_state->status_array[bsr_state->perthread->my_thread_id] == 14) {
+      if (bsr_state->status_array[bsr_state->perthread->my_thread_id] >= 14) {
         cont=1;
       }
     }
@@ -247,7 +247,7 @@ int GaussianBlur(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
     while (all_workers_done == 0) {
       all_workers_done=1;
       for (i=1; i <= bsr_state->num_worker_threads; i++) {
-        if (bsr_state->status_array[i] != 13) {
+        if (bsr_state->status_array[i] < 13) {
           all_workers_done=0;
         }
       }

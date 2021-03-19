@@ -66,7 +66,7 @@ int resizeLanczos(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   if (bsr_state->perthread->my_pid != bsr_state->master_pid) {
     cont=0;
     while (cont == 0) {
-      if (bsr_state->status_array[bsr_state->perthread->my_thread_id] == 20) {
+      if (bsr_state->status_array[bsr_state->perthread->my_thread_id] >= 20) {
         cont=1;
       }
     }
@@ -174,7 +174,7 @@ int resizeLanczos(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
     bsr_state->status_array[bsr_state->perthread->my_thread_id]=21;
     cont=0;
     while (cont == 0) {
-      if (bsr_state->status_array[bsr_state->perthread->my_thread_id] == 22) {
+      if (bsr_state->status_array[bsr_state->perthread->my_thread_id] >= 22) {
         cont=1;
       }
     }
@@ -183,7 +183,7 @@ int resizeLanczos(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
     while (all_workers_done == 0) {
       all_workers_done=1;
       for (i=1; i <= bsr_state->num_worker_threads; i++) {
-        if (bsr_state->status_array[i] != 21) {
+        if (bsr_state->status_array[i] < 21) {
           all_workers_done=0;
         }
       }

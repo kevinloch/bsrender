@@ -9,15 +9,16 @@
 # to use in bsrender.cfg.  pq100 through pq010 is a total of 3.2GB.
 #
 datahost="https://kevinloch.com"
+datadir="/bsrender/sample_data/0.9.0-dev-37"
 #
-wget --no-check-certificate ${datahost}/bsrender/sample_data/0.9.0/galaxy-external.dat
-wget --no-check-certificate ${datahost}/bsrender/sample_data/0.9.0/galaxy-pq100.dat
-wget --no-check-certificate ${datahost}/bsrender/sample_data/0.9.0/galaxy-pq050.dat
-wget --no-check-certificate ${datahost}/bsrender/sample_data/0.9.0/galaxy-pq030.dat
-wget --no-check-certificate ${datahost}/bsrender/sample_data/0.9.0/galaxy-pq020.dat
-wget --no-check-certificate ${datahost}/bsrender/sample_data/0.9.0/galaxy-pq010.dat
-wget --no-check-certificate ${datahost}/bsrender/sample_data/0.9.0/galaxy-pq005.dat
-wget --no-check-certificate ${datahost}/bsrender/sample_data/0.9.0/galaxy-pq003.dat
-wget --no-check-certificate ${datahost}/bsrender/sample_data/0.9.0/galaxy-pq002.dat
-wget --no-check-certificate ${datahost}/bsrender/sample_data/0.9.0/galaxy-pq001.dat
-wget --no-check-certificate ${datahost}/bsrender/sample_data/0.9.0/galaxy-pq000.dat
+wget ${datahost}${datadir}/galaxy-external.dat
+wget ${datahost}${datadir}/galaxy-pq100.dat
+wget ${datahost}${datadir}/galaxy-pq050.dat
+wget ${datahost}${datadir}/galaxy-pq030.dat
+wget ${datahost}${datadir}/galaxy-pq020.dat
+wget ${datahost}${datadir}/galaxy-pq010.dat
+wget ${datahost}${datadir}/galaxy-pq005.dat
+wget ${datahost}${datadir}/galaxy-pq003.dat
+wget ${datahost}${datadir}/galaxy-pq002.dat
+wget ${datahost}${datadir}/galaxy-pq001.dat
+wget ${datahost}${datadir}/galaxy-pq000.dat
