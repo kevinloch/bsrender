@@ -47,9 +47,16 @@ int writePNGFile(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
 
 
   //
-  // allocate memory for image output buffer (8 bits per color rgb)
+  // allocate memory for image output buffer (8 or 16 bits per color rgb)
   //
-  image_output_buf=(png_byte *)malloc(output_res_x * output_res_y * 3 * sizeof(png_byte));
+  image_output_buf=NULL;
+  if (bsr_config->bits_per_color == 8) {
+    image_output_buf=(png_byte *)malloc(output_res_x * output_res_y * 3 * sizeof(png_byte));
+    bit_depth=8;
+  } else if (bsr_config->bits_per_color == 16) {
+    image_output_buf=(png_byte *)malloc(output_res_x * output_res_y * 6 * sizeof(png_byte));
+    bit_depth=16;
+  }
   if (image_output_buf == NULL) {
     if (bsr_config->cgi_mode != 1) {
       printf("Error: could not allocate memory for image output buffer\n");
@@ -72,7 +79,7 @@ int writePNGFile(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   }
 
   //
-  // convert double precision image buffer to 8-bits per color
+  // convert double precision image buffer to 8 or 16 bits per color
   //
   image_output_p=image_output_buf;
   output_x=0;
@@ -129,14 +136,23 @@ int writePNGFile(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
     }    
 
     //
-    // convert r,g,b to 8 bit values and copy to 8-bit output buffer
+    // convert r,g,b to 8 or 16 bit values and copy to output buffer
     //
-    *image_output_p=(unsigned char)((pixel_r * 255.0) + 0.5);
-    image_output_p++;
-    *image_output_p=(unsigned char)((pixel_g * 255.0) + 0.5);
-    image_output_p++;
-    *image_output_p=(unsigned char)((pixel_b * 255.0) + 0.5);
-    image_output_p++;
+    if (bsr_config->bits_per_color == 8) {
+      *image_output_p=(unsigned char)((pixel_r * 255.0) + 0.5);
+      image_output_p++;
+      *image_output_p=(unsigned char)((pixel_g * 255.0) + 0.5);
+      image_output_p++;
+      *image_output_p=(unsigned char)((pixel_b * 255.0) + 0.5);
+      image_output_p++;
+    } else if (bsr_config->bits_per_color == 16) {
+      png_save_uint_16(image_output_p, (uint16_t)((pixel_r * 65535.0) + 0.5));
+      image_output_p+=2;
+      png_save_uint_16(image_output_p, (uint16_t)((pixel_g * 65535.0) + 0.5));
+      image_output_p+=2;
+      png_save_uint_16(image_output_p, (uint16_t)((pixel_b * 65535.0) + 0.5));
+      image_output_p+=2;
+    }
 
     output_x++;
     current_image_p++;

@@ -20,6 +20,7 @@ Key features:
   - Good performance when the data files can be cached in ram.  On an AWS c6gd.12xlarge instance (48vcpu/96Gram) the full pq000 dataset (1.4B stars) can be rendered in 14 seconds at 2k resolution.  The default pq010 data set (98M stars) renders in just 2 seconds
   - Support for user-supplied stars.  This can be used to add stars that are too bright or dim to have their parallax measured by the Gaia satellite.  A sample external.csv is provided with the Sun and about 100 stars too bright to be included in the Gaia dataset
   - Effective star temperature (color) is derived from Gaia bp/G and/or rp/G flux ratios
+  - 8 or 16 bits per color PNG output, with or without sRGB encoding gamma for either bit depth
   
 Installation:
 
@@ -90,4 +91,4 @@ Methodology:
     - Limiting maximum values to 1.0 again
     - Optionally applying sRGB encoding gamma
 
-  Finally, the resulting image is converted to 8 bits per color and output to a PNG file or stream.
+  Finally, the resulting image is converted to 8 or 16 bits per color and output to a PNG file or stream.

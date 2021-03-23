@@ -110,6 +110,10 @@ label {
       if (tmpvalue != null) {
         settings_form.sRGB_gamma.value = tmpvalue;
       }
+      tmpvalue = search.get("bits_per_color");
+      if (tmpvalue != null) {
+        settings_form.bits_per_color.value = tmpvalue;
+      }
       tmpvalue = search.get("camera_res_x");
       if (tmpvalue != null) {
         settings_form.camera_res_x.value = tmpvalue;
@@ -266,6 +270,7 @@ draw_grid_lines=${settings_form.draw_grid_lines.value}&\
 Gaussian_blur_radius=${settings_form.Gaussian_blur_radius.value}&\
 output_scaling_factor=${settings_form.output_scaling_factor.value}&\
 sRGB_gamma=${settings_form.sRGB_gamma.value}&\
+bits_per_color=${settings_form.bits_per_color.value}&\
 camera_res_x=${settings_form.camera_res_x.value}&\
 camera_res_y=${settings_form.camera_res_y.value}&\
 camera_fov=${settings_form.camera_fov.value}&\
@@ -378,7 +383,12 @@ camera_tilt=${settings_form.camera_tilt.value}`;
           <br><label for "sRGB_gamma">sRGB encoding gamma</label>
           <select name="sRGB_gamma" id="sRGB_gamma">
             <option value="yes" selected>on</option>
-            <option value="nof">off</option>
+            <option value="no">off</option>
+          </select>
+          <br><label for "bits_per_color">PNG bits per color</label>
+          <select name="bits_per_color" id="bits_per_color">
+            <option value="8" selected>8</option>
+            <option value="16">16</option>
           </select>
         </fieldset>
         <fieldset>
@@ -524,7 +534,7 @@ camera_tilt=${settings_form.camera_tilt.value}`;
     </div>
   </main>
   <footer id="footer">
-    sample-frontend.html from bsrender v0.9.0-dev-38
+    sample-frontend.html from bsrender v0.9.0-dev-39
   </footer>
 </body>
 </html>

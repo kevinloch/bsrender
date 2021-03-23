@@ -30,6 +30,7 @@ void initConfig(bsr_config_t *bsr_config) {
   bsr_config->Gaussian_blur_radius=0.0;
   bsr_config->output_scaling_factor=1.0;
   bsr_config->sRGB_gamma=1;
+  bsr_config->bits_per_color=8;
   bsr_config->camera_res_x=2000;
   bsr_config->camera_res_y=1000;
   bsr_config->camera_fov=360.0;
@@ -192,6 +193,7 @@ void setOptionValue(bsr_config_t *bsr_config, char *option, char *value, int fro
   checkOptionDouble(&bsr_config->Gaussian_blur_radius, option, value, "Gaussian_blur_radius");
   checkOptionDouble(&bsr_config->output_scaling_factor, option, value, "output_scaling_factor");
   checkOptionBool(&bsr_config->sRGB_gamma, option, value, "sRGB_gamma");
+  checkOptionInt(&bsr_config->bits_per_color, option, value, "bits_per_color");
   checkOptionInt(&bsr_config->camera_res_x, option, value, "camera_res_x");
   checkOptionInt(&bsr_config->camera_res_y, option, value, "camera_res_y");
   checkOptionDouble(&bsr_config->camera_fov, option, value, "camera_fov");

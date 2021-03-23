@@ -109,7 +109,7 @@ int main(int argc, char **argv) {
   int main_thread_buffer_index;
   int buffer_is_empty;
   int empty_passes;
-  long star_count=0;
+  long long star_count=0;
   int Airymap_xy;
 
   //
@@ -679,7 +679,11 @@ int main(int argc, char **argv) {
     if (bsr_config.cgi_mode != 1) {
       clock_gettime(CLOCK_REALTIME, &overall_endtime);
       elapsed_time=((double)(overall_endtime.tv_sec - 1500000000) + ((double)overall_endtime.tv_nsec / 1.0E9)) - ((double)(overall_starttime.tv_sec - 1500000000) + ((double)overall_starttime.tv_nsec) / 1.0E9);
-      printf("Rendered %ld stars to %.2f megapixels, total runtime: %.3fs\n", star_count, ((double)(bsr_state->current_image_res_x * bsr_state->current_image_res_y) / 1.0E6), elapsed_time);
+      if (bsr_config.Airy_disk == 0) {
+        printf("Rendered %lld stars in %.3fs\n", star_count,  elapsed_time);
+      } else {
+        printf("Rendered %lld Airy disk pixels in %.3fs\n", star_count, elapsed_time); 
+      }
       fflush(stdout);
     }
 
