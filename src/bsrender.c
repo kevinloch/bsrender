@@ -113,7 +113,6 @@ int main(int argc, char **argv) {
   int main_thread_buffer_index;
   int buffer_is_empty;
   int empty_passes;
-  long long star_count=0;
   int Airymap_xy;
 
   //
@@ -605,7 +604,6 @@ int main(int argc, char **argv) {
     //
     // main thread: scan rendering thread buffers for pixels to integrate into image until all rendering threads are done
     //
-    star_count=0;
     empty_passes=0;
     while (empty_passes < 2) { // do second pass once empty
       main_thread_buf_p=bsr_state->thread_buf;
@@ -614,7 +612,6 @@ int main(int argc, char **argv) {
       for (main_thread_buffer_index=0; main_thread_buffer_index < thread_buffer_count; main_thread_buffer_index++) {
         if ((main_thread_buf_p->status_left == 1) && (main_thread_buf_p->status_right == 1)) {
           // buffer location has new pixel data, add to image composition buffer
-          star_count++;
           if (buffer_is_empty == 1) {
             buffer_is_empty=0; 
           }
@@ -732,7 +729,7 @@ int main(int argc, char **argv) {
     if (bsr_config.cgi_mode != 1) {
       clock_gettime(CLOCK_REALTIME, &overall_endtime);
       elapsed_time=((double)(overall_endtime.tv_sec - 1500000000) + ((double)overall_endtime.tv_nsec / 1.0E9)) - ((double)(overall_starttime.tv_sec - 1500000000) + ((double)overall_starttime.tv_nsec) / 1.0E9);
-      printf("Total execution time: %.3fs\n", star_count,  elapsed_time);
+      printf("Total execution time: %.3fs\n", elapsed_time);
       fflush(stdout);
     }
 
