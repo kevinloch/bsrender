@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="0" />
+<style>
+#nav {
+  background-color:#e0e0e0;
+  padding:10px;
+  text-align: center;
+}
+#box_style {
+  display: table;
+  max-width: device-width;
+  white-space: nowrap;
+}
+#settings_style {
+  width: 400px;
+  display: table-cell;
+  background-color:#e0e0e0;
+  padding: 10px;
+  white-space: normal;
+}
+#button_style {
+  text-align: center;
+}
+#rendering_style {
+  display: table-cell;
+  vertical-align: top;
+  padding: 10px;
+  white-space: normal;
+}
+#footer {
+  padding: 10px;
+  text-align: center;
+}
+#centered {
+  text-align: center;
+}
+img {
+  max-width: 100%;
+}
+label {
+  display: inline-block;
+  width: 200px;
+  text-align: right;
+}
+</style>
+  <meta charset="utf-8">
+  <title>bsrender</title>
+  <script>
+    function loadSettingsFromURL() {
+      let url = new URL(window.location.href);
+      let search = url.searchParams;
+      let tmpvalue = search.get("rendering_server");
+      if (tmpvalue != null) {
+        settings_form.rendering_server.value = tmpvalue;
+      }
+      tmpvalue = search.get("enable_Gaia");
+      if (tmpvalue != null) {
+        settings_form.enable_Gaia.value = tmpvalue;
+      }
+      tmpvalue = search.get("Gaia_min_parallax_quality");
+      if (tmpvalue != null) {
+        settings_form.Gaia_min_parallax_quality.value = tmpvalue;
+      }
+      tmpvalue = search.get("enable_external");
+      if (tmpvalue != null) {
+        settings_form.enable_external.value = tmpvalue;
+      }
+      tmpvalue = search.get("render_distance_min");
+      if (tmpvalue != null) {
+        settings_form.render_distance_min.value = tmpvalue;
+      }
+      tmpvalue = search.get("render_distance_max");
+      if (tmpvalue != null) {
+        settings_form.render_distance_max.value = tmpvalue;
+      }
+      tmpvalue = search.get("render_distance_selector");
+      if (tmpvalue != null) {
+        settings_form.render_distance_selector.value = tmpvalue;
+      }
+      tmpvalue = search.get("star_color_min");
+      if (tmpvalue != null) {
+        settings_form.star_color_min.value = tmpvalue;
+      }
+      tmpvalue = search.get("star_color_max");
+      if (tmpvalue != null) {
+        settings_form.star_color_max.value = tmpvalue;
+      }
+      tmpvalue = search.get("draw_crosshairs");
+      if (tmpvalue == "yes") {
+        settings_form.draw_crosshairs.value = tmpvalue;
+      }
+      tmpvalue = search.get("draw_grid_lines");
+      if (tmpvalue != null) {
+        settings_form.draw_grid_lines.value = tmpvalue;
+      }
+      tmpvalue = search.get("Gaussian_blur_radius");
+      if (tmpvalue != null) {
+        settings_form.Gaussian_blur_radius.value = tmpvalue;
+      }
+      tmpvalue = search.get("output_scaling_factor");
+      if (tmpvalue != null) {
+        settings_form.output_scaling_factor.value = tmpvalue;
+      }
+      tmpvalue = search.get("sRGB_gamma");
+      if (tmpvalue != null) {
+        settings_form.sRGB_gamma.value = tmpvalue;
+      }
+      tmpvalue = search.get("bits_per_color");
+      if (tmpvalue != null) {
+        settings_form.bits_per_color.value = tmpvalue;
+      }
+      tmpvalue = search.get("camera_res_x");
+      if (tmpvalue != null) {
+        settings_form.camera_res_x.value = tmpvalue;
+      }
+      tmpvalue = search.get("camera_res_y");
+      if (tmpvalue != null) {
+        settings_form.camera_res_y.value = tmpvalue;
+      }
+      tmpvalue = search.get("camera_fov");
+      if (tmpvalue != null) {
+        settings_form.camera_fov.value = tmpvalue;
+      }
+      tmpvalue = search.get("camera_pixel_limit_mag");
+      if (tmpvalue != null) {
+        settings_form.camera_pixel_limit_mag.value = tmpvalue;
+      }
+      tmpvalue = search.get("camera_pixel_limit_mode");
+      if (tmpvalue != null) {
+        settings_form.camera_pixel_limit_mode.value = tmpvalue;
+      }
+      tmpvalue = search.get("camera_wb_enable");
+      if (tmpvalue != null) {
+        settings_form.camera_wb_enable.value = tmpvalue;
+      }
+      tmpvalue = search.get("camera_wb_temp");
+      if (tmpvalue != null) {
+        settings_form.camera_wb_temp.value = tmpvalue;
+      }
+      tmpvalue = search.get("camera_color_saturation");
+      if (tmpvalue != null) {
+        settings_form.camera_color_saturation.value = tmpvalue;
+      }
+      tmpvalue = search.get("camera_gamma");
+      if (tmpvalue != null) {
+        settings_form.camera_gamma.value = tmpvalue;
+      }
+      tmpvalue = search.get("camera_projection");
+      if (tmpvalue != null) {
+        settings_form.camera_projection.value = tmpvalue;
+      }
+      tmpvalue = search.get("spherical_orientation");
+      if (tmpvalue != null) {
+        settings_form.spherical_orientation.value = tmpvalue;
+      }
+      tmpvalue = search.get("Airy_disk");
+      if (tmpvalue != null) {
+        settings_form.Airy_disk.value = tmpvalue;
+      }
+      tmpvalue = search.get("Airy_disk_first_null");
+      if (tmpvalue != null) {
+        settings_form.Airy_disk_first_null.value = tmpvalue;
+      }
+      tmpvalue = search.get("Airy_disk_max_extent");
+      if (tmpvalue != null) {
+        settings_form.Airy_disk_max_extent.value = tmpvalue;
+      }
+      tmpvalue = search.get("red_filter_long_limit");
+      if (tmpvalue != null) {
+        settings_form.red_filter_long_limit.value = tmpvalue;
+      }
+      tmpvalue = search.get("red_filter_short_limit");
+      if (tmpvalue != null) {
+        settings_form.red_filter_short_limit.value = tmpvalue;
+      }
+      tmpvalue = search.get("green_filter_long_limit");
+      if (tmpvalue != null) {
+        settings_form.green_filter_long_limit.value = tmpvalue;
+      }
+      tmpvalue = search.get("green_filter_short_limit");
+      if (tmpvalue != null) {
+        settings_form.green_filter_short_limit.value = tmpvalue;
+      }
+      tmpvalue = search.get("blue_filter_long_limit");
+      if (tmpvalue != null) {
+        settings_form.blue_filter_long_limit.value = tmpvalue;
+      }
+      tmpvalue = search.get("blue_filter_short_limit");
+      if (tmpvalue != null) {
+        settings_form.blue_filter_short_limit.value = tmpvalue;
+      }
+      tmpvalue = search.get("camera_icrs_x");
+      if (tmpvalue != null) {
+        settings_form.camera_icrs_x.value = tmpvalue;
+      }
+      tmpvalue = search.get("camera_icrs_y");
+      if (tmpvalue != null) {
+        settings_form.camera_icrs_y.value = tmpvalue;
+      }
+      tmpvalue = search.get("camera_icrs_z");
+      if (tmpvalue != null) {
+        settings_form.camera_icrs_z.value = tmpvalue;
+      }
+      tmpvalue = search.get("camera_icrs_ra");
+      if (tmpvalue != null) {
+        settings_form.camera_icrs_ra.value = tmpvalue;
+      }
+      tmpvalue = search.get("camera_icrs_dec");
+      if (tmpvalue != null) {
+        settings_form.camera_icrs_dec.value = tmpvalue;
+      }
+      tmpvalue = search.get("camera_icrs_r");
+      if (tmpvalue != null) {
+        settings_form.camera_icrs_r.value = tmpvalue;
+      }
+      tmpvalue = search.get("target_icrs_x");
+      if (tmpvalue != null) {
+        settings_form.target_icrs_x.value = tmpvalue;
+      }
+      tmpvalue = search.get("target_icrs_y");
+      if (tmpvalue != null) {
+        settings_form.target_icrs_y.value = tmpvalue;
+      }
+      tmpvalue = search.get("target_icrs_z");
+      if (tmpvalue != null) {
+        settings_form.target_icrs_z.value = tmpvalue;
+      }
+      tmpvalue = search.get("target_icrs_ra");
+      if (tmpvalue != null) {
+        settings_form.target_icrs_ra.value = tmpvalue;
+      }
+      tmpvalue = search.get("target_icrs_dec");
+      if (tmpvalue != null) {
+        settings_form.target_icrs_dec.value = tmpvalue;
+      }
+      tmpvalue = search.get("target_icrs_r");
+      if (tmpvalue != null) {
+        settings_form.target_icrs_r.value = tmpvalue;
+      }
+      tmpvalue = search.get("camera_rotation");
+      if (tmpvalue != null) {
+        settings_form.camera_rotation.value = tmpvalue;
+      }
+      tmpvalue = search.get("camera_pan");
+      if (tmpvalue != null) {
+        settings_form.camera_pan.value = tmpvalue;
+      }
+      tmpvalue = search.get("camera_tilt");
+      if (tmpvalue != null) {
+        settings_form.camera_tilt.value = tmpvalue;
+      }
+    };
+    function updateImage() {
+      let src = `${settings_form.rendering_server.value}?\
+enable_Gaia=${settings_form.enable_Gaia.value}&\
+Gaia_min_parallax_quality=${settings_form.Gaia_min_parallax_quality.value}&\
+enable_external=${settings_form.enable_external.value}&\
+render_distance_min=${settings_form.render_distance_min.value}&\
+render_distance_max=${settings_form.render_distance_max.value}&\
+render_distance_selector=${settings_form.render_distance_selector.value}&\
+star_color_min=${settings_form.star_color_min.value}&\
+star_color_max=${settings_form.star_color_max.value}&\
+draw_crosshairs=${settings_form.draw_crosshairs.value}&\
+draw_grid_lines=${settings_form.draw_grid_lines.value}&\
+Gaussian_blur_radius=${settings_form.Gaussian_blur_radius.value}&\
+output_scaling_factor=${settings_form.output_scaling_factor.value}&\
+sRGB_gamma=${settings_form.sRGB_gamma.value}&\
+bits_per_color=${settings_form.bits_per_color.value}&\
+camera_res_x=${settings_form.camera_res_x.value}&\
+camera_res_y=${settings_form.camera_res_y.value}&\
+camera_fov=${settings_form.camera_fov.value}&\
+camera_pixel_limit_mag=${settings_form.camera_pixel_limit_mag.value}&\
+camera_pixel_limit_mode=${settings_form.camera_pixel_limit_mode.value}&\
+camera_wb_enable=${settings_form.camera_wb_enable.value}&\
+camera_wb_temp=${settings_form.camera_wb_temp.value}&\
+camera_color_saturation=${settings_form.camera_color_saturation.value}&\
+camera_gamma=${settings_form.camera_gamma.value}&\
+camera_projection=${settings_form.camera_projection.value}&\
+spherical_orientation=${settings_form.spherical_orientation.value}&\
+Airy_disk=${settings_form.Airy_disk.value}&\
+Airy_disk_first_null=${settings_form.Airy_disk_first_null.value}&\
+Airy_disk_max_extent=${settings_form.Airy_disk_max_extent.value}&\
+red_filter_long_limit=${settings_form.red_filter_long_limit.value}&\
+red_filter_short_limit=${settings_form.red_filter_short_limit.value}&\
+green_filter_long_limit=${settings_form.green_filter_long_limit.value}&\
+green_filter_short_limit=${settings_form.green_filter_short_limit.value}&\
+blue_filter_long_limit=${settings_form.blue_filter_long_limit.value}&\
+blue_filter_short_limit=${settings_form.blue_filter_short_limit.value}&\
+camera_icrs_x=${settings_form.camera_icrs_x.value}&\
+camera_icrs_y=${settings_form.camera_icrs_y.value}&\
+camera_icrs_z=${settings_form.camera_icrs_z.value}&\
+camera_icrs_ra=${settings_form.camera_icrs_ra.value}&\
+camera_icrs_dec=${settings_form.camera_icrs_dec.value}&\
+camera_icrs_r=${settings_form.camera_icrs_r.value}&\
+target_icrs_x=${settings_form.target_icrs_x.value}&\
+target_icrs_y=${settings_form.target_icrs_y.value}&\
+target_icrs_z=${settings_form.target_icrs_z.value}&\
+target_icrs_ra=${settings_form.target_icrs_ra.value}&\
+target_icrs_dec=${settings_form.target_icrs_dec.value}&\
+target_icrs_r=${settings_form.target_icrs_r.value}&\
+camera_rotation=${settings_form.camera_rotation.value}&\
+camera_pan=${settings_form.camera_pan.value}&\
+camera_tilt=${settings_form.camera_tilt.value}`;
+      document.getElementById("render_image").src = src;
+    };
+  </script>
+</head>
+<body>
+  <header>
+    <h2>Sample web interface for <a href="https://github.com/kevinloch/bsrender">bsrender</a> using data from <a href="https://www.cosmos.esa.int/web/gaia/earlydr3">Gaia EDR3</a></h2>
+  </header>
+  <nav id="nav">
+    Easy navigation buttons go here
+  </nav>
+  <main role="main">
+    <div id="box_style">
+      <div id="settings_style">
+        <form name="settings_form">
+           <div id="button_style">
+          <button type="reset">reset to defaults</button>&nbsp;<button type="button" onClick="updateImage()">Render</button>
+           </div>
+          <p>
+        <fieldset>
+        <legend>General Rendering Options</legend>
+          <p>
+          <label for="rendering_server">Rendering server</label>
+          <input type="text" name="rendering_server" id="rendering_server" size="30" value="http://bsrender.kevinloch.com/r/">
+          <br><label for "enable_Gaia">Show Gaia stars</label>
+          <select name="enable_Gaia" id="enable_Gaia">
+            <option value="yes" selected>yes</option>
+            <option value="no">no</option>
+          </select>
+          <br><label for="Gaia_min_parallax_quality">Gaia min parallax quality</label>
+          <select name="Gaia_min_parallax_quality" id="Gaia_min_parallax_quality">
+            <option value="0">0 [1.47B stars]</option>
+            <option value="1">1 [763M stars]</option>
+            <option value="2">2 [478M stars]</option>
+            <option value="3">3 [320M stars]</option>
+            <option value="5">5 [192M stars]</option>
+            <option value="10" selected>10 [98M stars]</option>
+            <option value="20">20 [49M stars]</option>
+            <option value="30">30 [31M stars]</option>
+            <option value="50">50 [16M stars]</option>
+            <option value="100">100 [5.8M] stars</option>
+          </select>
+          <br><label for "enable_external">Show non-Gaia stars</label>
+          <select name="enable_external" id="enable_external">
+            <option value="no" selected>no</option>
+            <option value="yes">yes</option>
+          </select>
+          <br><label for="render_distance_min">Min render distance (parsec)</label>
+          <input type="text" name="render_distance_min" id="render_distance_min" size="12" value="0.0">
+          <br><label for="render_distance_max">Max render distance (parsec)</label>
+          <input type="text" name="render_distance_max" id="render_distance_max" size="12" value="1.0E99">
+          <br><label for "render_distance_selector">Render distance from</label>
+          <select name="render_distance_selector" id="render_distance_selector">
+            <option value="0" selected>Camera</option>
+            <option value="1">Target</option>
+          </select>
+          <br><label for="star_color_min">Min star temperature (K)</label>
+          <input type="text" name="star_color_min" id="star_color_min" size="12" value="0.0">
+          <br><label for="star_color_max">Max star termperature (K)</label>
+          <input type="text" name="star_color_max" id="star_color_max" size="12" value="1.0E99">
+          <br><label for "draw_crosshairs">Draw crosshairs</label>
+          <select name="draw_crosshairs" id="draw_crosshairs">
+            <option value="no" selected>no</option>
+            <option value="yes">yes</option>
+          </select>
+          <br><label for "draw_grid_lines">Draw grid lines</label>
+          <select name="draw_grid_lines" id="draw_grid_lines">
+            <option value="no" selected>no</option>
+            <option value="yes">yes</option>
+          </select>
+          <br><label for="Gaussian_blur_radius">Gaussian blur radius</label>
+          <input type="text" name="Gaussian_blur_radius" id="Gaussian_blur_radius" size="12" value="0.0">
+          <br><label for="output_scaling_factor">Output scaling factor</label>
+          <input type="text" name="output_scaling_factor" id="output_scaling_factor" size="12" value="1.0">
+          <br><label for "sRGB_gamma">sRGB encoding gamma</label>
+          <select name="sRGB_gamma" id="sRGB_gamma">
+            <option value="yes" selected>on</option>
+            <option value="no">off</option>
+          </select>
+          <br><label for "bits_per_color">PNG bits per color</label>
+          <select name="bits_per_color" id="bits_per_color">
+            <option value="8" selected>8</option>
+            <option value="16">16</option>
+          </select>
+        </fieldset>
+        <fieldset>
+        <legend>Camera Options</legend>
+          <label for "camera_res_x">Horizontal resolution</label>
+          <input type="text" id="camera_res_x" name="camera_res_x" size="12" value="2000">
+          <br><label for "camera_res_y">Vertical resolution</label>
+          <input type="text" id="camera_res_y" name="camera_res_y" size="12" value="1000">
+          <br><label for "camera_fov">Field of view (deg)</label>
+          <input type="text" id="camera_fov" name="camera_fov" size="12" value="360">
+          <br><label for "camera_pixel_limit_mag">Pixel intensity limit (mag)</label>
+          <input type="text" id="camera_pixel_limit_mag" name="camera_pixel_limit_mag" size="12" value="8.0">
+          <br><label for "camera_pixel_limit_mode">Pixel intensity limit mode</label>
+          <select name="camera_pixel_limit_mode" id="camera_pixel_limit_mode">
+            <option value="0" selected>Saturate to white</option>
+            <option value="1">Preserve color</option>
+          </select>
+          <br><label for "camera_wb_enable">Enable white balance</label>
+          <select name="camera_wb_enable" id="camera_wb_enable">
+            <option value="no">no</option>
+            <option value="yes" selected>yes</option>
+          </select>
+          <br><label for "camera_wb_temp">White balance (K)</label>
+          <input type="text" id="camera_wb_temp" name="camera_wb_temp" size="12" value="4300">
+          <br><label for "camera_color_saturation">Color saturation</label>
+          <input type="text" id="camera_color_saturation" name="camera_color_saturation" size="12" value="1.0">
+          <br><label for "camera_gamma">Gamma</label>
+          <input type="text" id="camera_gamma" name="camera_gamma" size="12" value="1.0">
+          <br><label for "camera_projection">Raster projection</label>
+          <select name="camera_projection" id="camera_projection">
+            <option value="0">lat/lon (equirectangular)</option>
+            <option value="1">spherical</option>
+            <option value="2">Hammer</option>
+            <option value="3">Mollewide</option>
+          </select>
+          <br><label for "spherical_orientation">Spherical orientation</label>
+          <select name="spherical_orientation" id="spherical_orientation">
+            <option value="0">forward centered</option>
+            <option value="1">side-by-side</option>
+          </select>
+          <p>
+          <div id="centered"> 
+            <em>Caution: Airy disks render very slowly
+            <br>and are disabled for fov > 20 deg</em>
+          </div>
+          <br><label for "Airy_disk">Enable Airy disks</label>
+          <select name="Airy_disk" id="Airy_disk">
+            <option value="no" selected>no</option>
+            <option value="yes">yes</option>
+          </select>
+          <br><label for "Airy_disk_first_null">Airy disk first null (pixels)</label>
+          <input type="text" id="Airy_disk_first_null" name="Airy_disk_first_null" size="12" value="0.5">
+          <br><label for "Airy_disk_max_extent">Airy disk max extent (pixels)</label>
+          <input type="text" id="Airy_disk_max_extent" name="Airy_disk_max_extent" size="12" value="10">
+        </fieldset>
+        <fieldset>
+        <legend>Color Bandpass Filter Options</legend>
+          <div id="centered">
+            <em>wavelength in nm</em>
+          </div>
+          <br><label for "red_filter_long_limit">Red filter long cutoff</label>
+          <input type="text" id="red_filter_long_limit" name="red_filter_long_limit" size="12" value="710.0">
+          <br><label for "red_filter_short_limit">Red filter short cutoff</label>
+          <input type="text" id="red_filter_short_limit" name="red_filter_short_limit" size="12" value="590.0">
+          <br><label for "green_filter_long_limit">Green filter long cutoff</label>
+          <input type="text" id="green_filter_long_limit" name="green_filter_long_limit" size="12" value="590.0">
+          <br><label for "green_filter_short_limit">Green filter short cutoff</label>
+          <input type="text" id="green_filter_short_limit" name="green_filter_short_limit" size="12" value="495.0">
+          <br><label for "blue_filter_long_limit">Blue filter long cutoff</label>
+          <input type="text" id="blue_filter_long_limit" name="blue_filter_long_limit" size="12" value="495.0">
+          <br><label for "blue_filter_short_limit">Blue filter short cutoff</label>
+          <input type="text" id="blue_filter_short_limit" name="blue_filter_short_limit" size="12" value="405.0">
+        </fieldset>
+        <fieldset>
+        <legend>Camera Position</legend>
+          <div id="centered"> 
+            <em>ICRS coordinates (parsec, deg)</em>
+          </div>
+          <br><label for "camera_icrs_x>x</label>
+          <input type="text" id="camera_icrs_x" name="camera_icrs_x" size="12" value="0.0">
+          <br><label for "camera_icrs_y>y</label>
+          <input type="text" id="camera_icrs_y" name="camera_icrs_y" size="12" value="0.0">
+          <br><label for "camera_icrs_z>z</label>
+          <input type="text" id="camera_icrs_z" name="camera_icrs_z" size="12" value="0.0">
+          <p>
+          <div id="centered">or</div>
+          <p>
+          <label for "camera_icrs_ra>ra</label>
+          <input type="text" id="camera_icrs_ra" name="camera_icrs_ra" size="12" value="0.0">
+          <br><label for "camera_icrs_dec>dec</label>
+          <input type="text" id="camera_icrs_dec" name="camera_icrs_dec" size="12" value="0.0">
+          <br><label for "camera_icrs_r>r</label>
+          <input type="text" id="camera_icrs_r" name="camera_icrs_r" size="12" value="0.0">
+        </fieldset>
+        <fieldset>
+        <legend>Target Position</legend>
+          <div id="centered">
+            <em>ICRS coordinates (parsec, deg)</em>
+          </div>
+          <br><label for "target_icrs_x>x</label>
+          <input type="text" id="target_icrs_x" name="target_icrs_x" size="12" value="0.0">
+          <br><label for "target_icrs_y>y</label>
+          <input type="text" id="target_icrs_y" name="target_icrs_y" size="12" value="0.0">
+          <br><label for "target_icrs_z>z</label>
+          <input type="text" id="target_icrs_z" name="target_icrs_z" size="12" value="0.0">
+          <p>
+          <div id="centered">or</div>
+          <p>
+          <label for "target_icrs_ra>ra</label>
+          <input type="text" id="target_icrs_ra" name="target_icrs_ra" size="12" value="266.4168371">
+          <br><label for "target_icrs_dec>dec</label>
+          <input type="text" id="target_icrs_dec" name="target_icrs_dec" size="12" value="-29.0078106">
+          <br><label for "target_icrs_r>r</label>
+          <input type="text" id="target_icrs_r" name="target_icrs_r" size="12" value="8178.0">
+        </fieldset>
+        <fieldset>
+        <legend>Camera Rotation/Pan/Tilt</legend>
+          <div id="centered">
+            <em>After aiming at target</em>
+          </div>
+          <br><label for "camera_rotation">Rotate</label>
+          <input type="text" id="camera_rotation" name="camera_rotation" size="12" value="-58.6">
+          <br><label for "camera_pan">Pan</label>
+          <input type="text" id="camera_pan" name="camera_pan" size="12" value="0.0">
+          <br><label for "camera_tilt">Tilt</label>
+          <input type="text" id="camera_tilt" name="camera_tilt" size="12" value="0.0">
+        </fieldset>
+          <p>
+          <div id="button_style">
+          <button type="reset">reset to defaults</button>&nbsp;<button type="button" onClick="updateImage()">Render</button>
+          </div>
+        </form>
+      </div>
+      <script>
+        loadSettingsFromURL();
+      </script>
+      <div id="rendering_style">
+        <img alt="" src="" id="render_image">
+        <script>
+          updateImage();
+        </script>
+      </div>
+    </div>
+  </main>
+  <footer id="footer">
+    sample-frontend.html from bsrender v0.9.0-dev-41
+  </footer>
+</body>
+</html>
