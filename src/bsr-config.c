@@ -8,13 +8,14 @@ void initConfig(bsr_config_t *bsr_config) {
   strcpy(bsr_config->config_file_name, "./bsrender.cfg");
   strcpy(bsr_config->data_file_directory, "./galaxydata");
   bsr_config->num_threads=16;
+  bsr_config->dedup_buffer=200000;
   bsr_config->per_thread_buffer=200000;
   bsr_config->cgi_mode=0;
   bsr_config->cgi_max_res_x=33000;
   bsr_config->cgi_max_res_y=17000;
   bsr_config->cgi_Gaia_min_parallax_quality=0;
   bsr_config->cgi_allow_Airy_disk=1;
-  bsr_config->cgi_max_Airy_disk_camera_fov=20.0;
+  bsr_config->cgi_max_Airy_disk_camera_fov=360.0;
   bsr_config->cgi_min_Airy_disk_first_null=0.3;
   bsr_config->cgi_max_Airy_disk_max_extent=100;
   bsr_config->enable_Gaia=1;
@@ -166,6 +167,7 @@ void setOptionValue(bsr_config_t *bsr_config, char *option, char *value, int fro
   if (from_cgi == 0) {
     checkOptionStr(bsr_config->data_file_directory, option, value, "data_file_directory");
     checkOptionInt(&bsr_config->num_threads, option, value, "num_threads");
+    checkOptionInt(&bsr_config->dedup_buffer, option, value, "dedup_buffer");
     checkOptionInt(&bsr_config->per_thread_buffer, option, value, "per_thread_buffer");
     checkOptionBool(&bsr_config->cgi_mode, option, value, "cgi_mode");
     checkOptionInt(&bsr_config->cgi_max_res_x, option, value, "cgi_max_res_x");

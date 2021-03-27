@@ -96,15 +96,19 @@ int main(int argc, char **argv) {
   size_t blur_buffer_size=0;
   size_t resize_buffer_size=0;
   size_t status_array_size=0;
+  size_t dedup_buffer_size=0;
+  size_t dedup_index_size=0;
+  size_t Airymap_size=0;
+  size_t thread_buffer_size=0;
+  int thread_buffer_count;
+  int all_workers_done;
   int i;
   double rgb_red[32768];
   double rgb_green[32768];
   double rgb_blue[32768];
-  int Airymap_size;
   pixel_composition_t *image_composition_p;
-  int thread_buffer_size;
-  int thread_buffer_count;
-  int all_workers_done;
+  dedup_buffer_t *dedup_buf_p;
+  dedup_index_t *dedup_index_p;
   thread_buffer_t *main_thread_buf_p;
   int main_thread_buffer_index;
   int buffer_is_empty;
@@ -291,6 +295,56 @@ int main(int argc, char **argv) {
       }
       return(1);
     }
+  }
+
+  //
+  // allocate non-shared memory for dedup buffer and initialize
+  //
+  if (bsr_config.cgi_mode != 1) {
+    clock_gettime(CLOCK_REALTIME, &starttime);
+    printf("Initializing dedup buffer and index...");
+    fflush(stdout);
+  }
+  dedup_buffer_size=bsr_config.dedup_buffer * sizeof(dedup_buffer_t);
+  bsr_state->dedup_buf=(dedup_buffer_t *)malloc(dedup_buffer_size);
+  if (bsr_state->dedup_buf == NULL) {
+    if (bsr_config.cgi_mode != 1) {
+      printf("Error: could not allocate shared memory for dedup buffer\n");
+    }
+    return(1);
+  }
+  // initialize dedup buffer
+  dedup_buf_p=bsr_state->dedup_buf;
+  for (i=0; i < (bsr_config.dedup_buffer); i++) {
+    dedup_buf_p->image_offset=-1;
+    dedup_buf_p->r=0.0;
+    dedup_buf_p->g=0.0;
+    dedup_buf_p->b=0.0;
+    dedup_buf_p++;
+  }
+
+  //
+  // allocate non-shared memory for dedup index and initialize
+  //
+  dedup_index_size=bsr_config.camera_res_x * bsr_config.camera_res_y * sizeof(dedup_index_t);
+  bsr_state->dedup_index=(dedup_index_t *)malloc(dedup_index_size);
+  if (bsr_state->dedup_index == NULL) {
+    if (bsr_config.cgi_mode != 1) {
+      printf("Error: could not allocate shared memory for dedup index\n");
+    }
+    return(1);
+  }
+  // initialize dedup index
+  dedup_index_p=bsr_state->dedup_index;
+  for (i=0; i < (bsr_config.camera_res_x * bsr_config.camera_res_y); i++) {
+    dedup_index_p->dedup_record=NULL;
+    dedup_index_p++;
+  }
+  if (bsr_config.cgi_mode != 1) {
+    clock_gettime(CLOCK_REALTIME, &endtime);
+    elapsed_time=((double)(endtime.tv_sec - 1500000000) + ((double)endtime.tv_nsec / 1.0E9)) - ((double)(starttime.tv_sec - 1500000000) + ((double)starttime.tv_nsec) / 1.0E9);
+    printf(" (%.3fs)\n", elapsed_time);
+    fflush(stdout);
   }
 
   //
@@ -576,7 +630,6 @@ int main(int argc, char **argv) {
       } // end for thread_buffer_index
       // if buffer is completely empty, check if all threads are done
       if (buffer_is_empty == 1) {
-        // if buffer is completely empty, check if all threads are done
         all_workers_done=1;
         for (i=1; i <= bsr_state->num_worker_threads; i++) {
           if (bsr_state->status_array[i] < 1) {

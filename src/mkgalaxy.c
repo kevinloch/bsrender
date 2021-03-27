@@ -471,7 +471,7 @@ int main(int argc, char **argv) {
   int bandpass_over_G=1;           // 1 = determine star temperature from rp/G and bp/G ratios.  0 = use 'nu_eff_used_in_astrometery' or 'pseudocolor' fields
   int calibrate_parallax_enable=1; // enable Lindegren et. al. parallax calibration
   int override_parallax_toolow=1;  // enforce minimum_parallax
-  double minimum_parallax=0.015;   // minimum parallax in mas when override_parallax_toolow is set
+  double minimum_parallax=0.020;   // minimum parallax in mas when override_parallax_toolow is set
 
   //
   // print version and options

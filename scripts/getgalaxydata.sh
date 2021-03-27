@@ -9,7 +9,7 @@
 # to use in bsrender.cfg.  pq100 through pq010 is a total of 3.2GB.
 #
 datahost="https://kevinloch.com"
-datadir="/bsrender/sample_data/0.9.0-dev-37"
+datadir="/bsrender/sample_data/0.9.0-dev-40"
 #
 wget ${datahost}${datadir}/galaxy-external.dat
 wget ${datahost}${datadir}/galaxy-pq100.dat

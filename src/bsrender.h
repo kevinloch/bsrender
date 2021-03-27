@@ -1,7 +1,7 @@
 #ifndef BSRENDER_H
 #define BSRENDER_H
 
-#define BSR_VERSION "0.9.0-dev-39"
+#define BSR_VERSION "0.9.0-dev-41"
 
 #define _GNU_SOURCE // needed for strcasestr in string.h
 #include <stdint.h> // needed for uint64_t
@@ -25,6 +25,17 @@ typedef struct {
 } thread_buffer_t;
 
 typedef struct {
+  long int image_offset;
+  double r;
+  double g;
+  double b;
+} dedup_buffer_t;
+
+typedef struct {
+  dedup_buffer_t *dedup_record;
+} dedup_index_t;
+
+typedef struct {
   double r;
   double g;
   double b;
@@ -44,6 +55,8 @@ typedef struct {
   pixel_composition_t *image_composition_buf; // globally mmaped
   pixel_composition_t *image_blur_buf; // globally mmaped
   pixel_composition_t *image_resize_buf;  // globally mmaped
+  dedup_buffer_t *dedup_buf; // not globally mmapped
+  dedup_index_t *dedup_index; // not globally mmapped
   int resize_res_x;
   int resize_res_y;
   pixel_composition_t *current_image_buf;
@@ -82,6 +95,7 @@ typedef struct {
   char config_file_name[256];
   char data_file_directory[256];
   int num_threads;
+  int dedup_buffer;
   int per_thread_buffer;
   int cgi_mode;
   int cgi_max_res_x;
