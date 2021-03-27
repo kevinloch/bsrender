@@ -732,11 +732,7 @@ int main(int argc, char **argv) {
     if (bsr_config.cgi_mode != 1) {
       clock_gettime(CLOCK_REALTIME, &overall_endtime);
       elapsed_time=((double)(overall_endtime.tv_sec - 1500000000) + ((double)overall_endtime.tv_nsec / 1.0E9)) - ((double)(overall_starttime.tv_sec - 1500000000) + ((double)overall_starttime.tv_nsec) / 1.0E9);
-      if (bsr_config.Airy_disk == 0) {
-        printf("Rendered %lld stars in %.3fs\n", star_count,  elapsed_time);
-      } else {
-        printf("Rendered %lld Airy disk pixels in %.3fs\n", star_count, elapsed_time); 
-      }
+      printf("Total execution time: %.3fs\n", star_count,  elapsed_time);
       fflush(stdout);
     }
 
