@@ -51,6 +51,8 @@ label {
   <meta charset="utf-8">
   <title>bsrender</title>
   <script>
+    var loading_text = document.createTextNode("Rendering image, please wait...");
+    var error_text = document.createTextNode("Error: rendering failed");
     function loadSettingsFromURL() {
       let url = new URL(window.location.href);
       let search = url.searchParams;
@@ -256,6 +258,12 @@ label {
       }
     };
     function updateImage() {
+      if (rendering_style.firstChild == error_text) {
+        document.getElementById("rendering_style").removeChild(error_text);
+      }
+      document.getElementById("rendering_style").prepend(loading_text);
+      let blank = "";
+      document.getElementById("render_image").src = blank;
       let src = `${settings_form.rendering_server.value}?\
 enable_Gaia=${settings_form.enable_Gaia.value}&\
 Gaia_min_parallax_quality=${settings_form.Gaia_min_parallax_quality.value}&\
@@ -307,6 +315,13 @@ camera_rotation=${settings_form.camera_rotation.value}&\
 camera_pan=${settings_form.camera_pan.value}&\
 camera_tilt=${settings_form.camera_tilt.value}`;
       document.getElementById("render_image").src = src;
+      document.getElementById("render_image").onload = function(remove_loading_text) {
+        document.getElementById("rendering_style").removeChild(loading_text);
+      };
+      document.getElementById("render_image").onerror = function(display_error_text) {
+        document.getElementById("rendering_style").removeChild(loading_text);
+        document.getElementById("rendering_style").prepend(error_text);
+      };
     };
   </script>
 </head>
@@ -431,8 +446,7 @@ camera_tilt=${settings_form.camera_tilt.value}`;
           </select>
           <p>
           <div id="centered"> 
-            <em>Caution: Airy disks render very slowly
-            <br>and are disabled for fov > 20 deg</em>
+            <em>Caution: Airy disks render very slowly</em>
           </div>
           <br><label for "Airy_disk">Enable Airy disks</label>
           <select name="Airy_disk" id="Airy_disk">
@@ -440,7 +454,7 @@ camera_tilt=${settings_form.camera_tilt.value}`;
             <option value="yes">yes</option>
           </select>
           <br><label for "Airy_disk_first_null">Airy disk first null (pixels)</label>
-          <input type="text" id="Airy_disk_first_null" name="Airy_disk_first_null" size="12" value="0.5">
+          <input type="text" id="Airy_disk_first_null" name="Airy_disk_first_null" size="12" value="0.75">
           <br><label for "Airy_disk_max_extent">Airy disk max extent (pixels)</label>
           <input type="text" id="Airy_disk_max_extent" name="Airy_disk_max_extent" size="12" value="10">
         </fieldset>
@@ -534,7 +548,7 @@ camera_tilt=${settings_form.camera_tilt.value}`;
     </div>
   </main>
   <footer id="footer">
-    sample-frontend.html from bsrender v0.9.0-dev-41
+    sample-frontend.html from bsrender v0.9.0-dev-42
   </footer>
 </body>
 </html>

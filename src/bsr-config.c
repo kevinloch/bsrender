@@ -46,7 +46,7 @@ void initConfig(bsr_config_t *bsr_config) {
   bsr_config->spherical_orientation=0;
   bsr_config->Mollewide_iterations=5;
   bsr_config->Airy_disk=0;
-  bsr_config->Airy_disk_first_null=0.5;
+  bsr_config->Airy_disk_first_null=0.75;
   bsr_config->Airy_disk_max_extent=10;
   bsr_config->red_filter_long_limit=710.0;
   bsr_config->red_filter_short_limit=590.0;

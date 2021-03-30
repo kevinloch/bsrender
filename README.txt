@@ -18,7 +18,7 @@ Key features:
   - Stars can be selected by parallax quality (parallax over error), distance from camera or target, and effective color temperature
   - Optional Gaussian blur and/or Lanczos2 output scaling.  This allows very high resolution renderings to be smoothed and downsampled on a server before downloading
   - Good performance when the data files can be cached in ram.  On an AWS c6gd.12xlarge instance (48vcpu/96Gram) the full pq000 dataset (1.4B stars) can be rendered in 14 seconds at 2k resolution.  The default pq010 data set (98M stars) renders in just 2 seconds
-  - Support for user-supplied stars.  This can be used to add stars that are too bright or dim to have their parallax measured by the Gaia satellite.  A sample external.csv is provided with the Sun and about 100 stars too bright to be included in the Gaia dataset
+  - Support for user-supplied stars.  This can be used to add stars that are too bright or dim to have their parallax measured by the Gaia satellite.  A sample external.csv is provided with the Sun and all stars brighter than magnitude 3 that are not included in the Gaia dataset or are not able to be imported into bsrender because they lack parallax and/or G-band flux
   - Effective star temperature (color) is derived from Gaia bp/G and/or rp/G flux ratios
   - 8 or 16 bits per color PNG output, with or without sRGB encoding gamma for either bit depth
   

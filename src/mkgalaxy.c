@@ -468,8 +468,8 @@ int main(int argc, char **argv) {
   //
   // settings for calibration and parallax override
   //
-  int bandpass_over_G=1;           // 1 = determine star temperature from rp/G and bp/G ratios.  0 = use 'nu_eff_used_in_astrometery' or 'pseudocolor' fields
-  int calibrate_parallax_enable=1; // enable Lindegren et. al. parallax calibration
+  int use_bandpass_ratios=1;       // 1 = determine star temperature from rp/G and bp/G ratios.  0 = use 'nu_eff_used_in_astrometery' or 'pseudocolor' fields
+  int calibrate_parallax_enable=0; // enable Lindegren et. al. parallax calibration
   int override_parallax_toolow=1;  // enforce minimum_parallax
   double minimum_parallax=0.020;   // minimum parallax in mas when override_parallax_toolow is set
 
@@ -477,10 +477,10 @@ int main(int argc, char **argv) {
   // print version and options
   //
   printf("mkgalaxy version %s\n", BSR_VERSION);
-  if (bandpass_over_G == 1) {
-    printf("Star temperatures determined by r/G and bp/G ratios when available. Edit bandpass_over_G in mkgalaxy.c and recompile to change this option\n");
+  if (use_bandpass_ratios == 1) {
+    printf("Star temperatures determined by r/G and bp/G ratios when available. Edit use_bandpass_ratios in mkgalaxy.c and recompile to change this option\n");
   } else {
-    printf("Star temperatures determined by the 'nu_eff_used_in_astrometery' or 'pseudocolor'. Edit bandpass_over_G in mkgalaxy.c and recompile to enable temperature from bandpass ratios.\n");
+    printf("Star temperatures determined by the 'nu_eff_used_in_astrometery' or 'pseudocolor'. Edit use_bandpass_ratios in mkgalaxy.c and recompile to enable temperature from bandpass ratios.\n");
   }
   if (calibrate_parallax_enable == 1) {
     printf("Lindegren et. al. parallax calibration enabled.  Edit calibrate_parallax_enable in mkgalaxy.c and recompile to change this option\n");
@@ -823,7 +823,7 @@ int main(int argc, char **argv) {
           rp_over_G_invalid=0;
           bp_over_rp_invalid=0;
           all_invalid=0;
-          if ((bandpass_over_G != 1) || (phot_bp_mean_flux <= 0.0) || (phot_rp_mean_flux <= 0.0)) {
+          if ((use_bandpass_ratios != 1) || (phot_bp_mean_flux <= 0.0) || (phot_rp_mean_flux <= 0.0)) {
              all_invalid=1;
           }
           if ((bp_plus_rp_over_G < 1.0) || (bp_plus_rp_over_G > 2.6)) {

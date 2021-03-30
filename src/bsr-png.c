@@ -34,7 +34,11 @@ int writePNGFile(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   //
   if (bsr_config->cgi_mode != 1) {
     clock_gettime(CLOCK_REALTIME, &starttime);
-    printf("Converting to 8-bits per color...");
+    if (bsr_config->bits_per_color == 8) {
+      printf("Converting to 8 bits per color...");
+    } else if (bsr_config->bits_per_color == 16) {
+      printf("Converting to 16 bits per color...");
+    }
     fflush(stdout);
   }
 
