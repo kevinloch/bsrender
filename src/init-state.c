@@ -21,6 +21,15 @@ int initState(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   bsr_state->camera_3az_xz=bsr_config->camera_tilt * -pi_over_180;
 
   //
+  // select per thread buffer size
+  //
+  if (bsr_config->Airy_disk == 1) {
+    bsr_state->per_thread_buffers = bsr_config->per_thread_buffer_Airy;
+  } else {
+    bsr_state->per_thread_buffers = bsr_config->per_thread_buffer;
+  }
+
+  //
   // optionally transform spherical icrs to euclidian icrs if x,y,z are zero
   //
   if (((bsr_config->camera_icrs_ra != 0.0) || (bsr_config->camera_icrs_dec != 0.0) || (bsr_config->camera_icrs_r != 0.0))\

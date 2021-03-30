@@ -157,6 +157,11 @@ int main(int argc, char **argv) {
   bsr_state->perthread=&perthread;
 
   //
+  // initialize bsr_state (store processed settings and setup camera target)
+  //
+  initState(&bsr_config, bsr_state);
+
+  //
   // calculate number of rendering threads to be forked
   //
   bsr_state->num_worker_threads=bsr_config.num_threads-1;
@@ -170,17 +175,12 @@ int main(int argc, char **argv) {
   if (bsr_config.cgi_mode != 1) {
     clock_gettime(CLOCK_REALTIME, &overall_starttime);
     if (bsr_config.enable_Gaia == 1) {
-      printf("Minimum Gaia parallax quality: %d, total threads: %d, buffers per rendering thread: %d stars\n", bsr_config.Gaia_min_parallax_quality, (bsr_state->num_worker_threads + 1), bsr_config.per_thread_buffer);
+      printf("Minimum Gaia parallax quality: %d, total threads: %d, buffers per rendering thread: %d pixels\n", bsr_config.Gaia_min_parallax_quality, (bsr_state->num_worker_threads + 1), bsr_state->per_thread_buffers);
     } else {
-      printf("Total threads: %d, buffers per rendering thread: %d stars\n", (bsr_state->num_worker_threads + 1), bsr_config.per_thread_buffer);
+      printf("Total threads: %d, buffers per rendering thread: %d pixels\n", (bsr_state->num_worker_threads + 1), bsr_state->per_thread_buffers);
     }
     fflush(stdout);
   }
-
-  //
-  // initialize bsr_state (setup camera target)
-  //
-  initState(&bsr_config, bsr_state);
 
   //
   // initialize RGB color lookup tables
@@ -304,7 +304,7 @@ int main(int argc, char **argv) {
     printf("Initializing dedup buffer and index...");
     fflush(stdout);
   }
-  dedup_buffer_size=bsr_config.dedup_buffer * sizeof(dedup_buffer_t);
+  dedup_buffer_size=bsr_state->per_thread_buffers * sizeof(dedup_buffer_t);
   bsr_state->dedup_buf=(dedup_buffer_t *)malloc(dedup_buffer_size);
   if (bsr_state->dedup_buf == NULL) {
     if (bsr_config.cgi_mode != 1) {
@@ -314,7 +314,7 @@ int main(int argc, char **argv) {
   }
   // initialize dedup buffer
   dedup_buf_p=bsr_state->dedup_buf;
-  for (i=0; i < (bsr_config.dedup_buffer); i++) {
+  for (i=0; i < (bsr_state->per_thread_buffers); i++) {
     dedup_buf_p->image_offset=-1;
     dedup_buf_p->r=0.0;
     dedup_buf_p->g=0.0;
@@ -354,10 +354,10 @@ int main(int argc, char **argv) {
     printf("Initializing rendering thread buffers...");
     fflush(stdout);
   }
-  if (bsr_config.per_thread_buffer < 1) {
-    bsr_config.per_thread_buffer=1;
+  if (bsr_state->per_thread_buffers < 1) {
+    bsr_state->per_thread_buffers=1;
   }
-  thread_buffer_count=bsr_state->num_worker_threads * bsr_config.per_thread_buffer;
+  thread_buffer_count=bsr_state->num_worker_threads * bsr_state->per_thread_buffers;
   thread_buffer_size=thread_buffer_count * sizeof(thread_buffer_t);
   bsr_state->thread_buf=(thread_buffer_t *)mmap(NULL, thread_buffer_size, mmap_protection, mmap_visibility, -1, 0);
   if (bsr_state->thread_buf == NULL) {
@@ -368,7 +368,7 @@ int main(int argc, char **argv) {
   }
   // initialize thread buffer
   main_thread_buf_p=bsr_state->thread_buf;
-  for (i=0; i < (bsr_state->num_worker_threads * bsr_config.per_thread_buffer); i++) {
+  for (i=0; i < (bsr_state->num_worker_threads * bsr_state->per_thread_buffers); i++) {
     main_thread_buf_p->status_left=0;
     main_thread_buf_p->status_right=0;
     main_thread_buf_p++;
@@ -555,7 +555,7 @@ int main(int argc, char **argv) {
     //
     // rendering thread: set our thread buffer postion to the beginning of this threads block
     //
-    bsr_state->perthread->thread_buf_p=bsr_state->thread_buf + ((bsr_state->perthread->my_thread_id - 1) * bsr_config.per_thread_buffer);
+    bsr_state->perthread->thread_buf_p=bsr_state->thread_buf + ((bsr_state->perthread->my_thread_id - 1) * bsr_state->per_thread_buffers);
     bsr_state->perthread->thread_buffer_index=0; // index within this threads block
 
     //

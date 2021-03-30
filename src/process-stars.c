@@ -348,14 +348,14 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
                 //
                 // check if dedup buffer is full and if it is send pixels to main thread
                 //
-                if (dedup_count == bsr_config->dedup_buffer) {
+                if (dedup_count == bsr_state->per_thread_buffers) {
                   dedup_buf_p=bsr_state->dedup_buf;
                   for (dedup_buf_i=0; dedup_buf_i < dedup_count; dedup_buf_i++) {
                     dedup_index_p=bsr_state->dedup_index + dedup_buf_p->image_offset;
-                    if (bsr_state->perthread->thread_buffer_index == bsr_config->per_thread_buffer) {
+                    if (bsr_state->perthread->thread_buffer_index == bsr_state->per_thread_buffers) {
                       // end of our section of thread_buf, rewind
                       bsr_state->perthread->thread_buffer_index=0;
-                      bsr_state->perthread->thread_buf_p-=bsr_config->per_thread_buffer;
+                      bsr_state->perthread->thread_buf_p-=bsr_state->per_thread_buffers;
                     }
                     success=0;
                     while (success == 0) {
@@ -415,14 +415,14 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
           //
           // check if dedup buffer is full and if it is send pixels to main thread
           //
-          if (dedup_count == bsr_config->dedup_buffer) {
+          if (dedup_count == bsr_state->per_thread_buffers) {
             dedup_buf_p=bsr_state->dedup_buf;
             for (dedup_buf_i=0; dedup_buf_i < dedup_count; dedup_buf_i++) { 
               dedup_index_p=bsr_state->dedup_index + dedup_buf_p->image_offset;
-              if (bsr_state->perthread->thread_buffer_index == bsr_config->per_thread_buffer) {
+              if (bsr_state->perthread->thread_buffer_index == bsr_state->per_thread_buffers) {
                 // end of our section of thread_buf, rewind
                 bsr_state->perthread->thread_buffer_index=0;
-                bsr_state->perthread->thread_buf_p-=bsr_config->per_thread_buffer;
+                bsr_state->perthread->thread_buf_p-=bsr_state->per_thread_buffers;
               }
               success=0;
               while (success == 0) {
@@ -467,10 +467,10 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
     dedup_buf_p=bsr_state->dedup_buf;
     for (dedup_buf_i=0; dedup_buf_i < dedup_count; dedup_buf_i++) {
       dedup_index_p=bsr_state->dedup_index + dedup_buf_p->image_offset;
-      if (bsr_state->perthread->thread_buffer_index == bsr_config->per_thread_buffer) {
+      if (bsr_state->perthread->thread_buffer_index == bsr_state->per_thread_buffers) {
         // end of our section of thread_buf, rewind
         bsr_state->perthread->thread_buffer_index=0;
-        bsr_state->perthread->thread_buf_p-=bsr_config->per_thread_buffer;
+        bsr_state->perthread->thread_buf_p-=bsr_state->per_thread_buffers;
       }
       success=0;
       while (success == 0) {

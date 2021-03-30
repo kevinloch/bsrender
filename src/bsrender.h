@@ -65,6 +65,7 @@ typedef struct {
   int num_worker_threads;
   pid_t master_pid;
   bsr_thread_state_t *perthread;
+  int per_thread_buffers;
   int *status_array;
   double *rgb_red;
   double *rgb_green;
@@ -95,8 +96,8 @@ typedef struct {
   char config_file_name[256];
   char data_file_directory[256];
   int num_threads;
-  int dedup_buffer;
   int per_thread_buffer;
+  int per_thread_buffer_Airy;
   int cgi_mode;
   int cgi_max_res_x;
   int cgi_max_res_y;
