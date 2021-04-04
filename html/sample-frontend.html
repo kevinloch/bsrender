@@ -323,6 +323,177 @@ camera_tilt=${settings_form.camera_tilt.value}`;
         document.getElementById("rendering_style").prepend(error_text);
       };
     };
+    function set_red_bandpass_user() {
+      settings_form.red_bandpass_selector.value="user";
+    };
+    function set_green_bandpass_user() {
+      settings_form.green_bandpass_selector.value="user";
+    };
+    function set_blue_bandpass_user() {
+      settings_form.blue_bandpass_selector.value="user";
+    };
+    function red_bandpass_select() {
+      if (settings_form.red_bandpass_selector.value == "default") {
+        settings_form.red_filter_long_limit.value="710.0";
+        settings_form.red_filter_short_limit.value="590.0";
+      } else if (settings_form.red_bandpass_selector.value == "ACS-WFC-F435W") {
+        settings_form.red_filter_long_limit.value="480.0";
+        settings_form.red_filter_short_limit.value="385.0";
+      } else if (settings_form.red_bandpass_selector.value == "ACS-WFC-F475W") {
+        settings_form.red_filter_long_limit.value="545.0";
+        settings_form.red_filter_short_limit.value="405.0";
+      } else if (settings_form.red_bandpass_selector.value == "ACS-WFC-F555W") {
+        settings_form.red_filter_long_limit.value="600.0";
+        settings_form.red_filter_short_limit.value="475.0";
+      } else if (settings_form.red_bandpass_selector.value == "ACS-WFC-F606W") {
+        settings_form.red_filter_long_limit.value="710.0";
+        settings_form.red_filter_short_limit.value="475.0";
+      } else if (settings_form.red_bandpass_selector.value == "ACS-WFC-F625W") {
+        settings_form.red_filter_long_limit.value="705.0";
+        settings_form.red_filter_short_limit.value="560.0";
+      } else if (settings_form.red_bandpass_selector.value == "ACS-WFC-F775W") {
+        settings_form.red_filter_long_limit.value="850.0";
+        settings_form.red_filter_short_limit.value="700.0";
+      } else if (settings_form.red_bandpass_selector.value == "ACS-WFC-F814W") {
+        settings_form.red_filter_long_limit.value="890.0";
+        settings_form.red_filter_short_limit.value="705.0";
+      } else if (settings_form.red_bandpass_selector.value == "WFC3-UVIS-F336W") {
+        settings_form.red_filter_long_limit.value="365.0";
+        settings_form.red_filter_short_limit.value="307.0";
+      } else if (settings_form.red_bandpass_selector.value == "WFC3-UVIS-F390W") {
+        settings_form.red_filter_long_limit.value="400.0";
+        settings_form.red_filter_short_limit.value="391.0";
+      } else if (settings_form.red_bandpass_selector.value == "WFC3-UVIS-F438W") {
+        settings_form.red_filter_long_limit.value="465.0";
+        settings_form.red_filter_short_limit.value="395.0";
+      } else if (settings_form.red_bandpass_selector.value == "WFC3-UVIS-F475W") {
+        settings_form.red_filter_long_limit.value="600.0";
+        settings_form.red_filter_short_limit.value="375.0";
+      } else if (settings_form.red_bandpass_selector.value == "WFC3-UVIS-F555W") {
+        settings_form.red_filter_long_limit.value="600.0";
+        settings_form.red_filter_short_limit.value="445.0";
+      } else if (settings_form.red_bandpass_selector.value == "WFC3-UVIS-F606W") {
+        settings_form.red_filter_long_limit.value="710.0";
+        settings_form.red_filter_short_limit.value="475.0";
+      } else if (settings_form.red_bandpass_selector.value == "WFC3-UVIS-F625W") {
+        settings_form.red_filter_long_limit.value="705.0";
+        settings_form.red_filter_short_limit.value="550.0";
+      } else if (settings_form.red_bandpass_selector.value == "WFC3-UVIS-F775W") {
+        settings_form.red_filter_long_limit.value="850.0";
+        settings_form.red_filter_short_limit.value="695.0";
+      } else if (settings_form.red_bandpass_selector.value == "WFC3-UVIS-F814W") {
+        settings_form.red_filter_long_limit.value="870.0";
+        settings_form.red_filter_short_limit.value="705.0";
+      }
+    };
+    function green_bandpass_select() {
+      if (settings_form.green_bandpass_selector.value == "default") {
+        settings_form.green_filter_long_limit.value="590.0";
+        settings_form.green_filter_short_limit.value="495.0";
+      } else if (settings_form.green_bandpass_selector.value == "ACS-WFC-F435W") {
+        settings_form.green_filter_long_limit.value="480.0";
+        settings_form.green_filter_short_limit.value="385.0";
+      } else if (settings_form.green_bandpass_selector.value == "ACS-WFC-F475W") {
+        settings_form.green_filter_long_limit.value="545.0";
+        settings_form.green_filter_short_limit.value="405.0";
+      } else if (settings_form.green_bandpass_selector.value == "ACS-WFC-F555W") {
+        settings_form.green_filter_long_limit.value="600.0";
+        settings_form.green_filter_short_limit.value="475.0";
+      } else if (settings_form.green_bandpass_selector.value == "ACS-WFC-F606W") {
+        settings_form.green_filter_long_limit.value="710.0";
+        settings_form.green_filter_short_limit.value="475.0";
+      } else if (settings_form.green_bandpass_selector.value == "ACS-WFC-F625W") {
+        settings_form.green_filter_long_limit.value="705.0";
+        settings_form.green_filter_short_limit.value="560.0";
+      } else if (settings_form.green_bandpass_selector.value == "ACS-WFC-F775W") {
+        settings_form.green_filter_long_limit.value="850.0";
+        settings_form.green_filter_short_limit.value="700.0";
+      } else if (settings_form.green_bandpass_selector.value == "ACS-WFC-F814W") {
+        settings_form.green_filter_long_limit.value="890.0";
+        settings_form.green_filter_short_limit.value="705.0";
+      } else if (settings_form.green_bandpass_selector.value == "WFC3-UVIS-F336W") {
+        settings_form.green_filter_long_limit.value="365.0";
+        settings_form.green_filter_short_limit.value="307.0";
+      } else if (settings_form.green_bandpass_selector.value == "WFC3-UVIS-F390W") {
+        settings_form.green_filter_long_limit.value="400.0";
+        settings_form.green_filter_short_limit.value="391.0";
+      } else if (settings_form.green_bandpass_selector.value == "WFC3-UVIS-F438W") {
+        settings_form.green_filter_long_limit.value="465.0";
+        settings_form.green_filter_short_limit.value="395.0";
+      } else if (settings_form.green_bandpass_selector.value == "WFC3-UVIS-F475W") {
+        settings_form.green_filter_long_limit.value="600.0";
+        settings_form.green_filter_short_limit.value="375.0";
+      } else if (settings_form.green_bandpass_selector.value == "WFC3-UVIS-F555W") {
+        settings_form.green_filter_long_limit.value="600.0";
+        settings_form.green_filter_short_limit.value="445.0";
+      } else if (settings_form.green_bandpass_selector.value == "WFC3-UVIS-F606W") {
+        settings_form.green_filter_long_limit.value="710.0";
+        settings_form.green_filter_short_limit.value="475.0";
+      } else if (settings_form.green_bandpass_selector.value == "WFC3-UVIS-F625W") {
+        settings_form.green_filter_long_limit.value="705.0";
+        settings_form.green_filter_short_limit.value="550.0";
+      } else if (settings_form.green_bandpass_selector.value == "WFC3-UVIS-F775W") {
+        settings_form.green_filter_long_limit.value="850.0";
+        settings_form.green_filter_short_limit.value="695.0";
+      } else if (settings_form.green_bandpass_selector.value == "WFC3-UVIS-F814W") {
+        settings_form.green_filter_long_limit.value="870.0";
+        settings_form.green_filter_short_limit.value="705.0";
+      }
+    };
+    function blue_bandpass_select() {
+      if (settings_form.blue_bandpass_selector.value == "default") {
+        settings_form.blue_filter_long_limit.value="495.0";
+        settings_form.blue_filter_short_limit.value="405.0";
+      } else if (settings_form.blue_bandpass_selector.value == "ACS-WFC-F435W") {
+        settings_form.blue_filter_long_limit.value="480.0";
+        settings_form.blue_filter_short_limit.value="385.0";
+      } else if (settings_form.blue_bandpass_selector.value == "ACS-WFC-F475W") {
+        settings_form.blue_filter_long_limit.value="545.0";
+        settings_form.blue_filter_short_limit.value="405.0";
+      } else if (settings_form.blue_bandpass_selector.value == "ACS-WFC-F555W") {
+        settings_form.blue_filter_long_limit.value="600.0";
+        settings_form.blue_filter_short_limit.value="475.0";
+      } else if (settings_form.blue_bandpass_selector.value == "ACS-WFC-F606W") {
+        settings_form.blue_filter_long_limit.value="710.0";
+        settings_form.blue_filter_short_limit.value="475.0";
+      } else if (settings_form.blue_bandpass_selector.value == "ACS-WFC-F625W") {
+        settings_form.blue_filter_long_limit.value="705.0";
+        settings_form.blue_filter_short_limit.value="560.0";
+      } else if (settings_form.blue_bandpass_selector.value == "ACS-WFC-F775W") {
+        settings_form.blue_filter_long_limit.value="850.0";
+        settings_form.blue_filter_short_limit.value="700.0";
+      } else if (settings_form.blue_bandpass_selector.value == "ACS-WFC-F814W") {
+        settings_form.blue_filter_long_limit.value="890.0";
+        settings_form.blue_filter_short_limit.value="705.0";
+      } else if (settings_form.blue_bandpass_selector.value == "WFC3-UVIS-F336W") {
+        settings_form.blue_filter_long_limit.value="365.0";
+        settings_form.blue_filter_short_limit.value="307.0";
+      } else if (settings_form.blue_bandpass_selector.value == "WFC3-UVIS-F390W") {
+        settings_form.blue_filter_long_limit.value="400.0";
+        settings_form.blue_filter_short_limit.value="391.0";
+      } else if (settings_form.blue_bandpass_selector.value == "WFC3-UVIS-F438W") {
+        settings_form.blue_filter_long_limit.value="465.0";
+        settings_form.blue_filter_short_limit.value="395.0";
+      } else if (settings_form.blue_bandpass_selector.value == "WFC3-UVIS-F475W") {
+        settings_form.blue_filter_long_limit.value="600.0";
+        settings_form.blue_filter_short_limit.value="375.0";
+      } else if (settings_form.blue_bandpass_selector.value == "WFC3-UVIS-F555W") {
+        settings_form.blue_filter_long_limit.value="600.0";
+        settings_form.blue_filter_short_limit.value="445.0";
+      } else if (settings_form.blue_bandpass_selector.value == "WFC3-UVIS-F606W") {
+        settings_form.blue_filter_long_limit.value="710.0";
+        settings_form.blue_filter_short_limit.value="475.0";
+      } else if (settings_form.blue_bandpass_selector.value == "WFC3-UVIS-F625W") {
+        settings_form.blue_filter_long_limit.value="705.0";
+        settings_form.blue_filter_short_limit.value="550.0";
+      } else if (settings_form.blue_bandpass_selector.value == "WFC3-UVIS-F775W") {
+        settings_form.blue_filter_long_limit.value="850.0";
+        settings_form.blue_filter_short_limit.value="695.0";
+      } else if (settings_form.blue_bandpass_selector.value == "WFC3-UVIS-F814W") {
+        settings_form.blue_filter_long_limit.value="870.0";
+        settings_form.blue_filter_short_limit.value="705.0";
+      }
+    };
   </script>
 </head>
 <body>
@@ -446,7 +617,7 @@ camera_tilt=${settings_form.camera_tilt.value}`;
           </select>
           <p>
           <div id="centered"> 
-            <em>Caution: Airy disks render very slowly</em>
+            <em>Caution: Airy disks render slowly</em>
           </div>
           <br><label for "Airy_disk">Enable Airy disks</label>
           <select name="Airy_disk" id="Airy_disk">
@@ -459,76 +630,138 @@ camera_tilt=${settings_form.camera_tilt.value}`;
           <input type="text" id="Airy_disk_max_extent" name="Airy_disk_max_extent" size="12" value="10">
         </fieldset>
         <fieldset>
-        <legend>Color Bandpass Filter Options</legend>
+        <legend>Camera Bandpass Filter Options</legend>
           <div id="centered">
             <em>wavelength in nm</em>
           </div>
-          <br><label for "red_filter_long_limit">Red filter long cutoff</label>
-          <input type="text" id="red_filter_long_limit" name="red_filter_long_limit" size="12" value="710.0">
-          <br><label for "red_filter_short_limit">Red filter short cutoff</label>
-          <input type="text" id="red_filter_short_limit" name="red_filter_short_limit" size="12" value="590.0">
-          <br><label for "green_filter_long_limit">Green filter long cutoff</label>
-          <input type="text" id="green_filter_long_limit" name="green_filter_long_limit" size="12" value="590.0">
-          <br><label for "green_filter_short_limit">Green filter short cutoff</label>
-          <input type="text" id="green_filter_short_limit" name="green_filter_short_limit" size="12" value="495.0">
-          <br><label for "blue_filter_long_limit">Blue filter long cutoff</label>
-          <input type="text" id="blue_filter_long_limit" name="blue_filter_long_limit" size="12" value="495.0">
-          <br><label for "blue_filter_short_limit">Blue filter short cutoff</label>
-          <input type="text" id="blue_filter_short_limit" name="blue_filter_short_limit" size="12" value="405.0">
+          <div id="centered">
+          <table style="margin-left:auto;margin-right:auto;">
+          <tr><td>red</td><td><select name="red_bandpass_selector" id="red_bandpass_selector" onclick="red_bandpass_select()">
+                <option value="default" selected>default</option>
+                <option value="user">user</option>
+                <option value="ACS-WFC-F435W">ACS WFC F435W</option>
+                <option value="ACS-WFC-F475W">ACS WFC F475W</option>
+                <option value="ACS-WFC-F555W">ACS WFC F555W</option>
+                <option value="ACS-WFC-F606W">ACS WFC F606W</option>
+                <option value="ACS-WFC-F625W">ACS WFC F625W</option>
+                <option value="ACS-WFC-F775W">ACS WFC F775W</option>
+                <option value="ACS-WFC-F814W">ACS WFC F814W</option>
+                <option value="WFC3-UVIS-F336W">WFC3 UVIS F336W</option>
+                <option value="WFC3-UVIS-F390W">WFC3 UVIS F390W</option>
+                <option value="WFC3-UVIS-F438W">WFC3 UVIS F438W</option>
+                <option value="WFC3-UVIS-F475W">WFC3 UVIS F475W</option>
+                <option value="WFC3-UVIS-F555W">WFC3 UVIS F555W</option>
+                <option value="WFC3-UVIS-F606W">WFC3 UVIS F606W</option>
+                <option value="WFC3-UVIS-F625W">WFC3 UVIS F625W</option>
+                <option value="WFC3-UVIS-F775W">WFC3 UVIS F775W</option>
+                <option value="WFC3-UVIS-F814W">WFC3 UVIS F814W</option>
+              </select></td>
+              <td><input type="text" id="red_filter_long_limit" name="red_filter_long_limit" size="12" value="710.0" onclick="set_red_bandpass_user()"></td>
+              <td>-</td>
+              <td><input type="text" id="red_filter_short_limit" name="red_filter_short_limit" size="12" value="590.0" onclick="set_red_bandpass_user()"></td></tr>
+          <tr><td>green</td><td><select name="green_bandpass_selector" id="green_bandpass_selector" onclick="green_bandpass_select()">
+                <option value="default" selected>default</option>
+                <option value="user">user</option>
+                <option value="ACS-WFC-F435W">ACS WFC F435W</option>
+                <option value="ACS-WFC-F475W">ACS WFC F475W</option>
+                <option value="ACS-WFC-F555W">ACS WFC F555W</option>
+                <option value="ACS-WFC-F606W">ACS WFC F606W</option>
+                <option value="ACS-WFC-F625W">ACS WFC F625W</option>
+                <option value="ACS-WFC-F775W">ACS WFC F775W</option>
+                <option value="ACS-WFC-F814W">ACS WFC F814W</option>
+                <option value="WFC3-UVIS-F336W">WFC3 UVIS F336W</option>
+                <option value="WFC3-UVIS-F390W">WFC3 UVIS F390W</option>
+                <option value="WFC3-UVIS-F438W">WFC3 UVIS F438W</option>
+                <option value="WFC3-UVIS-F475W">WFC3 UVIS F475W</option>
+                <option value="WFC3-UVIS-F555W">WFC3 UVIS F555W</option>
+                <option value="WFC3-UVIS-F606W">WFC3 UVIS F606W</option>
+                <option value="WFC3-UVIS-F625W">WFC3 UVIS F625W</option>
+                <option value="WFC3-UVIS-F775W">WFC3 UVIS F775W</option>
+                <option value="WFC3-UVIS-F814W">WFC3 UVIS F814W</option>
+              </select></td>
+              <td><input type="text" id="green_filter_long_limit" name="green_filter_long_limit" size="12" value="590.0" onclick="set_green_bandpass_user()"></td>
+              <td>-</td>
+              <td><input type="text" id="green_filter_short_limit" name="green_filter_short_limit" size="12" value="495.0" onclick="set_green_bandpass_user()"></td></tr>
+          <tr><td>blue</td><td><select name="blue_bandpass_selector" id="blue_bandpass_selector" onclick="blue_bandpass_select()">
+                <option value="default" selected>default</option>
+                <option value="user">user</option>
+                <option value="ACS-WFC-F435W">ACS WFC F435W</option>
+                <option value="ACS-WFC-F475W">ACS WFC F475W</option>
+                <option value="ACS-WFC-F555W">ACS WFC F555W</option>
+                <option value="ACS-WFC-F606W">ACS WFC F606W</option>
+                <option value="ACS-WFC-F625W">ACS WFC F625W</option>
+                <option value="ACS-WFC-F775W">ACS WFC F775W</option>
+                <option value="ACS-WFC-F814W">ACS WFC F814W</option>
+                <option value="WFC3-UVIS-F336W">WFC3 UVIS F336W</option>
+                <option value="WFC3-UVIS-F390W">WFC3 UVIS F390W</option>
+                <option value="WFC3-UVIS-F438W">WFC3 UVIS F438W</option>
+                <option value="WFC3-UVIS-F475W">WFC3 UVIS F475W</option>
+                <option value="WFC3-UVIS-F555W">WFC3 UVIS F555W</option>
+                <option value="WFC3-UVIS-F606W">WFC3 UVIS F606W</option>
+                <option value="WFC3-UVIS-F625W">WFC3 UVIS F625W</option>
+                <option value="WFC3-UVIS-F775W">WFC3 UVIS F775W</option>
+                <option value="WFC3-UVIS-F814W">WFC3 UVIS F814W</option>
+              </select></td>
+              <td><input type="text" id="blue_filter_long_limit" name="blue_filter_long_limit" size="12" value="495.0" onclick="set_blue_bandpass_user()"></td>
+              <td>-</td>
+              <td><input type="text" id="blue_filter_short_limit" name="blue_filter_short_limit" size="12" value="405.0" onclick="set_blue_bandpass_user()"></td></tr>
+          </table>
+          </div>
         </fieldset>
         <fieldset>
         <legend>Camera Position</legend>
           <div id="centered"> 
             <em>ICRS coordinates (parsec, deg)</em>
           </div>
-          <br><label for "camera_icrs_x>x</label>
-          <input type="text" id="camera_icrs_x" name="camera_icrs_x" size="12" value="0.0">
-          <br><label for "camera_icrs_y>y</label>
-          <input type="text" id="camera_icrs_y" name="camera_icrs_y" size="12" value="0.0">
-          <br><label for "camera_icrs_z>z</label>
-          <input type="text" id="camera_icrs_z" name="camera_icrs_z" size="12" value="0.0">
-          <p>
-          <div id="centered">or</div>
-          <p>
-          <label for "camera_icrs_ra>ra</label>
-          <input type="text" id="camera_icrs_ra" name="camera_icrs_ra" size="12" value="0.0">
-          <br><label for "camera_icrs_dec>dec</label>
-          <input type="text" id="camera_icrs_dec" name="camera_icrs_dec" size="12" value="0.0">
-          <br><label for "camera_icrs_r>r</label>
-          <input type="text" id="camera_icrs_r" name="camera_icrs_r" size="12" value="0.0">
+          <div id="centered">
+          <table style="margin-left:auto;margin-right:auto;">
+            <tr><td>x</td><td><input type="text" id="camera_icrs_x" name="camera_icrs_x" size="12" value="0.0"></td>
+            <td></td>
+            <td>ra</td><td><input type="text" id="camera_icrs_ra" name="camera_icrs_ra" size="12" value="0.0"></td></tr>
+
+            <tr><td>y</td><td><input type="text" id="camera_icrs_y" name="camera_icrs_y" size="12" value="0.0"></td>
+            <td width="50">or</td>
+            <td>dec</td><td><input type="text" id="camera_icrs_dec" name="camera_icrs_dec" size="12" value="0.0"></td></tr>
+
+            <tr><td>z</td><td><input type="text" id="camera_icrs_z" name="camera_icrs_z" size="12" value="0.0"></td>
+            <td></td>
+            <td>r</td><td><input type="text" id="camera_icrs_r" name="camera_icrs_r" size="12" value="0.0"></td></tr>
+          </table>
+          </div>
         </fieldset>
         <fieldset>
         <legend>Target Position</legend>
           <div id="centered">
             <em>ICRS coordinates (parsec, deg)</em>
           </div>
-          <br><label for "target_icrs_x>x</label>
-          <input type="text" id="target_icrs_x" name="target_icrs_x" size="12" value="0.0">
-          <br><label for "target_icrs_y>y</label>
-          <input type="text" id="target_icrs_y" name="target_icrs_y" size="12" value="0.0">
-          <br><label for "target_icrs_z>z</label>
-          <input type="text" id="target_icrs_z" name="target_icrs_z" size="12" value="0.0">
-          <p>
-          <div id="centered">or</div>
-          <p>
-          <label for "target_icrs_ra>ra</label>
-          <input type="text" id="target_icrs_ra" name="target_icrs_ra" size="12" value="266.4168371">
-          <br><label for "target_icrs_dec>dec</label>
-          <input type="text" id="target_icrs_dec" name="target_icrs_dec" size="12" value="-29.0078106">
-          <br><label for "target_icrs_r>r</label>
-          <input type="text" id="target_icrs_r" name="target_icrs_r" size="12" value="8178.0">
+          <div id="centered">
+          <table style="margin-left:auto;margin-right:auto;">
+            <tr><td>x</td><td><input type="text" id="target_icrs_x" name="target_icrs_x" size="12" value="0.0"></td>
+            <td></td>
+            <td>ra</td><td><input type="text" id="target_icrs_ra" name="target_icrs_ra" size="12" value="266.4168371"></td></tr>
+  
+            <tr><td>y</td><td><input type="text" id="target_icrs_y" name="target_icrs_y" size="12" value="0.0"></td>
+            <td width="50">or</td>
+            <td>dec</td><td><input type="text" id="target_icrs_dec" name="target_icrs_dec" size="12" value="-29.0078106"></td></tr>
+ 
+            <tr><td>z</td><td><input type="text" id="target_icrs_z" name="target_icrs_z" size="12" value="0.0"></td>
+            <td></td>
+            <td>r</td><td><input type="text" id="target_icrs_r" name="target_icrs_r" size="12" value="8178.0"></td></tr>
+          </table>
+          </div>
         </fieldset>
         <fieldset>
         <legend>Camera Rotation/Pan/Tilt</legend>
           <div id="centered">
             <em>After aiming at target</em>
           </div>
-          <br><label for "camera_rotation">Rotate</label>
-          <input type="text" id="camera_rotation" name="camera_rotation" size="12" value="-58.6">
-          <br><label for "camera_pan">Pan</label>
-          <input type="text" id="camera_pan" name="camera_pan" size="12" value="0.0">
-          <br><label for "camera_tilt">Tilt</label>
-          <input type="text" id="camera_tilt" name="camera_tilt" size="12" value="0.0">
+          <div id="centered">
+          <table style="margin-left:auto;margin-right:auto;">
+          <tr><td>Rotate</td><td><input type="text" id="camera_rotation" name="camera_rotation" size="12" value="-58.6"></td></tr>
+          <tr><td>Pan</td><td><input type="text" id="camera_pan" name="camera_pan" size="12" value="0.0"></td></tr>
+          <tr><td>Tilt</td><td><input type="text" id="camera_tilt" name="camera_tilt" size="12" value="0.0"></td></tr>
+          </table>
+          </div>
         </fieldset>
           <p>
           <div id="button_style">
@@ -548,7 +781,7 @@ camera_tilt=${settings_form.camera_tilt.value}`;
     </div>
   </main>
   <footer id="footer">
-    sample-frontend.html from bsrender v0.9.0-dev-42
+    sample-frontend.html from bsrender v0.9.0-dev-43
   </footer>
 </body>
 </html>

@@ -64,6 +64,12 @@ int initBandpassRatioTables(double *rp_over_G_ref, double *bp_over_G_ref, double
     rp_over_G_ref[i]=rp_intensity;
     bp_over_G_ref[i]=bp_intensity;
     bp_over_rp_ref[i]=bp_intensity / rp_intensity; // G cancells out
+
+/*
+printf("temp: %d, bp/rp: %.6e, bp/G: %.6e, rp/G: %.6e\n", i, bp_over_rp_ref[i], bp_over_G_ref[i], rp_over_G_ref[i]);
+fflush(stdout);
+*/
+
   } // end for i
 
   return(0);

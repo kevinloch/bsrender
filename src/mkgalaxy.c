@@ -31,6 +31,108 @@
 #include <time.h>
 #include "bandpass-ratio.h"
 
+void printUsage() {
+
+printf("mkgalaxy version %s\n", BSR_VERSION);
+printf("\n\
+NAME\n\
+     mkgalaxy -- create binary data files for use with bsrender\n\
+\n\
+SYNOPSIS\n\
+     mkgalaxy [-b] [-w] [-c] [-p] [-h]\n\
+ \n\
+OPTIONS:\n\
+     -b\n\
+          Use bp/G and rp/G bandpass ratios to estimate effective temperature (default)\n\
+\n\
+     -w\n\
+          Use Gaia EDR3 color wavenumber fieldto estimate effective temperature\n\
+\n\
+     -c\n\
+          Enable Lindegren et al parallax calibration\n\
+\n\
+     -p\n\
+          Override parallax if lower than this value or set to zero to disable override (default 0.02 miliarcseconds)\n\
+\n\
+     -h\n\
+          Show help\n\
+\n\
+DESCRIPTON\n\
+ mkgalaxy processes extracted fields from ESA's Gaia EDR3 dataset for use with bsrender. Uses the output from 'gaia-edr3-extract.sh' in the bsrender package\n\
+ \n");
+}
+
+int setDefaults(mkg_config_t *mkg_config) {
+  
+  mkg_config->use_bandpass_ratios=1;
+  mkg_config->calibrate_parallax=0;
+  mkg_config->override_parallax_toolow=1;
+  mkg_config->minimum_parallax=0.02;
+  return(0);
+}
+
+int processCmdArgs(mkg_config_t *mkg_config, int argc, char **argv) {
+  int i;
+  char *option_start;
+  char tmpstr[32];
+  int option_length;
+
+  if (argc == 1) {
+    return(0);
+  } else {
+    for (i=1; i <= (argc - 1); i++) {
+      if (argv[i][1] == 'b') {
+        // use bandpass ratios for effective temperature
+        mkg_config->use_bandpass_ratios=1;
+      } else if (argv[i][1] == 'w') {
+        // use Gaia EDR3 wavenumber for effective temperature
+        mkg_config->use_bandpass_ratios=0;
+      } else if (argv[i][1] == 'c') {
+        // enable Lindegren et al parallax calibration mode
+        mkg_config->calibrate_parallax=1;
+      } else if (argv[i][1] == 'p') {
+        // minimum parallax (miliarcseconds)
+        if (argv[i][2] != 0) {
+          // option concatenated onto switch
+          option_start=argv[i];
+          option_length=strlen(option_start + (size_t)2);
+          if (option_length > 31) {
+            option_length=31;
+          }
+          strncpy(tmpstr, (option_start + (size_t)2), option_length);
+          tmpstr[31]=0;
+          mkg_config->minimum_parallax=strtod(tmpstr, NULL);
+          if (mkg_config->minimum_parallax <=0.0) {
+            mkg_config->override_parallax_toolow=0;
+          } else {
+            mkg_config->override_parallax_toolow=1;
+          }
+        } else if ((argc >= (i + 1)) && (argv[i + 1][0] != '-')) {
+          // option is probably next argv
+          option_start=argv[i + 1];
+          option_length=strlen(option_start);
+          if (option_length > 31) {
+            option_length=31;
+          }
+          strncpy(tmpstr, option_start, option_length);
+          tmpstr[31]=0;
+          mkg_config->minimum_parallax=strtod(tmpstr, NULL);
+          if (mkg_config->minimum_parallax <=0.0) {
+            mkg_config->override_parallax_toolow=0;
+          } else {
+            mkg_config->override_parallax_toolow=1;
+          }
+        } // end if no space
+      } else if (argv[i][1] == 'h') {
+        // print help
+        printUsage();
+        exit(0);
+      } // end which option
+    } // end for argc
+  } // end if any options
+  return(0);
+}
+
 double calibrateParallax(double *parallax, int astrometric_params_solved, double G, double neff, double ecl_lat) {
   //
   // from Lindegren et. al., Gaia Early Data Release 3 Parallax bias versus magnitude, colour, and position, Astronomy & Astrophysics manuscript no. DR3-Parallaxes December 8, 2020
@@ -369,7 +471,7 @@ double calibrateParallax(double *parallax, int astrometric_params_solved, double
       Z+=q[j][k] * c[j] * b[k];
     }
   }
-  Z=Z / 1000.0; // Z is in uas, parallax is in mas
+  Z=Z / 1000.0; // Z is in uas, parallax is in miliarcseconds
   new_parallax = *parallax - Z;
   *parallax=new_parallax;
 
@@ -419,6 +521,8 @@ int main(int argc, char **argv) {
   long long temperature_from_bp_rp_count;
   long long temperature_from_nu_eff_count;
   long long temperature_from_pseudocolor_count;
+  long long min_temp_count;
+  long long max_temp_count;
   const double flux_to_vega=5.3095E-11; // approximate conversion factor for phot_g_mean_flux to intensity relative to Vega
   float linear_1pc_intensity;
   uint64_t color_temperature;
@@ -431,12 +535,12 @@ int main(int argc, char **argv) {
   double rp_over_G;
   double bp_over_G;
   double bp_over_rp;
-  double bp_plus_rp_over_G;
   int bestmatch_temperature;
   int all_invalid;
   int bp_over_G_invalid;
   int rp_over_G_invalid;
   int bp_over_rp_invalid;
+  mkg_config_t mkg_config;
 
   // fields imported from GEDR3
   char random_index[32];
@@ -452,12 +556,6 @@ int main(int argc, char **argv) {
   double phot_rp_mean_flux;
   double ecl_lat;
 
-  //
-  // initialize timers
-  //
-  clock_gettime(CLOCK_REALTIME, &overall_starttime);
-  clock_gettime(CLOCK_REALTIME, &starttime);
-
   // temp working vars
   double distance;
   double ra_rad;
@@ -466,29 +564,38 @@ int main(int argc, char **argv) {
   double linear_intensity; // intensity relative to vega
 
   //
-  // settings for calibration and parallax override
+  // initialize timers
   //
-  int use_bandpass_ratios=1;       // 1 = determine star temperature from rp/G and bp/G ratios.  0 = use 'nu_eff_used_in_astrometery' or 'pseudocolor' fields
-  int calibrate_parallax_enable=0; // enable Lindegren et. al. parallax calibration
-  int override_parallax_toolow=1;  // enforce minimum_parallax
-  double minimum_parallax=0.020;   // minimum parallax in mas when override_parallax_toolow is set
+  clock_gettime(CLOCK_REALTIME, &overall_starttime);
+  clock_gettime(CLOCK_REALTIME, &starttime);
+
+  //
+  // set default options
+  //
+  setDefaults(&mkg_config);
+
+  //
+  // proces command line options
+  processCmdArgs(&mkg_config, argc, argv);
 
   //
   // print version and options
   //
   printf("mkgalaxy version %s\n", BSR_VERSION);
-  if (use_bandpass_ratios == 1) {
-    printf("Star temperatures determined by r/G and bp/G ratios when available. Edit use_bandpass_ratios in mkgalaxy.c and recompile to change this option\n");
+  if (mkg_config.use_bandpass_ratios == 1) {
+    printf("Star temperatures determined by r/G and bp/G ratios when available\n");
   } else {
-    printf("Star temperatures determined by the 'nu_eff_used_in_astrometery' or 'pseudocolor'. Edit use_bandpass_ratios in mkgalaxy.c and recompile to enable temperature from bandpass ratios.\n");
+    printf("Star temperatures determined by 'nu_eff_used_in_astrometery' or 'pseudocolor'\n");
   }
-  if (calibrate_parallax_enable == 1) {
-    printf("Lindegren et. al. parallax calibration enabled.  Edit calibrate_parallax_enable in mkgalaxy.c and recompile to change this option\n");
+  if (mkg_config.calibrate_parallax == 1) {
+    printf("Lindegren et. al. parallax calibration enabled\n");
   } else {
-    printf("Lindegrenn et. al. parallax calibration disabled. Edit calibrate_parallax_enable in mkgalaxy.c and recompile to change this option\n");
+    printf("Lindegrenn et. al. parallax calibration disabled\n");
   }
-  if (override_parallax_toolow == 1) {
-    printf("Minimum parallax of %.3f mas will be enforced. Edit override_parallax_toolow and minimum_parallax in mkgalaxy.c and recompile to change this option\n", minimum_parallax);
+  if (mkg_config.override_parallax_toolow == 1) {
+    printf("Minimum parallax of %.3f miliarcsedons will be enforced\n", mkg_config.minimum_parallax);
+  } else {
+    printf("Minimum parallax enforcement disabled\n");
   }
 
   //
@@ -614,6 +721,8 @@ int main(int argc, char **argv) {
   temperature_from_bp_rp_count=0;
   temperature_from_nu_eff_count=0;
   temperature_from_pseudocolor_count=0;
+  min_temp_count=0;
+  max_temp_count=0;
   input_line_p=fgets(input_line, 256, input_file);
   while (input_line_p != NULL) {
 
@@ -771,7 +880,7 @@ int main(int argc, char **argv) {
         //
         // optionally calibrate parallax according to Lindegren et. al
         //
-        if (calibrate_parallax_enable == 1) {
+        if (mkg_config.calibrate_parallax == 1) {
           magnitude=-2.5*log10(linear_intensity); // some stars have blank phot_G_mean_magnitude so we derive from the more reliable flux column
           calibrateParallax(&parallax, astrometric_params_solved, magnitude, color_wavenumber, ecl_lat);
         }
@@ -779,8 +888,8 @@ int main(int argc, char **argv) {
         //
         // optionaly override parallax below instrument minimum (or negative)
         //
-        if ((parallax < minimum_parallax) && (override_parallax_toolow == 1)) {
-          parallax=minimum_parallax;
+        if ((parallax < mkg_config.minimum_parallax) && (mkg_config.override_parallax_toolow == 1)) {
+          parallax=mkg_config.minimum_parallax;
         }
 
         //
@@ -814,7 +923,6 @@ int main(int argc, char **argv) {
           rp_over_G=phot_rp_mean_flux / phot_G_mean_flux;
           bp_over_G=phot_bp_mean_flux / phot_G_mean_flux;
           bp_over_rp=(bp_over_G / rp_over_G);
-          bp_plus_rp_over_G=(phot_bp_mean_flux + phot_rp_mean_flux) / phot_G_mean_flux;
 
           //
           // check for invalid parameters outside of allowable ranges
@@ -823,46 +931,38 @@ int main(int argc, char **argv) {
           rp_over_G_invalid=0;
           bp_over_rp_invalid=0;
           all_invalid=0;
-          if ((use_bandpass_ratios != 1) || (phot_bp_mean_flux <= 0.0) || (phot_rp_mean_flux <= 0.0)) {
+          if ((mkg_config.use_bandpass_ratios != 1) || ((phot_bp_mean_flux <= 0.0) && (phot_rp_mean_flux <= 0.0))) {
              all_invalid=1;
           }
-          if ((bp_plus_rp_over_G < 1.0) || (bp_plus_rp_over_G > 2.6)) {
-            // note: we can't use this parameter to determine temperature because it is not unique from 1000K-32767K
-            // but we can use it to detect invalid data
-            all_invalid=1; 
-          }
-          if ((bp_over_rp < 0.0) || (bp_over_rp > 4.5)) {
+          if (phot_bp_mean_flux <= 0.0) {
+            bp_over_G_invalid=1;
             bp_over_rp_invalid=1;
           }
-          if ((rp_over_G > 2.0) && (bp_over_G > 1.0)) {
-            all_invalid=1;
+          if (phot_rp_mean_flux <= 0.0) {
+            rp_over_G_invalid=1;
+            bp_over_rp_invalid=1;
           }
-          if ((bp_over_G < 0.0) || (bp_over_G > 1.0)) {
+          if ((bp_over_rp < 3.06E-6) || (bp_over_rp > 4.02888)) {
+            bp_over_rp_invalid=1;
+          }
+          if ((bp_over_G < 8.16E-6) || (bp_over_G > 0.933898)) {
             bp_over_G_invalid=1;
           }
-          if ((rp_over_G < 0.0) || (rp_over_G > 2.6)) {
+          if ((rp_over_G < 0.231800) || (rp_over_G > 2.664)) {
             rp_over_G_invalid=1;
           }
 
-          if ((all_invalid == 0) && ((bp_over_G_invalid == 0) || (rp_over_G_invalid == 0) || (bp_over_rp_invalid == 0))) {
+          //
+          // select best match for effective temperature
+          //
+          if ((all_invalid == 0) && ((phot_bp_mean_flux > 0.0) || (phot_rp_mean_flux > 0.0))) {
             //
-            // we have at least one valid parameter to match against Planck spectrum reference
+            // we have at least one parameter to match against Planck spectrum reference
             //
             bestmatch_temperature=0;
-            if ((bp_over_rp_invalid == 0) && (phot_G_mean_flux < 1.0E3) && (phot_bp_mean_flux < 1.0E3) && (phot_rp_mean_flux < 1.0E3)) {
-              // bp_over_rp may be more reliable for very faint stars
-              for (i=1000; ((i < 32768) && (bestmatch_temperature == 0)); i++) {
-                if (bp_over_rp_ref[i] > bp_over_rp) {
-                  bestmatch_temperature=i;
-                }
-              }
-              if (bestmatch_temperature == 0) {
-                bestmatch_temperature=32767;
-              }
-              temperature_from_bp_rp_count++;
-            } else if ((bp_over_rp_invalid == 0) && (bp_over_G > 0.6) && (rp_over_G > 0.6)) {
-              // definitely have excess somewhere or problem with G, bp/rp may be more reliable
-              for (i=1000; ((i < 32768) && (bestmatch_temperature == 0)); i++) {
+            if (bp_over_rp_invalid == 0) {
+              // bp over rp generally gives the best results
+              for (i=500; ((i < 32768) && (bestmatch_temperature == 0)); i++) {
                 if (bp_over_rp_ref[i] > bp_over_rp) {
                   bestmatch_temperature=i;
                 }
@@ -872,18 +972,19 @@ int main(int argc, char **argv) {
               }
               temperature_from_bp_rp_count++;
             } else if (bp_over_G_invalid == 0) {
-              // prefer bp_over_G since it is much less likely to have excess than rp_over_G
-              for (i=1000; ((i < 32768) && (bestmatch_temperature == 0)); i++) {
+              // next best is bp over G
+              for (i=500; ((i < 32768) && (bestmatch_temperature == 0)); i++) {
                 if (bp_over_G_ref[i] > bp_over_G) {
                   bestmatch_temperature=i;
                 }
-              }
+              }   
               if (bestmatch_temperature == 0) {
                 bestmatch_temperature=32767;
               }
               temperature_from_bp_G_count++;
             } else if (rp_over_G_invalid == 0) {
-              for (i=1000; ((i < 32768) && (bestmatch_temperature == 0)); i++) {
+              // rp over G is least likely to give accurate effective temp due to background infrared
+              for (i=500; ((i < 32768) && (bestmatch_temperature == 0)); i++) {
                 if (rp_over_G_ref[i] < rp_over_G) {
                   bestmatch_temperature=i;
                 }
@@ -892,33 +993,42 @@ int main(int argc, char **argv) {
                 bestmatch_temperature=32767;
               }
               temperature_from_rp_G_count++;
-            } else {
-              for (i=1000; ((i < 32768) && (bestmatch_temperature == 0)); i++) {
-                if (bp_over_rp_ref[i] > bp_over_rp) {
-                  bestmatch_temperature=i;
-                }
-              }
-              if (bestmatch_temperature == 0) {
-                bestmatch_temperature=32767;
-              }
+            // below we handle cases where none of the three parameters were within valid ranges but we have data so we set to min/max value
+            } else if ((phot_bp_mean_flux > 0.0) && (phot_rp_mean_flux > 0.0)) {
+              // bp/rp out of range but has value so set to max
+              bestmatch_temperature=32767;
               temperature_from_bp_rp_count++;
+            } else if (phot_bp_mean_flux > 0.0) {
+              // blue out of range but has value so set to max
+              bestmatch_temperature=32767;
+              temperature_from_bp_G_count++;
+            } else if (phot_rp_mean_flux > 0.0) {
+              // red out of range but has value so set to min
+              bestmatch_temperature=500;
+              temperature_from_rp_G_count++;
+            } else {
+              // catchall, should never get here but just in case set to default temp
+              bestmatch_temperature=4300;
+            }
+            // range checks 
+            if (bestmatch_temperature < 500) {
+              bestmatch_temperature=500;
+            } else if (bestmatch_temperature > 32767) {
+              bestmatch_temperature=32767;
+            }
+            if (bestmatch_temperature == 500) {
+              min_temp_count++;
+            } else if (bestmatch_temperature == 32767) {
+              max_temp_count++;
             }
             color_temperature=(uint64_t)bestmatch_temperature;
-
-/* for debugging color temps
-if (color_temperature > 10000) {
-printf("temp: %ld, G: %.7e, bp: %.7e, rp: %.7e, bp_over_G: %.7e, rp_over_G: %.7e, bp_over_rp: %.7e, bp_over_G_invalid: %d, rp_over_G_invalid: %d, bp_over_rp_invalid: %d\n", color_temperature, phot_G_mean_flux, phot_bp_mean_flux, phot_rp_mean_flux, bp_over_G, rp_over_G, bp_over_rp, bp_over_G_invalid, rp_over_G_invalid, bp_over_rp_invalid);
-fflush(stdout);
-}
-*/
-
           } else {
             //
-            // no valid parameters, transofrm color_wavenumber to integer Kelvin blackbody temperature and clip extraneous values
+            // no parameter with flux value, transofrm color_wavenumber to integer Kelvin blackbody temperature and clip extraneous values
             //
             color_temperature=(uint64_t)((2897.771955 * color_wavenumber) + 0.5); // wein's displacement to convert to Kelvin
-            if (color_temperature < 1000) {
-              color_temperature=1000;
+            if (color_temperature < 500) {
+              color_temperature=500;
             } else if (color_temperature > 32767) {
               color_temperature=32767;
             }
@@ -992,7 +1102,8 @@ fflush(stdout);
       elapsed_time=((double)(endtime.tv_sec - 1500000000) + ((double)endtime.tv_nsec / 1.0E9)) - ((double)(starttime.tv_sec - 1500000000) + ((double)starttime.tv_nsec) / 1.0E9);
       overall_elapsed_time=((double)(endtime.tv_sec - 1500000000) + ((double)endtime.tv_nsec / 1.0E9)) - ((double)(overall_starttime.tv_sec - 1500000000) + ((double)overall_starttime.tv_nsec) / 1.0E9);
       printf("status, input records: %9lld, output records by parallax quality (pq000: %lld, pq001: %lld, pq002: %lld, pq003: %lld, pq005: %lld, pq010: %lld, pq020: %lld, pq030: %lld, pq050: %lld, pq100: %lld),\n",  input_count, pq000_count, pq001_count, pq002_count, pq003_count, pq005_count, pq010_count, pq020_count, pq030_count, pq050_count, pq100_count);
-      printf("  no parallax: %lld, parallax unusable: %lld, no_G_flux: %lld, color temp derived from (bp/G: %lld, rp/G: %lld, bp/rp: %lld, nu_eff_used_in_astrometry: %lld, pseudocolor: %lld), incremental time: %.3fs, total time: %.3fs\n", discard_parms_count, discard_parallax_count, discard_no_flux_count, temperature_from_bp_G_count, temperature_from_rp_G_count, temperature_from_bp_rp_count, temperature_from_nu_eff_count, temperature_from_pseudocolor_count, elapsed_time, overall_elapsed_time);
+      printf("  no parallax: %lld, parallax unusable: %lld, no_G_flux: %lld, color temp derived from (bp/rp: %lld, bp/G: %lld, rp/G: %lld, nu_eff_used_in_astrometry: %lld, pseudocolor: %lld, min_t_count: %lld, max_t_count: %lld), incremental time: %.3fs, total time: %.3fs\n",discard_parms_count, discard_parallax_count, discard_no_flux_count, temperature_from_bp_rp_count, temperature_from_bp_G_count, temperature_from_rp_G_count, temperature_from_nu_eff_count, temperature_from_pseudocolor_count, min_temp_count, max_temp_count, elapsed_time, overall_elapsed_time);
+
       fflush(stdout);
       clock_gettime(CLOCK_REALTIME, &starttime);
     }
@@ -1007,7 +1118,8 @@ fflush(stdout);
   elapsed_time=((double)(endtime.tv_sec - 1500000000) + ((double)endtime.tv_nsec / 1.0E9)) - ((double)(starttime.tv_sec - 1500000000) + ((double)starttime.tv_nsec) / 1.0E9);
   overall_elapsed_time=((double)(endtime.tv_sec - 1500000000) + ((double)endtime.tv_nsec / 1.0E9)) - ((double)(overall_starttime.tv_sec - 1500000000) + ((double)overall_starttime.tv_nsec) / 1.0E9);
   printf("status, input records: %9lld, output records by parallax quality (pq000: %lld, pq001: %lld, pq002: %lld, pq003: %lld, pq005: %lld, pq010: %lld, pq020: %lld, pq030: %lld, pq050: %lld, pq100: %lld),\n",  input_count, pq000_count, pq001_count, pq002_count, pq003_count, pq005_count, pq010_count, pq020_count, pq030_count, pq050_count, pq100_count);
-  printf("  no parallax: %lld, parallax unusable: %lld, no_G_flux: %lld, color temp derived from (bp/G: %lld, rp/G: %lld, bp/rp: %lld, nu_eff_used_in_astrometry: %lld, pseudocolor: %lld), incremental time: %.3fs, total time: %.3fs\n", discard_parms_count, discard_parallax_count, discard_no_flux_count, temperature_from_bp_G_count, temperature_from_rp_G_count, temperature_from_bp_rp_count, temperature_from_nu_eff_count, temperature_from_pseudocolor_count, elapsed_time, overall_elapsed_time);
+  printf("  no parallax: %lld, parallax unusable: %lld, no_G_flux: %lld, color temp derived from (bp/rp: %lld, bp/G: %lld, rp/G: %lld, nu_eff_used_in_astrometry: %lld, pseudocolor: %lld, min_t_count: %lld, max_t_count: %lld), incremental time: %.3fs, total time: %.3fs\n",discard_parms_count, discard_parallax_count, discard_no_flux_count, temperature_from_bp_rp_count, temperature_from_bp_G_count, temperature_from_rp_G_count, temperature_from_nu_eff_count, temperature_from_pseudocolor_count, min_temp_count, max_temp_count, elapsed_time, overall_elapsed_time);
+
   fflush(stdout);
 
   //
