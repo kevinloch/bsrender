@@ -14,6 +14,7 @@ int resizeLanczos(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   int resize_res_x;
   int resize_res_y;
   double source_w;
+  double half_source_w;
   double source_x_center;
   double source_y_center;
   int source_x;
@@ -48,6 +49,7 @@ int resizeLanczos(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   resize_res_x=bsr_state->resize_res_x;
   resize_res_y=bsr_state->resize_res_y;
   source_w=1.0 / bsr_config->output_scaling_factor;
+  half_source_w=source_w / 2.0;
   lines_per_thread=(int)ceil(((double)resize_res_y / (double)(bsr_state->num_worker_threads + 1)));
 
   //
@@ -89,12 +91,12 @@ int resizeLanczos(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
       resize_x=0;
       resize_y++;
     }
-    source_x_center=((double)resize_x * source_w);
-    source_y_center=((double)resize_y * source_w);
+    source_x_center=((double)resize_x * source_w) + half_source_w + 0.5;
+    source_y_center=((double)resize_y * source_w) + half_source_w + 0.5;
     L_y_r=0.0;
     L_y_g=0.0;
     L_y_b=0.0;
-    for (i_y=((int)floor(source_y_center) - Lanczos_order + 1); i_y <= ((int)floor(source_y_center) + Lanczos_order); i_y++) {
+    for (i_y=((int)source_y_center - Lanczos_order + 1); i_y <= ((int)source_y_center + Lanczos_order); i_y++) {
       source_y=i_y;
 
       //
@@ -103,7 +105,7 @@ int resizeLanczos(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
       L_x_r=0.0;
       L_x_g=0.0;
       L_x_b=0.0;
-      for (i_x=((int)floor(source_x_center) - Lanczos_order + 1); i_x <= ((int)floor(source_x_center) + Lanczos_order); i_x++) {
+      for (i_x=((int)source_x_center - Lanczos_order + 1); i_x <= ((int)source_x_center + Lanczos_order); i_x++) {
         source_x=i_x;
         current_image_offset=(source_y * current_image_res_x) + source_x;
         current_image_p=bsr_state->current_image_buf + current_image_offset;

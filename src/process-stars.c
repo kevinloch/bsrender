@@ -82,7 +82,7 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
     } else { // selected point is target
       render_distance=sqrt(pow((star_record.icrs_x - bsr_config->target_icrs_x), 2.0) + pow((star_record.icrs_y - bsr_config->target_icrs_y), 2.0) + pow((star_record.icrs_z - bsr_config->target_icrs_z), 2.0)); // important, use un-rotated coordinates
     }
-    if ((render_distance > 0.0)\
+    if ((star_r > 0.0)\
      && (render_distance >= bsr_config->render_distance_min) && (render_distance <= bsr_config->render_distance_max)\
      && (color_temperature >= bsr_config->star_color_min) && (color_temperature <= bsr_config->star_color_max)) {
 

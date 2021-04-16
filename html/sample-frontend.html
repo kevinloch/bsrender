@@ -1,270 +1,281 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-<meta http-equiv="Pragma" content="no-cache" />
-<meta http-equiv="Expires" content="0" />
-<style>
-#nav {
-  background-color:#e0e0e0;
-  padding:10px;
-  text-align: center;
-}
-#box_style {
-  display: table;
-  max-width: device-width;
-  white-space: nowrap;
-}
-#settings_style {
-  width: 400px;
-  display: table-cell;
-  background-color:#e0e0e0;
-  padding: 10px;
-  white-space: normal;
-}
-#button_style {
-  text-align: center;
-}
-#rendering_style {
-  display: table-cell;
-  vertical-align: top;
-  padding: 10px;
-  white-space: normal;
-}
-#footer {
-  padding: 10px;
-  text-align: center;
-}
-#centered {
-  text-align: center;
-}
-img {
-  max-width: 100%;
-}
-label {
-  display: inline-block;
-  width: 200px;
-  text-align: right;
-}
-</style>
-  <meta charset="utf-8">
-  <title>bsrender</title>
-  <script>
-    var loading_text = document.createTextNode("Rendering image, please wait...");
-    var error_text = document.createTextNode("Error: rendering failed");
-    function loadSettingsFromURL() {
-      let url = new URL(window.location.href);
-      let search = url.searchParams;
-      let tmpvalue = search.get("rendering_server");
-      if (tmpvalue != null) {
-        settings_form.rendering_server.value = tmpvalue;
+  <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <style>
+      body {
+        display: table;
+        background-color: #e8e8e8;
+        white-space: nowrap;
       }
-      tmpvalue = search.get("enable_Gaia");
-      if (tmpvalue != null) {
-        settings_form.enable_Gaia.value = tmpvalue;
+      button {
+        color: #000000;
       }
-      tmpvalue = search.get("Gaia_min_parallax_quality");
-      if (tmpvalue != null) {
-        settings_form.Gaia_min_parallax_quality.value = tmpvalue;
+      input, select {
+        color: #000000;
+        background-color: #e0b0b0;
+        border: 1px solid #404040;
       }
-      tmpvalue = search.get("enable_external");
-      if (tmpvalue != null) {
-        settings_form.enable_external.value = tmpvalue;
+      #nav {
+        padding:10px;
+        text-align: center;
       }
-      tmpvalue = search.get("render_distance_min");
-      if (tmpvalue != null) {
-        settings_form.render_distance_min.value = tmpvalue;
+      #navigation_style {
+        display: table-cell;
+        white-space: normal;
       }
-      tmpvalue = search.get("render_distance_max");
-      if (tmpvalue != null) {
-        settings_form.render_distance_max.value = tmpvalue;
+      #settings_style {
+        width: 400px;
+        display: table-cell;
+        white-space: normal;
       }
-      tmpvalue = search.get("render_distance_selector");
-      if (tmpvalue != null) {
-        settings_form.render_distance_selector.value = tmpvalue;
+      #content_style {
+        display: table-cell;
+        vertical-align: top;
+        padding: 0px;
+        white-space: normal;
       }
-      tmpvalue = search.get("star_color_min");
-      if (tmpvalue != null) {
-        settings_form.star_color_min.value = tmpvalue;
+      #button_style {
+        text-align: center;
       }
-      tmpvalue = search.get("star_color_max");
-      if (tmpvalue != null) {
-        settings_form.star_color_max.value = tmpvalue;
+      #rendering_style {
+        vertical-align: top;
+        padding: 10px;
+        white-space: normal;
       }
-      tmpvalue = search.get("draw_crosshairs");
-      if (tmpvalue == "yes") {
-        settings_form.draw_crosshairs.value = tmpvalue;
+      #footer {
+        padding: 10px;
+        text-align: center;
       }
-      tmpvalue = search.get("draw_grid_lines");
-      if (tmpvalue != null) {
-        settings_form.draw_grid_lines.value = tmpvalue;
+      #centered {
+        text-align: center;
       }
-      tmpvalue = search.get("Gaussian_blur_radius");
-      if (tmpvalue != null) {
-        settings_form.Gaussian_blur_radius.value = tmpvalue;
+      img {
+        max-width: 100%;
       }
-      tmpvalue = search.get("output_scaling_factor");
-      if (tmpvalue != null) {
-        settings_form.output_scaling_factor.value = tmpvalue;
+      label {
+        display: inline-block;
+        width: 200px;
+        text-align: right;
       }
-      tmpvalue = search.get("sRGB_gamma");
-      if (tmpvalue != null) {
-        settings_form.sRGB_gamma.value = tmpvalue;
-      }
-      tmpvalue = search.get("bits_per_color");
-      if (tmpvalue != null) {
-        settings_form.bits_per_color.value = tmpvalue;
-      }
-      tmpvalue = search.get("camera_res_x");
-      if (tmpvalue != null) {
-        settings_form.camera_res_x.value = tmpvalue;
-      }
-      tmpvalue = search.get("camera_res_y");
-      if (tmpvalue != null) {
-        settings_form.camera_res_y.value = tmpvalue;
-      }
-      tmpvalue = search.get("camera_fov");
-      if (tmpvalue != null) {
-        settings_form.camera_fov.value = tmpvalue;
-      }
-      tmpvalue = search.get("camera_pixel_limit_mag");
-      if (tmpvalue != null) {
-        settings_form.camera_pixel_limit_mag.value = tmpvalue;
-      }
-      tmpvalue = search.get("camera_pixel_limit_mode");
-      if (tmpvalue != null) {
-        settings_form.camera_pixel_limit_mode.value = tmpvalue;
-      }
-      tmpvalue = search.get("camera_wb_enable");
-      if (tmpvalue != null) {
-        settings_form.camera_wb_enable.value = tmpvalue;
-      }
-      tmpvalue = search.get("camera_wb_temp");
-      if (tmpvalue != null) {
-        settings_form.camera_wb_temp.value = tmpvalue;
-      }
-      tmpvalue = search.get("camera_color_saturation");
-      if (tmpvalue != null) {
-        settings_form.camera_color_saturation.value = tmpvalue;
-      }
-      tmpvalue = search.get("camera_gamma");
-      if (tmpvalue != null) {
-        settings_form.camera_gamma.value = tmpvalue;
-      }
-      tmpvalue = search.get("camera_projection");
-      if (tmpvalue != null) {
-        settings_form.camera_projection.value = tmpvalue;
-      }
-      tmpvalue = search.get("spherical_orientation");
-      if (tmpvalue != null) {
-        settings_form.spherical_orientation.value = tmpvalue;
-      }
-      tmpvalue = search.get("Airy_disk");
-      if (tmpvalue != null) {
-        settings_form.Airy_disk.value = tmpvalue;
-      }
-      tmpvalue = search.get("Airy_disk_first_null");
-      if (tmpvalue != null) {
-        settings_form.Airy_disk_first_null.value = tmpvalue;
-      }
-      tmpvalue = search.get("Airy_disk_max_extent");
-      if (tmpvalue != null) {
-        settings_form.Airy_disk_max_extent.value = tmpvalue;
-      }
-      tmpvalue = search.get("red_filter_long_limit");
-      if (tmpvalue != null) {
-        settings_form.red_filter_long_limit.value = tmpvalue;
-      }
-      tmpvalue = search.get("red_filter_short_limit");
-      if (tmpvalue != null) {
-        settings_form.red_filter_short_limit.value = tmpvalue;
-      }
-      tmpvalue = search.get("green_filter_long_limit");
-      if (tmpvalue != null) {
-        settings_form.green_filter_long_limit.value = tmpvalue;
-      }
-      tmpvalue = search.get("green_filter_short_limit");
-      if (tmpvalue != null) {
-        settings_form.green_filter_short_limit.value = tmpvalue;
-      }
-      tmpvalue = search.get("blue_filter_long_limit");
-      if (tmpvalue != null) {
-        settings_form.blue_filter_long_limit.value = tmpvalue;
-      }
-      tmpvalue = search.get("blue_filter_short_limit");
-      if (tmpvalue != null) {
-        settings_form.blue_filter_short_limit.value = tmpvalue;
-      }
-      tmpvalue = search.get("camera_icrs_x");
-      if (tmpvalue != null) {
-        settings_form.camera_icrs_x.value = tmpvalue;
-      }
-      tmpvalue = search.get("camera_icrs_y");
-      if (tmpvalue != null) {
-        settings_form.camera_icrs_y.value = tmpvalue;
-      }
-      tmpvalue = search.get("camera_icrs_z");
-      if (tmpvalue != null) {
-        settings_form.camera_icrs_z.value = tmpvalue;
-      }
-      tmpvalue = search.get("camera_icrs_ra");
-      if (tmpvalue != null) {
-        settings_form.camera_icrs_ra.value = tmpvalue;
-      }
-      tmpvalue = search.get("camera_icrs_dec");
-      if (tmpvalue != null) {
-        settings_form.camera_icrs_dec.value = tmpvalue;
-      }
-      tmpvalue = search.get("camera_icrs_r");
-      if (tmpvalue != null) {
-        settings_form.camera_icrs_r.value = tmpvalue;
-      }
-      tmpvalue = search.get("target_icrs_x");
-      if (tmpvalue != null) {
-        settings_form.target_icrs_x.value = tmpvalue;
-      }
-      tmpvalue = search.get("target_icrs_y");
-      if (tmpvalue != null) {
-        settings_form.target_icrs_y.value = tmpvalue;
-      }
-      tmpvalue = search.get("target_icrs_z");
-      if (tmpvalue != null) {
-        settings_form.target_icrs_z.value = tmpvalue;
-      }
-      tmpvalue = search.get("target_icrs_ra");
-      if (tmpvalue != null) {
-        settings_form.target_icrs_ra.value = tmpvalue;
-      }
-      tmpvalue = search.get("target_icrs_dec");
-      if (tmpvalue != null) {
-        settings_form.target_icrs_dec.value = tmpvalue;
-      }
-      tmpvalue = search.get("target_icrs_r");
-      if (tmpvalue != null) {
-        settings_form.target_icrs_r.value = tmpvalue;
-      }
-      tmpvalue = search.get("camera_rotation");
-      if (tmpvalue != null) {
-        settings_form.camera_rotation.value = tmpvalue;
-      }
-      tmpvalue = search.get("camera_pan");
-      if (tmpvalue != null) {
-        settings_form.camera_pan.value = tmpvalue;
-      }
-      tmpvalue = search.get("camera_tilt");
-      if (tmpvalue != null) {
-        settings_form.camera_tilt.value = tmpvalue;
-      }
-    };
-    function updateImage() {
-      if (rendering_style.firstChild == error_text) {
-        document.getElementById("rendering_style").removeChild(error_text);
-      }
-      document.getElementById("rendering_style").prepend(loading_text);
-      let blank = "";
-      document.getElementById("render_image").src = blank;
-      let src = `${settings_form.rendering_server.value}?\
+    </style>
+    <title>bsrender</title>
+    <script>
+      var loading_text = document.createTextNode("Rendering image, please wait...");
+      var error_text = document.createTextNode("Error: rendering failed");
+      function loadSettingsFromURL() {
+        let url = new URL(window.location.href);
+        let search = url.searchParams;
+        let tmpvalue = search.get("rendering_server");
+        if (tmpvalue != null) {
+          settings_form.rendering_server.value = tmpvalue;
+        }
+        tmpvalue = search.get("enable_Gaia");
+        if (tmpvalue != null) {
+          settings_form.enable_Gaia.value = tmpvalue;
+        }
+        tmpvalue = search.get("Gaia_min_parallax_quality");
+        if (tmpvalue != null) {
+          settings_form.Gaia_min_parallax_quality.value = tmpvalue;
+        }
+        tmpvalue = search.get("enable_external");
+        if (tmpvalue != null) {
+          settings_form.enable_external.value = tmpvalue;
+        }
+        tmpvalue = search.get("render_distance_min");
+        if (tmpvalue != null) {
+          settings_form.render_distance_min.value = tmpvalue;
+        }
+        tmpvalue = search.get("render_distance_max");
+        if (tmpvalue != null) {
+          settings_form.render_distance_max.value = tmpvalue;
+        }
+        tmpvalue = search.get("render_distance_selector");
+        if (tmpvalue != null) {
+          settings_form.render_distance_selector.value = tmpvalue;
+        }
+        tmpvalue = search.get("star_color_min");
+        if (tmpvalue != null) {
+          settings_form.star_color_min.value = tmpvalue;
+        }
+        tmpvalue = search.get("star_color_max");
+        if (tmpvalue != null) {
+          settings_form.star_color_max.value = tmpvalue;
+        }
+        tmpvalue = search.get("draw_crosshairs");
+        if (tmpvalue == "yes") {
+          settings_form.draw_crosshairs.value = tmpvalue;
+        }
+        tmpvalue = search.get("draw_grid_lines");
+        if (tmpvalue != null) {
+          settings_form.draw_grid_lines.value = tmpvalue;
+        }
+        tmpvalue = search.get("Gaussian_blur_radius");
+        if (tmpvalue != null) {
+          settings_form.Gaussian_blur_radius.value = tmpvalue;
+        }
+        tmpvalue = search.get("output_scaling_factor");
+        if (tmpvalue != null) {
+          settings_form.output_scaling_factor.value = tmpvalue;
+        }
+        tmpvalue = search.get("sRGB_gamma");
+        if (tmpvalue != null) {
+          settings_form.sRGB_gamma.value = tmpvalue;
+        }
+        tmpvalue = search.get("bits_per_color");
+        if (tmpvalue != null) {
+          settings_form.bits_per_color.value = tmpvalue;
+        }
+        tmpvalue = search.get("camera_res_x");
+        if (tmpvalue != null) {
+          settings_form.camera_res_x.value = tmpvalue;
+        }
+        tmpvalue = search.get("camera_res_y");
+        if (tmpvalue != null) {
+          settings_form.camera_res_y.value = tmpvalue;
+        }
+        tmpvalue = search.get("camera_fov");
+        if (tmpvalue != null) {
+          settings_form.camera_fov.value = tmpvalue;
+        }
+        tmpvalue = search.get("camera_pixel_limit_mag");
+        if (tmpvalue != null) {
+          settings_form.camera_pixel_limit_mag.value = tmpvalue;
+        }
+        tmpvalue = search.get("camera_pixel_limit_mode");
+        if (tmpvalue != null) {
+          settings_form.camera_pixel_limit_mode.value = tmpvalue;
+        }
+        tmpvalue = search.get("camera_wb_enable");
+        if (tmpvalue != null) {
+          settings_form.camera_wb_enable.value = tmpvalue;
+        }
+        tmpvalue = search.get("camera_wb_temp");
+        if (tmpvalue != null) {
+          settings_form.camera_wb_temp.value = tmpvalue;
+        }
+        tmpvalue = search.get("camera_color_saturation");
+        if (tmpvalue != null) {
+          settings_form.camera_color_saturation.value = tmpvalue;
+        }
+        tmpvalue = search.get("camera_gamma");
+        if (tmpvalue != null) {
+          settings_form.camera_gamma.value = tmpvalue;
+        }
+        tmpvalue = search.get("camera_projection");
+        if (tmpvalue != null) {
+          settings_form.camera_projection.value = tmpvalue;
+        }
+        tmpvalue = search.get("spherical_orientation");
+        if (tmpvalue != null) {
+          settings_form.spherical_orientation.value = tmpvalue;
+        }
+        tmpvalue = search.get("Airy_disk");
+        if (tmpvalue != null) {
+          settings_form.Airy_disk.value = tmpvalue;
+        }
+        tmpvalue = search.get("Airy_disk_first_null");
+        if (tmpvalue != null) {
+          settings_form.Airy_disk_first_null.value = tmpvalue;
+        }
+        tmpvalue = search.get("Airy_disk_max_extent");
+        if (tmpvalue != null) {
+          settings_form.Airy_disk_max_extent.value = tmpvalue;
+        }
+        tmpvalue = search.get("red_filter_preset");
+        if (tmpvalue != null) {
+          settings_form.red_filter_preset.value = tmpvalue;
+        }
+        tmpvalue = search.get("red_filter_long_limit");
+        if (tmpvalue != null) {
+          settings_form.red_filter_long_limit.value = tmpvalue;
+        }
+        tmpvalue = search.get("red_filter_short_limit");
+        if (tmpvalue != null) {
+          settings_form.red_filter_short_limit.value = tmpvalue;
+        }
+        tmpvalue = search.get("green_filter_preset");
+        if (tmpvalue != null) {
+          settings_form.green_filter_preset.value = tmpvalue;
+        }
+        tmpvalue = search.get("green_filter_long_limit");
+        if (tmpvalue != null) {
+          settings_form.green_filter_long_limit.value = tmpvalue;
+        }
+        tmpvalue = search.get("green_filter_short_limit");
+        if (tmpvalue != null) {
+          settings_form.green_filter_short_limit.value = tmpvalue;
+        }
+        tmpvalue = search.get("blue_filter_preset");
+        if (tmpvalue != null) {
+          settings_form.blue_filter_preset.value = tmpvalue;
+        }
+        tmpvalue = search.get("blue_filter_long_limit");
+        if (tmpvalue != null) {
+          settings_form.blue_filter_long_limit.value = tmpvalue;
+        }
+        tmpvalue = search.get("blue_filter_short_limit");
+        if (tmpvalue != null) {
+          settings_form.blue_filter_short_limit.value = tmpvalue;
+        }
+        tmpvalue = search.get("camera_icrs_preset");
+        if (tmpvalue != null) {
+          navigation_form.camera_icrs_preset.value = tmpvalue;
+        }
+        tmpvalue = search.get("camera_icrs_ra");
+        if (tmpvalue != null) {
+          navigation_form.camera_icrs_ra.value = tmpvalue;
+        }
+        tmpvalue = search.get("camera_icrs_dec");
+        if (tmpvalue != null) {
+          navigation_form.camera_icrs_dec.value = tmpvalue;
+        }
+        tmpvalue = search.get("camera_icrs_r");
+        if (tmpvalue != null) {
+          navigation_form.camera_icrs_r.value = tmpvalue;
+        }
+        tmpvalue = search.get("target_icrs_preset");
+        if (tmpvalue != null) {
+          navigation_form.target_icrs_preset.value = tmpvalue;
+        }
+        tmpvalue = search.get("target_icrs_ra");
+        if (tmpvalue != null) {
+          navigation_form.target_icrs_ra.value = tmpvalue;
+        }
+        tmpvalue = search.get("target_icrs_dec");
+        if (tmpvalue != null) {
+          navigation_form.target_icrs_dec.value = tmpvalue;
+        }
+        tmpvalue = search.get("target_icrs_r");
+        if (tmpvalue != null) {
+          navigation_form.target_icrs_r.value = tmpvalue;
+        }
+        tmpvalue = search.get("camera_rotation");
+        if (tmpvalue != null) {
+          navigation_form.camera_rotation.value = tmpvalue;
+        }
+        tmpvalue = search.get("camera_pan");
+        if (tmpvalue != null) {
+          navigation_form.camera_pan.value = tmpvalue;
+        }
+        tmpvalue = search.get("camera_tilt");
+        if (tmpvalue != null) {
+          navigation_form.camera_tilt.value = tmpvalue;
+        }
+        pathname = window.location.pathname;
+        window.history.replaceState({}, document.title, window.location.pathname);
+      };
+      function updateImage() {
+        if (rendering_style.firstChild == error_text) {
+          document.getElementById("rendering_style").removeChild(error_text);
+        }
+        document.getElementById("rendering_style").prepend(loading_text);
+        let blank = "";
+        document.getElementById("render_image").src = blank;
+        let src = `${settings_form.rendering_server.value}?\
 enable_Gaia=${settings_form.enable_Gaia.value}&\
 Gaia_min_parallax_quality=${settings_form.Gaia_min_parallax_quality.value}&\
 enable_external=${settings_form.enable_external.value}&\
@@ -299,489 +310,690 @@ green_filter_long_limit=${settings_form.green_filter_long_limit.value}&\
 green_filter_short_limit=${settings_form.green_filter_short_limit.value}&\
 blue_filter_long_limit=${settings_form.blue_filter_long_limit.value}&\
 blue_filter_short_limit=${settings_form.blue_filter_short_limit.value}&\
-camera_icrs_x=${settings_form.camera_icrs_x.value}&\
-camera_icrs_y=${settings_form.camera_icrs_y.value}&\
-camera_icrs_z=${settings_form.camera_icrs_z.value}&\
-camera_icrs_ra=${settings_form.camera_icrs_ra.value}&\
-camera_icrs_dec=${settings_form.camera_icrs_dec.value}&\
-camera_icrs_r=${settings_form.camera_icrs_r.value}&\
-target_icrs_x=${settings_form.target_icrs_x.value}&\
-target_icrs_y=${settings_form.target_icrs_y.value}&\
-target_icrs_z=${settings_form.target_icrs_z.value}&\
-target_icrs_ra=${settings_form.target_icrs_ra.value}&\
-target_icrs_dec=${settings_form.target_icrs_dec.value}&\
-target_icrs_r=${settings_form.target_icrs_r.value}&\
-camera_rotation=${settings_form.camera_rotation.value}&\
-camera_pan=${settings_form.camera_pan.value}&\
-camera_tilt=${settings_form.camera_tilt.value}`;
-      document.getElementById("render_image").src = src;
-      document.getElementById("render_image").onload = function(remove_loading_text) {
-        document.getElementById("rendering_style").removeChild(loading_text);
+camera_icrs_ra=${navigation_form.camera_icrs_ra.value}&\
+camera_icrs_dec=${navigation_form.camera_icrs_dec.value}&\
+camera_icrs_r=${navigation_form.camera_icrs_r.value}&\
+target_icrs_ra=${navigation_form.target_icrs_ra.value}&\
+target_icrs_dec=${navigation_form.target_icrs_dec.value}&\
+target_icrs_r=${navigation_form.target_icrs_r.value}&\
+camera_rotation=${navigation_form.camera_rotation.value}&\
+camera_pan=${navigation_form.camera_pan.value}&\
+camera_tilt=${navigation_form.camera_tilt.value}`;
+        document.getElementById("render_image").src = src;
+        document.getElementById("render_image").onload = function(remove_loading_text) {
+          document.getElementById("rendering_style").removeChild(loading_text);
+        };
+        document.getElementById("render_image").onerror = function(display_error_text) {
+          document.getElementById("rendering_style").removeChild(loading_text);
+          document.getElementById("rendering_style").prepend(error_text);
+        };
+        generate_settings_url();
       };
-      document.getElementById("render_image").onerror = function(display_error_text) {
-        document.getElementById("rendering_style").removeChild(loading_text);
-        document.getElementById("rendering_style").prepend(error_text);
+      function generate_settings_url() {
+        current_href = window.location.href;
+        let settings_url = `${current_href}?\
+rendering_server=${settings_form.rendering_server.value}&\
+enable_Gaia=${settings_form.enable_Gaia.value}&\
+Gaia_min_parallax_quality=${settings_form.Gaia_min_parallax_quality.value}&\
+enable_external=${settings_form.enable_external.value}&\
+render_distance_min=${settings_form.render_distance_min.value}&\
+render_distance_max=${settings_form.render_distance_max.value}&\
+render_distance_selector=${settings_form.render_distance_selector.value}&\
+star_color_min=${settings_form.star_color_min.value}&\
+star_color_max=${settings_form.star_color_max.value}&\
+draw_crosshairs=${settings_form.draw_crosshairs.value}&\
+draw_grid_lines=${settings_form.draw_grid_lines.value}&\
+Gaussian_blur_radius=${settings_form.Gaussian_blur_radius.value}&\
+output_scaling_factor=${settings_form.output_scaling_factor.value}&\
+sRGB_gamma=${settings_form.sRGB_gamma.value}&\
+bits_per_color=${settings_form.bits_per_color.value}&\
+camera_res_x=${settings_form.camera_res_x.value}&\
+camera_res_y=${settings_form.camera_res_y.value}&\
+camera_fov=${settings_form.camera_fov.value}&\
+camera_pixel_limit_mag=${settings_form.camera_pixel_limit_mag.value}&\
+camera_pixel_limit_mode=${settings_form.camera_pixel_limit_mode.value}&\
+camera_wb_enable=${settings_form.camera_wb_enable.value}&\
+camera_wb_temp=${settings_form.camera_wb_temp.value}&\
+camera_color_saturation=${settings_form.camera_color_saturation.value}&\
+camera_gamma=${settings_form.camera_gamma.value}&\
+camera_projection=${settings_form.camera_projection.value}&\
+spherical_orientation=${settings_form.spherical_orientation.value}&\
+Airy_disk=${settings_form.Airy_disk.value}&\
+Airy_disk_first_null=${settings_form.Airy_disk_first_null.value}&\
+Airy_disk_max_extent=${settings_form.Airy_disk_max_extent.value}&\
+red_filter_preset=${settings_form.red_filter_preset.value}&\
+red_filter_long_limit=${settings_form.red_filter_long_limit.value}&\
+red_filter_short_limit=${settings_form.red_filter_short_limit.value}&\
+green_filter_preset=${settings_form.green_filter_preset.value}&\
+green_filter_long_limit=${settings_form.green_filter_long_limit.value}&\
+green_filter_short_limit=${settings_form.green_filter_short_limit.value}&\
+blue_filter_preset=${settings_form.blue_filter_preset.value}&\
+blue_filter_long_limit=${settings_form.blue_filter_long_limit.value}&\
+blue_filter_short_limit=${settings_form.blue_filter_short_limit.value}&\
+camera_icrs_preset=${navigation_form.camera_icrs_preset.value}&\
+camera_icrs_ra=${navigation_form.camera_icrs_ra.value}&\
+camera_icrs_dec=${navigation_form.camera_icrs_dec.value}&\
+camera_icrs_r=${navigation_form.camera_icrs_r.value}&\
+target_icrs_preset=${navigation_form.target_icrs_preset.value}&\
+target_icrs_ra=${navigation_form.target_icrs_ra.value}&\
+target_icrs_dec=${navigation_form.target_icrs_dec.value}&\
+target_icrs_r=${navigation_form.target_icrs_r.value}&\
+camera_rotation=${navigation_form.camera_rotation.value}&\
+camera_pan=${navigation_form.camera_pan.value}&\
+camera_tilt=${navigation_form.camera_tilt.value}`;
+        settings_form.settings_url.value = settings_url;
       };
-    };
-    function set_red_bandpass_user() {
-      settings_form.red_bandpass_selector.value="user";
-    };
-    function set_green_bandpass_user() {
-      settings_form.green_bandpass_selector.value="user";
-    };
-    function set_blue_bandpass_user() {
-      settings_form.blue_bandpass_selector.value="user";
-    };
-    function red_bandpass_select() {
-      if (settings_form.red_bandpass_selector.value == "default") {
-        settings_form.red_filter_long_limit.value="710.0";
-        settings_form.red_filter_short_limit.value="590.0";
-      } else if (settings_form.red_bandpass_selector.value == "ACS-WFC-F435W") {
-        settings_form.red_filter_long_limit.value="480.0";
-        settings_form.red_filter_short_limit.value="385.0";
-      } else if (settings_form.red_bandpass_selector.value == "ACS-WFC-F475W") {
-        settings_form.red_filter_long_limit.value="545.0";
-        settings_form.red_filter_short_limit.value="405.0";
-      } else if (settings_form.red_bandpass_selector.value == "ACS-WFC-F555W") {
-        settings_form.red_filter_long_limit.value="600.0";
-        settings_form.red_filter_short_limit.value="475.0";
-      } else if (settings_form.red_bandpass_selector.value == "ACS-WFC-F606W") {
-        settings_form.red_filter_long_limit.value="710.0";
-        settings_form.red_filter_short_limit.value="475.0";
-      } else if (settings_form.red_bandpass_selector.value == "ACS-WFC-F625W") {
-        settings_form.red_filter_long_limit.value="705.0";
-        settings_form.red_filter_short_limit.value="560.0";
-      } else if (settings_form.red_bandpass_selector.value == "ACS-WFC-F775W") {
-        settings_form.red_filter_long_limit.value="850.0";
-        settings_form.red_filter_short_limit.value="700.0";
-      } else if (settings_form.red_bandpass_selector.value == "ACS-WFC-F814W") {
-        settings_form.red_filter_long_limit.value="890.0";
-        settings_form.red_filter_short_limit.value="705.0";
-      } else if (settings_form.red_bandpass_selector.value == "WFC3-UVIS-F336W") {
-        settings_form.red_filter_long_limit.value="365.0";
-        settings_form.red_filter_short_limit.value="307.0";
-      } else if (settings_form.red_bandpass_selector.value == "WFC3-UVIS-F390W") {
-        settings_form.red_filter_long_limit.value="400.0";
-        settings_form.red_filter_short_limit.value="391.0";
-      } else if (settings_form.red_bandpass_selector.value == "WFC3-UVIS-F438W") {
-        settings_form.red_filter_long_limit.value="465.0";
-        settings_form.red_filter_short_limit.value="395.0";
-      } else if (settings_form.red_bandpass_selector.value == "WFC3-UVIS-F475W") {
-        settings_form.red_filter_long_limit.value="600.0";
-        settings_form.red_filter_short_limit.value="375.0";
-      } else if (settings_form.red_bandpass_selector.value == "WFC3-UVIS-F555W") {
-        settings_form.red_filter_long_limit.value="600.0";
-        settings_form.red_filter_short_limit.value="445.0";
-      } else if (settings_form.red_bandpass_selector.value == "WFC3-UVIS-F606W") {
-        settings_form.red_filter_long_limit.value="710.0";
-        settings_form.red_filter_short_limit.value="475.0";
-      } else if (settings_form.red_bandpass_selector.value == "WFC3-UVIS-F625W") {
-        settings_form.red_filter_long_limit.value="705.0";
-        settings_form.red_filter_short_limit.value="550.0";
-      } else if (settings_form.red_bandpass_selector.value == "WFC3-UVIS-F775W") {
-        settings_form.red_filter_long_limit.value="850.0";
-        settings_form.red_filter_short_limit.value="695.0";
-      } else if (settings_form.red_bandpass_selector.value == "WFC3-UVIS-F814W") {
-        settings_form.red_filter_long_limit.value="870.0";
-        settings_form.red_filter_short_limit.value="705.0";
+      function set_red_filter_preset_user() {
+        settings_form.red_filter_preset.value="User";
+      };
+      function set_green_filter_preset_user() {
+        settings_form.green_filter_preset.value="User";
+      };
+      function set_blue_filter_preset_user() {
+        settings_form.blue_filter_preset.value="User";
+      };
+      function red_filter_preset_select() {
+        if (settings_form.red_filter_preset.value == "Typical-LRGB-Blue") {
+          settings_form.red_filter_long_limit.value="495.0";
+          settings_form.red_filter_short_limit.value="405.0";
+        } else if (settings_form.red_filter_preset.value == "Typical-LRGB-Green") {
+          settings_form.red_filter_long_limit.value="590.0";
+          settings_form.red_filter_short_limit.value="495.0";
+        } else if (settings_form.red_filter_preset.value == "Typical-LRGB-Red") {
+          settings_form.red_filter_long_limit.value="710.0";
+          settings_form.red_filter_short_limit.value="590.0";
+        } else if (settings_form.red_filter_preset.value == "ACS-WFC-F435W") {
+          settings_form.red_filter_long_limit.value="480.0";
+          settings_form.red_filter_short_limit.value="385.0";
+        } else if (settings_form.red_filter_preset.value == "ACS-WFC-F475W") {
+          settings_form.red_filter_long_limit.value="545.0";
+          settings_form.red_filter_short_limit.value="405.0";
+        } else if (settings_form.red_filter_preset.value == "ACS-WFC-F555W") {
+          settings_form.red_filter_long_limit.value="600.0";
+          settings_form.red_filter_short_limit.value="475.0";
+        } else if (settings_form.red_filter_preset.value == "ACS-WFC-F606W") {
+          settings_form.red_filter_long_limit.value="710.0";
+          settings_form.red_filter_short_limit.value="475.0";
+        } else if (settings_form.red_filter_preset.value == "ACS-WFC-F625W") {
+          settings_form.red_filter_long_limit.value="705.0";
+          settings_form.red_filter_short_limit.value="560.0";
+        } else if (settings_form.red_filter_preset.value == "ACS-WFC-F775W") {
+          settings_form.red_filter_long_limit.value="850.0";
+          settings_form.red_filter_short_limit.value="700.0";
+        } else if (settings_form.red_filter_preset.value == "ACS-WFC-F814W") {
+          settings_form.red_filter_long_limit.value="890.0";
+          settings_form.red_filter_short_limit.value="705.0";
+        } else if (settings_form.red_filter_preset.value == "WFC3-UVIS-F336W") {
+          settings_form.red_filter_long_limit.value="365.0";
+          settings_form.red_filter_short_limit.value="307.0";
+        } else if (settings_form.red_filter_preset.value == "WFC3-UVIS-F390W") {
+          settings_form.red_filter_long_limit.value="400.0";
+          settings_form.red_filter_short_limit.value="391.0";
+        } else if (settings_form.red_filter_preset.value == "WFC3-UVIS-F438W") {
+          settings_form.red_filter_long_limit.value="465.0";
+          settings_form.red_filter_short_limit.value="395.0";
+        } else if (settings_form.red_filter_preset.value == "WFC3-UVIS-F475W") {
+          settings_form.red_filter_long_limit.value="600.0";
+          settings_form.red_filter_short_limit.value="375.0";
+        } else if (settings_form.red_filter_preset.value == "WFC3-UVIS-F555W") {
+          settings_form.red_filter_long_limit.value="600.0";
+          settings_form.red_filter_short_limit.value="445.0";
+        } else if (settings_form.red_filter_preset.value == "WFC3-UVIS-F606W") {
+          settings_form.red_filter_long_limit.value="710.0";
+          settings_form.red_filter_short_limit.value="475.0";
+        } else if (settings_form.red_filter_preset.value == "WFC3-UVIS-F625W") {
+          settings_form.red_filter_long_limit.value="705.0";
+          settings_form.red_filter_short_limit.value="550.0";
+        } else if (settings_form.red_filter_preset.value == "WFC3-UVIS-F775W") {
+          settings_form.red_filter_long_limit.value="850.0";
+          settings_form.red_filter_short_limit.value="695.0";
+        } else if (settings_form.red_filter_preset.value == "WFC3-UVIS-F814W") {
+          settings_form.red_filter_long_limit.value="870.0";
+          settings_form.red_filter_short_limit.value="705.0";
+        }
+      };
+      function green_filter_preset_select() {
+        if (settings_form.green_filter_preset.value == "Typical-LRGB-Blue") {
+          settings_form.green_filter_long_limit.value="495.0";
+          settings_form.green_filter_short_limit.value="405.0";
+        } else if (settings_form.green_filter_preset.value == "Typical-LRGB-Green") {
+          settings_form.green_filter_long_limit.value="590.0";
+          settings_form.green_filter_short_limit.value="495.0";
+        } else if (settings_form.green_filter_preset.value == "Typical-LRGB-Red") {
+          settings_form.green_filter_long_limit.value="710.0";
+          settings_form.green_filter_short_limit.value="590.0";
+        } else if (settings_form.green_filter_preset.value == "ACS-WFC-F435W") {
+          settings_form.green_filter_long_limit.value="480.0";
+          settings_form.green_filter_short_limit.value="385.0";
+        } else if (settings_form.green_filter_preset.value == "ACS-WFC-F475W") {
+          settings_form.green_filter_long_limit.value="545.0";
+          settings_form.green_filter_short_limit.value="405.0";
+        } else if (settings_form.green_filter_preset.value == "ACS-WFC-F555W") {
+          settings_form.green_filter_long_limit.value="600.0";
+          settings_form.green_filter_short_limit.value="475.0";
+        } else if (settings_form.green_filter_preset.value == "ACS-WFC-F606W") {
+          settings_form.green_filter_long_limit.value="710.0";
+          settings_form.green_filter_short_limit.value="475.0";
+        } else if (settings_form.green_filter_preset.value == "ACS-WFC-F625W") {
+          settings_form.green_filter_long_limit.value="705.0";
+          settings_form.green_filter_short_limit.value="560.0";
+        } else if (settings_form.green_filter_preset.value == "ACS-WFC-F775W") {
+          settings_form.green_filter_long_limit.value="850.0";
+          settings_form.green_filter_short_limit.value="700.0";
+        } else if (settings_form.green_filter_preset.value == "ACS-WFC-F814W") {
+          settings_form.green_filter_long_limit.value="890.0";
+          settings_form.green_filter_short_limit.value="705.0";
+        } else if (settings_form.green_filter_preset.value == "WFC3-UVIS-F336W") {
+          settings_form.green_filter_long_limit.value="365.0";
+          settings_form.green_filter_short_limit.value="307.0";
+        } else if (settings_form.green_filter_preset.value == "WFC3-UVIS-F390W") {
+          settings_form.green_filter_long_limit.value="400.0";
+          settings_form.green_filter_short_limit.value="391.0";
+        } else if (settings_form.green_filter_preset.value == "WFC3-UVIS-F438W") {
+          settings_form.green_filter_long_limit.value="465.0";
+          settings_form.green_filter_short_limit.value="395.0";
+        } else if (settings_form.green_filter_preset.value == "WFC3-UVIS-F475W") {
+          settings_form.green_filter_long_limit.value="600.0";
+          settings_form.green_filter_short_limit.value="375.0";
+        } else if (settings_form.green_filter_preset.value == "WFC3-UVIS-F555W") {
+          settings_form.green_filter_long_limit.value="600.0";
+          settings_form.green_filter_short_limit.value="445.0";
+        } else if (settings_form.green_filter_preset.value == "WFC3-UVIS-F606W") {
+          settings_form.green_filter_long_limit.value="710.0";
+          settings_form.green_filter_short_limit.value="475.0";
+        } else if (settings_form.green_filter_preset.value == "WFC3-UVIS-F625W") {
+          settings_form.green_filter_long_limit.value="705.0";
+          settings_form.green_filter_short_limit.value="550.0";
+        } else if (settings_form.green_filter_preset.value == "WFC3-UVIS-F775W") {
+          settings_form.green_filter_long_limit.value="850.0";
+          settings_form.green_filter_short_limit.value="695.0";
+        } else if (settings_form.green_filter_preset.value == "WFC3-UVIS-F814W") {
+          settings_form.green_filter_long_limit.value="870.0";
+          settings_form.green_filter_short_limit.value="705.0";
+        }
+      };
+      function blue_filter_preset_select() {
+        if (settings_form.blue_filter_preset.value == "Typical-LRGB-Blue") {
+          settings_form.blue_filter_long_limit.value="495.0";
+          settings_form.blue_filter_short_limit.value="405.0";
+        } else if (settings_form.blue_filter_preset.value == "Typical-LRGB-Green") {
+          settings_form.blue_filter_long_limit.value="590.0";
+          settings_form.blue_filter_short_limit.value="495.0";
+        } else if (settings_form.blue_filter_preset.value == "Typical-LRGB-Red") {
+          settings_form.blue_filter_long_limit.value="710.0";
+          settings_form.blue_filter_short_limit.value="590.0";
+        } else if (settings_form.blue_filter_preset.value == "ACS-WFC-F435W") {
+          settings_form.blue_filter_long_limit.value="480.0";
+          settings_form.blue_filter_short_limit.value="385.0";
+        } else if (settings_form.blue_filter_preset.value == "ACS-WFC-F475W") {
+          settings_form.blue_filter_long_limit.value="545.0";
+          settings_form.blue_filter_short_limit.value="405.0";
+        } else if (settings_form.blue_filter_preset.value == "ACS-WFC-F555W") {
+          settings_form.blue_filter_long_limit.value="600.0";
+          settings_form.blue_filter_short_limit.value="475.0";
+        } else if (settings_form.blue_filter_preset.value == "ACS-WFC-F606W") {
+          settings_form.blue_filter_long_limit.value="710.0";
+          settings_form.blue_filter_short_limit.value="475.0";
+        } else if (settings_form.blue_filter_preset.value == "ACS-WFC-F625W") {
+          settings_form.blue_filter_long_limit.value="705.0";
+          settings_form.blue_filter_short_limit.value="560.0";
+        } else if (settings_form.blue_filter_preset.value == "ACS-WFC-F775W") {
+          settings_form.blue_filter_long_limit.value="850.0";
+          settings_form.blue_filter_short_limit.value="700.0";
+        } else if (settings_form.blue_filter_preset.value == "ACS-WFC-F814W") {
+          settings_form.blue_filter_long_limit.value="890.0";
+          settings_form.blue_filter_short_limit.value="705.0";
+        } else if (settings_form.blue_filter_preset.value == "WFC3-UVIS-F336W") {
+          settings_form.blue_filter_long_limit.value="365.0";
+          settings_form.blue_filter_short_limit.value="307.0";
+        } else if (settings_form.blue_filter_preset.value == "WFC3-UVIS-F390W") {
+          settings_form.blue_filter_long_limit.value="400.0";
+          settings_form.blue_filter_short_limit.value="391.0";
+        } else if (settings_form.blue_filter_preset.value == "WFC3-UVIS-F438W") {
+          settings_form.blue_filter_long_limit.value="465.0";
+          settings_form.blue_filter_short_limit.value="395.0";
+        } else if (settings_form.blue_filter_preset.value == "WFC3-UVIS-F475W") {
+          settings_form.blue_filter_long_limit.value="600.0";
+          settings_form.blue_filter_short_limit.value="375.0";
+        } else if (settings_form.blue_filter_preset.value == "WFC3-UVIS-F555W") {
+          settings_form.blue_filter_long_limit.value="600.0";
+          settings_form.blue_filter_short_limit.value="445.0";
+        } else if (settings_form.blue_filter_preset.value == "WFC3-UVIS-F606W") {
+          settings_form.blue_filter_long_limit.value="710.0";
+          settings_form.blue_filter_short_limit.value="475.0";
+        } else if (settings_form.blue_filter_preset.value == "WFC3-UVIS-F625W") {
+          settings_form.blue_filter_long_limit.value="705.0";
+          settings_form.blue_filter_short_limit.value="550.0";
+        } else if (settings_form.blue_filter_preset.value == "WFC3-UVIS-F775W") {
+          settings_form.blue_filter_long_limit.value="850.0";
+          settings_form.blue_filter_short_limit.value="695.0";
+        } else if (settings_form.blue_filter_preset.value == "WFC3-UVIS-F814W") {
+          settings_form.blue_filter_long_limit.value="870.0";
+          settings_form.blue_filter_short_limit.value="705.0";
+        }
+      };
+      function set_camera_icrs_preset_user() {
+        navigation_form.camera_icrs_preset.value="User";
+      };
+      function set_target_icrs_preset_user() {
+        navigation_form.target_icrs_preset.value="User";
+      };
+      function camera_icrs_preset_select() {
+        if (navigation_form.camera_icrs_preset.value == "Sun") {
+          navigation_form.camera_icrs_ra.value="0.0";
+          navigation_form.camera_icrs_dec.value="0.0";
+          navigation_form.camera_icrs_r.value="0.0";
+        } else if (navigation_form.camera_icrs_preset.value == "Galactic Center") {
+          navigation_form.camera_icrs_ra.value="266.4168371";
+          navigation_form.camera_icrs_dec.value="-29.0078106";
+          navigation_form.camera_icrs_r.value="8178.0";
+          navigation_form.camera_rotation.value="0.0";
+        } else if (navigation_form.camera_icrs_preset.value == "Galactic Anticenter") {
+          navigation_form.camera_icrs_ra.value="86.4";
+          navigation_form.camera_icrs_dec.value="28.94";
+          navigation_form.camera_icrs_r.value="1.0E5";
+          navigation_form.camera_rotation.value="0.0";
+        } else if (navigation_form.camera_icrs_preset.value == "Galactic North Pole") {
+          navigation_form.camera_icrs_ra.value="192.85";
+          navigation_form.camera_icrs_dec.value="27.13";
+          navigation_form.camera_icrs_r.value="1.0E5";
+          navigation_form.camera_rotation.value="0.0";
+        } else if (navigation_form.camera_icrs_preset.value == "Galactic South Pole") {
+          navigation_form.camera_icrs_ra.value="12.85";
+          navigation_form.camera_icrs_dec.value="-27.13";
+          navigation_form.camera_icrs_r.value="1.0E5";
+          navigation_form.camera_rotation.value="0.0";
+        } else if (navigation_form.camera_icrs_preset.value == "LMC") {
+          navigation_form.camera_icrs_ra.value="80.89375";
+          navigation_form.camera_icrs_dec.value="-69.756111";
+          navigation_form.camera_icrs_r.value="50000.0";
+          navigation_form.camera_rotation.value="0.0";
+        } else if (navigation_form.camera_icrs_preset.value == "SMC") {
+          navigation_form.camera_icrs_ra.value="13.1866667";
+          navigation_form.camera_icrs_dec.value="-72.82861111";
+          navigation_form.camera_icrs_r.value="50000.0";
+          navigation_form.camera_rotation.value="0.0";
+        }
+      };
+      function target_icrs_preset_select() {
+        if (navigation_form.target_icrs_preset.value == "Sun") {
+          navigation_form.target_icrs_ra.value="0.0";
+          navigation_form.target_icrs_dec.value="0.0";
+          navigation_form.target_icrs_r.value="0.0";
+          navigation_form.camera_rotation.value="0.0";
+        } else if (navigation_form.target_icrs_preset.value == "Galactic Center") {
+          navigation_form.target_icrs_ra.value="266.4168371";
+          navigation_form.target_icrs_dec.value="-29.0078106";
+          navigation_form.target_icrs_r.value="8178.0";
+          navigation_form.camera_rotation.value="-58.6";
+        } else if (navigation_form.target_icrs_preset.value == "Galactic Anticenter") {
+          navigation_form.target_icrs_ra.value="86.4";
+          navigation_form.target_icrs_dec.value="28.94";
+          navigation_form.target_icrs_r.value="1.0E5";
+          navigation_form.camera_rotation.value="58.6";
+        } else if (navigation_form.target_icrs_preset.value == "Galactic North Pole") {
+          navigation_form.target_icrs_ra.value="192.85";
+          navigation_form.target_icrs_dec.value="27.13";
+          navigation_form.target_icrs_r.value="1.0E5";
+          navigation_form.camera_rotation.value="0.0";
+        } else if (navigation_form.target_icrs_preset.value == "Galactic South Pole") {
+          navigation_form.target_icrs_ra.value="12.85";
+          navigation_form.target_icrs_dec.value="-27.13";
+          navigation_form.target_icrs_r.value="1.0E5";
+          navigation_form.camera_rotation.value="0.0";
+        } else if (navigation_form.target_icrs_preset.value == "LMC") {
+          navigation_form.target_icrs_ra.value="80.89375";
+          navigation_form.target_icrs_dec.value="-69.756111";
+          navigation_form.target_icrs_r.value="50000.0";
+          navigation_form.camera_rotation.value="0.0";
+        } else if (navigation_form.target_icrs_preset.value == "SMC") {
+          navigation_form.target_icrs_ra.value="13.1866667";
+          navigation_form.target_icrs_dec.value="-72.82861111";
+          navigation_form.target_icrs_r.value="50000.0";
+          navigation_form.camera_rotation.value="0.0";
+        }
+      };
+      function reset_forms() {
+        navigation_form.reset();
+        settings_form.reset(); 
+      };
+      function copy_settings_url_to_clipboard() {
+        copy_text = settings_form.settings_url;
+        copy_text.select();
+        copy_text.setSelectionRange(0, 99999);
+        document.execCommand("copy");
       }
-    };
-    function green_bandpass_select() {
-      if (settings_form.green_bandpass_selector.value == "default") {
-        settings_form.green_filter_long_limit.value="590.0";
-        settings_form.green_filter_short_limit.value="495.0";
-      } else if (settings_form.green_bandpass_selector.value == "ACS-WFC-F435W") {
-        settings_form.green_filter_long_limit.value="480.0";
-        settings_form.green_filter_short_limit.value="385.0";
-      } else if (settings_form.green_bandpass_selector.value == "ACS-WFC-F475W") {
-        settings_form.green_filter_long_limit.value="545.0";
-        settings_form.green_filter_short_limit.value="405.0";
-      } else if (settings_form.green_bandpass_selector.value == "ACS-WFC-F555W") {
-        settings_form.green_filter_long_limit.value="600.0";
-        settings_form.green_filter_short_limit.value="475.0";
-      } else if (settings_form.green_bandpass_selector.value == "ACS-WFC-F606W") {
-        settings_form.green_filter_long_limit.value="710.0";
-        settings_form.green_filter_short_limit.value="475.0";
-      } else if (settings_form.green_bandpass_selector.value == "ACS-WFC-F625W") {
-        settings_form.green_filter_long_limit.value="705.0";
-        settings_form.green_filter_short_limit.value="560.0";
-      } else if (settings_form.green_bandpass_selector.value == "ACS-WFC-F775W") {
-        settings_form.green_filter_long_limit.value="850.0";
-        settings_form.green_filter_short_limit.value="700.0";
-      } else if (settings_form.green_bandpass_selector.value == "ACS-WFC-F814W") {
-        settings_form.green_filter_long_limit.value="890.0";
-        settings_form.green_filter_short_limit.value="705.0";
-      } else if (settings_form.green_bandpass_selector.value == "WFC3-UVIS-F336W") {
-        settings_form.green_filter_long_limit.value="365.0";
-        settings_form.green_filter_short_limit.value="307.0";
-      } else if (settings_form.green_bandpass_selector.value == "WFC3-UVIS-F390W") {
-        settings_form.green_filter_long_limit.value="400.0";
-        settings_form.green_filter_short_limit.value="391.0";
-      } else if (settings_form.green_bandpass_selector.value == "WFC3-UVIS-F438W") {
-        settings_form.green_filter_long_limit.value="465.0";
-        settings_form.green_filter_short_limit.value="395.0";
-      } else if (settings_form.green_bandpass_selector.value == "WFC3-UVIS-F475W") {
-        settings_form.green_filter_long_limit.value="600.0";
-        settings_form.green_filter_short_limit.value="375.0";
-      } else if (settings_form.green_bandpass_selector.value == "WFC3-UVIS-F555W") {
-        settings_form.green_filter_long_limit.value="600.0";
-        settings_form.green_filter_short_limit.value="445.0";
-      } else if (settings_form.green_bandpass_selector.value == "WFC3-UVIS-F606W") {
-        settings_form.green_filter_long_limit.value="710.0";
-        settings_form.green_filter_short_limit.value="475.0";
-      } else if (settings_form.green_bandpass_selector.value == "WFC3-UVIS-F625W") {
-        settings_form.green_filter_long_limit.value="705.0";
-        settings_form.green_filter_short_limit.value="550.0";
-      } else if (settings_form.green_bandpass_selector.value == "WFC3-UVIS-F775W") {
-        settings_form.green_filter_long_limit.value="850.0";
-        settings_form.green_filter_short_limit.value="695.0";
-      } else if (settings_form.green_bandpass_selector.value == "WFC3-UVIS-F814W") {
-        settings_form.green_filter_long_limit.value="870.0";
-        settings_form.green_filter_short_limit.value="705.0";
-      }
-    };
-    function blue_bandpass_select() {
-      if (settings_form.blue_bandpass_selector.value == "default") {
-        settings_form.blue_filter_long_limit.value="495.0";
-        settings_form.blue_filter_short_limit.value="405.0";
-      } else if (settings_form.blue_bandpass_selector.value == "ACS-WFC-F435W") {
-        settings_form.blue_filter_long_limit.value="480.0";
-        settings_form.blue_filter_short_limit.value="385.0";
-      } else if (settings_form.blue_bandpass_selector.value == "ACS-WFC-F475W") {
-        settings_form.blue_filter_long_limit.value="545.0";
-        settings_form.blue_filter_short_limit.value="405.0";
-      } else if (settings_form.blue_bandpass_selector.value == "ACS-WFC-F555W") {
-        settings_form.blue_filter_long_limit.value="600.0";
-        settings_form.blue_filter_short_limit.value="475.0";
-      } else if (settings_form.blue_bandpass_selector.value == "ACS-WFC-F606W") {
-        settings_form.blue_filter_long_limit.value="710.0";
-        settings_form.blue_filter_short_limit.value="475.0";
-      } else if (settings_form.blue_bandpass_selector.value == "ACS-WFC-F625W") {
-        settings_form.blue_filter_long_limit.value="705.0";
-        settings_form.blue_filter_short_limit.value="560.0";
-      } else if (settings_form.blue_bandpass_selector.value == "ACS-WFC-F775W") {
-        settings_form.blue_filter_long_limit.value="850.0";
-        settings_form.blue_filter_short_limit.value="700.0";
-      } else if (settings_form.blue_bandpass_selector.value == "ACS-WFC-F814W") {
-        settings_form.blue_filter_long_limit.value="890.0";
-        settings_form.blue_filter_short_limit.value="705.0";
-      } else if (settings_form.blue_bandpass_selector.value == "WFC3-UVIS-F336W") {
-        settings_form.blue_filter_long_limit.value="365.0";
-        settings_form.blue_filter_short_limit.value="307.0";
-      } else if (settings_form.blue_bandpass_selector.value == "WFC3-UVIS-F390W") {
-        settings_form.blue_filter_long_limit.value="400.0";
-        settings_form.blue_filter_short_limit.value="391.0";
-      } else if (settings_form.blue_bandpass_selector.value == "WFC3-UVIS-F438W") {
-        settings_form.blue_filter_long_limit.value="465.0";
-        settings_form.blue_filter_short_limit.value="395.0";
-      } else if (settings_form.blue_bandpass_selector.value == "WFC3-UVIS-F475W") {
-        settings_form.blue_filter_long_limit.value="600.0";
-        settings_form.blue_filter_short_limit.value="375.0";
-      } else if (settings_form.blue_bandpass_selector.value == "WFC3-UVIS-F555W") {
-        settings_form.blue_filter_long_limit.value="600.0";
-        settings_form.blue_filter_short_limit.value="445.0";
-      } else if (settings_form.blue_bandpass_selector.value == "WFC3-UVIS-F606W") {
-        settings_form.blue_filter_long_limit.value="710.0";
-        settings_form.blue_filter_short_limit.value="475.0";
-      } else if (settings_form.blue_bandpass_selector.value == "WFC3-UVIS-F625W") {
-        settings_form.blue_filter_long_limit.value="705.0";
-        settings_form.blue_filter_short_limit.value="550.0";
-      } else if (settings_form.blue_bandpass_selector.value == "WFC3-UVIS-F775W") {
-        settings_form.blue_filter_long_limit.value="850.0";
-        settings_form.blue_filter_short_limit.value="695.0";
-      } else if (settings_form.blue_bandpass_selector.value == "WFC3-UVIS-F814W") {
-        settings_form.blue_filter_long_limit.value="870.0";
-        settings_form.blue_filter_short_limit.value="705.0";
-      }
-    };
-  </script>
-</head>
-<body>
-  <header>
-    <h2>Sample web interface for <a href="https://github.com/kevinloch/bsrender">bsrender</a> using data from <a href="https://www.cosmos.esa.int/web/gaia/earlydr3">Gaia EDR3</a></h2>
-  </header>
-  <nav id="nav">
-    Easy navigation buttons go here
-  </nav>
-  <main role="main">
-    <div id="box_style">
+    </script>
+  </head>
+  <body>
+    <main role="main">
       <div id="settings_style">
         <form name="settings_form">
-           <div id="button_style">
-          <button type="reset">reset to defaults</button>&nbsp;<button type="button" onClick="updateImage()">Render</button>
-           </div>
-          <p>
-        <fieldset>
-        <legend>General Rendering Options</legend>
-          <p>
-          <label for="rendering_server">Rendering server</label>
-          <input type="text" name="rendering_server" id="rendering_server" size="30" value="http://bsrender.kevinloch.com/r/">
-          <br><label for "enable_Gaia">Show Gaia stars</label>
-          <select name="enable_Gaia" id="enable_Gaia">
-            <option value="yes" selected>yes</option>
-            <option value="no">no</option>
-          </select>
-          <br><label for="Gaia_min_parallax_quality">Gaia min parallax quality</label>
-          <select name="Gaia_min_parallax_quality" id="Gaia_min_parallax_quality">
-            <option value="0">0 [1.47B stars]</option>
-            <option value="1">1 [763M stars]</option>
-            <option value="2">2 [478M stars]</option>
-            <option value="3">3 [320M stars]</option>
-            <option value="5">5 [192M stars]</option>
-            <option value="10" selected>10 [98M stars]</option>
-            <option value="20">20 [49M stars]</option>
-            <option value="30">30 [31M stars]</option>
-            <option value="50">50 [16M stars]</option>
-            <option value="100">100 [5.8M] stars</option>
-          </select>
-          <br><label for "enable_external">Show non-Gaia stars</label>
-          <select name="enable_external" id="enable_external">
-            <option value="no" selected>no</option>
-            <option value="yes">yes</option>
-          </select>
-          <br><label for="render_distance_min">Min render distance (parsec)</label>
-          <input type="text" name="render_distance_min" id="render_distance_min" size="12" value="0.0">
-          <br><label for="render_distance_max">Max render distance (parsec)</label>
-          <input type="text" name="render_distance_max" id="render_distance_max" size="12" value="1.0E99">
-          <br><label for "render_distance_selector">Render distance from</label>
-          <select name="render_distance_selector" id="render_distance_selector">
-            <option value="0" selected>Camera</option>
-            <option value="1">Target</option>
-          </select>
-          <br><label for="star_color_min">Min star temperature (K)</label>
-          <input type="text" name="star_color_min" id="star_color_min" size="12" value="0.0">
-          <br><label for="star_color_max">Max star termperature (K)</label>
-          <input type="text" name="star_color_max" id="star_color_max" size="12" value="1.0E99">
-          <br><label for "draw_crosshairs">Draw crosshairs</label>
-          <select name="draw_crosshairs" id="draw_crosshairs">
-            <option value="no" selected>no</option>
-            <option value="yes">yes</option>
-          </select>
-          <br><label for "draw_grid_lines">Draw grid lines</label>
-          <select name="draw_grid_lines" id="draw_grid_lines">
-            <option value="no" selected>no</option>
-            <option value="yes">yes</option>
-          </select>
-          <br><label for="Gaussian_blur_radius">Gaussian blur radius</label>
-          <input type="text" name="Gaussian_blur_radius" id="Gaussian_blur_radius" size="12" value="0.0">
-          <br><label for="output_scaling_factor">Output scaling factor</label>
-          <input type="text" name="output_scaling_factor" id="output_scaling_factor" size="12" value="1.0">
-          <br><label for "sRGB_gamma">sRGB encoding gamma</label>
-          <select name="sRGB_gamma" id="sRGB_gamma">
-            <option value="yes" selected>on</option>
-            <option value="no">off</option>
-          </select>
-          <br><label for "bits_per_color">PNG bits per color</label>
-          <select name="bits_per_color" id="bits_per_color">
-            <option value="8" selected>8</option>
-            <option value="16">16</option>
-          </select>
-        </fieldset>
-        <fieldset>
-        <legend>Camera Options</legend>
-          <label for "camera_res_x">Horizontal resolution</label>
-          <input type="text" id="camera_res_x" name="camera_res_x" size="12" value="2000">
-          <br><label for "camera_res_y">Vertical resolution</label>
-          <input type="text" id="camera_res_y" name="camera_res_y" size="12" value="1000">
-          <br><label for "camera_fov">Field of view (deg)</label>
-          <input type="text" id="camera_fov" name="camera_fov" size="12" value="360">
-          <br><label for "camera_pixel_limit_mag">Pixel intensity limit (mag)</label>
-          <input type="text" id="camera_pixel_limit_mag" name="camera_pixel_limit_mag" size="12" value="8.0">
-          <br><label for "camera_pixel_limit_mode">Pixel intensity limit mode</label>
-          <select name="camera_pixel_limit_mode" id="camera_pixel_limit_mode">
-            <option value="0" selected>Saturate to white</option>
-            <option value="1">Preserve color</option>
-          </select>
-          <br><label for "camera_wb_enable">Enable white balance</label>
-          <select name="camera_wb_enable" id="camera_wb_enable">
-            <option value="no">no</option>
-            <option value="yes" selected>yes</option>
-          </select>
-          <br><label for "camera_wb_temp">White balance (K)</label>
-          <input type="text" id="camera_wb_temp" name="camera_wb_temp" size="12" value="4300">
-          <br><label for "camera_color_saturation">Color saturation</label>
-          <input type="text" id="camera_color_saturation" name="camera_color_saturation" size="12" value="1.0">
-          <br><label for "camera_gamma">Gamma</label>
-          <input type="text" id="camera_gamma" name="camera_gamma" size="12" value="1.0">
-          <br><label for "camera_projection">Raster projection</label>
-          <select name="camera_projection" id="camera_projection">
-            <option value="0">lat/lon (equirectangular)</option>
-            <option value="1">spherical</option>
-            <option value="2">Hammer</option>
-            <option value="3">Mollewide</option>
-          </select>
-          <br><label for "spherical_orientation">Spherical orientation</label>
-          <select name="spherical_orientation" id="spherical_orientation">
-            <option value="0">forward centered</option>
-            <option value="1">side-by-side</option>
-          </select>
-          <p>
-          <div id="centered"> 
-            <em>Caution: Airy disks render slowly</em>
-          </div>
-          <br><label for "Airy_disk">Enable Airy disks</label>
-          <select name="Airy_disk" id="Airy_disk">
-            <option value="no" selected>no</option>
-            <option value="yes">yes</option>
-          </select>
-          <br><label for "Airy_disk_first_null">Airy disk first null (pixels)</label>
-          <input type="text" id="Airy_disk_first_null" name="Airy_disk_first_null" size="12" value="0.75">
-          <br><label for "Airy_disk_max_extent">Airy disk max extent (pixels)</label>
-          <input type="text" id="Airy_disk_max_extent" name="Airy_disk_max_extent" size="12" value="10">
-        </fieldset>
-        <fieldset>
-        <legend>Camera Bandpass Filter Options</legend>
-          <div id="centered">
-            <em>wavelength in nm</em>
-          </div>
-          <div id="centered">
-          <table style="margin-left:auto;margin-right:auto;">
-          <tr><td>red</td><td><select name="red_bandpass_selector" id="red_bandpass_selector" onclick="red_bandpass_select()">
-                <option value="default" selected>default</option>
-                <option value="user">user</option>
-                <option value="ACS-WFC-F435W">ACS WFC F435W</option>
-                <option value="ACS-WFC-F475W">ACS WFC F475W</option>
-                <option value="ACS-WFC-F555W">ACS WFC F555W</option>
-                <option value="ACS-WFC-F606W">ACS WFC F606W</option>
-                <option value="ACS-WFC-F625W">ACS WFC F625W</option>
-                <option value="ACS-WFC-F775W">ACS WFC F775W</option>
-                <option value="ACS-WFC-F814W">ACS WFC F814W</option>
-                <option value="WFC3-UVIS-F336W">WFC3 UVIS F336W</option>
-                <option value="WFC3-UVIS-F390W">WFC3 UVIS F390W</option>
-                <option value="WFC3-UVIS-F438W">WFC3 UVIS F438W</option>
-                <option value="WFC3-UVIS-F475W">WFC3 UVIS F475W</option>
-                <option value="WFC3-UVIS-F555W">WFC3 UVIS F555W</option>
-                <option value="WFC3-UVIS-F606W">WFC3 UVIS F606W</option>
-                <option value="WFC3-UVIS-F625W">WFC3 UVIS F625W</option>
-                <option value="WFC3-UVIS-F775W">WFC3 UVIS F775W</option>
-                <option value="WFC3-UVIS-F814W">WFC3 UVIS F814W</option>
-              </select></td>
-              <td><input type="text" id="red_filter_long_limit" name="red_filter_long_limit" size="12" value="710.0" onclick="set_red_bandpass_user()"></td>
-              <td>-</td>
-              <td><input type="text" id="red_filter_short_limit" name="red_filter_short_limit" size="12" value="590.0" onclick="set_red_bandpass_user()"></td></tr>
-          <tr><td>green</td><td><select name="green_bandpass_selector" id="green_bandpass_selector" onclick="green_bandpass_select()">
-                <option value="default" selected>default</option>
-                <option value="user">user</option>
-                <option value="ACS-WFC-F435W">ACS WFC F435W</option>
-                <option value="ACS-WFC-F475W">ACS WFC F475W</option>
-                <option value="ACS-WFC-F555W">ACS WFC F555W</option>
-                <option value="ACS-WFC-F606W">ACS WFC F606W</option>
-                <option value="ACS-WFC-F625W">ACS WFC F625W</option>
-                <option value="ACS-WFC-F775W">ACS WFC F775W</option>
-                <option value="ACS-WFC-F814W">ACS WFC F814W</option>
-                <option value="WFC3-UVIS-F336W">WFC3 UVIS F336W</option>
-                <option value="WFC3-UVIS-F390W">WFC3 UVIS F390W</option>
-                <option value="WFC3-UVIS-F438W">WFC3 UVIS F438W</option>
-                <option value="WFC3-UVIS-F475W">WFC3 UVIS F475W</option>
-                <option value="WFC3-UVIS-F555W">WFC3 UVIS F555W</option>
-                <option value="WFC3-UVIS-F606W">WFC3 UVIS F606W</option>
-                <option value="WFC3-UVIS-F625W">WFC3 UVIS F625W</option>
-                <option value="WFC3-UVIS-F775W">WFC3 UVIS F775W</option>
-                <option value="WFC3-UVIS-F814W">WFC3 UVIS F814W</option>
-              </select></td>
-              <td><input type="text" id="green_filter_long_limit" name="green_filter_long_limit" size="12" value="590.0" onclick="set_green_bandpass_user()"></td>
-              <td>-</td>
-              <td><input type="text" id="green_filter_short_limit" name="green_filter_short_limit" size="12" value="495.0" onclick="set_green_bandpass_user()"></td></tr>
-          <tr><td>blue</td><td><select name="blue_bandpass_selector" id="blue_bandpass_selector" onclick="blue_bandpass_select()">
-                <option value="default" selected>default</option>
-                <option value="user">user</option>
-                <option value="ACS-WFC-F435W">ACS WFC F435W</option>
-                <option value="ACS-WFC-F475W">ACS WFC F475W</option>
-                <option value="ACS-WFC-F555W">ACS WFC F555W</option>
-                <option value="ACS-WFC-F606W">ACS WFC F606W</option>
-                <option value="ACS-WFC-F625W">ACS WFC F625W</option>
-                <option value="ACS-WFC-F775W">ACS WFC F775W</option>
-                <option value="ACS-WFC-F814W">ACS WFC F814W</option>
-                <option value="WFC3-UVIS-F336W">WFC3 UVIS F336W</option>
-                <option value="WFC3-UVIS-F390W">WFC3 UVIS F390W</option>
-                <option value="WFC3-UVIS-F438W">WFC3 UVIS F438W</option>
-                <option value="WFC3-UVIS-F475W">WFC3 UVIS F475W</option>
-                <option value="WFC3-UVIS-F555W">WFC3 UVIS F555W</option>
-                <option value="WFC3-UVIS-F606W">WFC3 UVIS F606W</option>
-                <option value="WFC3-UVIS-F625W">WFC3 UVIS F625W</option>
-                <option value="WFC3-UVIS-F775W">WFC3 UVIS F775W</option>
-                <option value="WFC3-UVIS-F814W">WFC3 UVIS F814W</option>
-              </select></td>
-              <td><input type="text" id="blue_filter_long_limit" name="blue_filter_long_limit" size="12" value="495.0" onclick="set_blue_bandpass_user()"></td>
-              <td>-</td>
-              <td><input type="text" id="blue_filter_short_limit" name="blue_filter_short_limit" size="12" value="405.0" onclick="set_blue_bandpass_user()"></td></tr>
-          </table>
-          </div>
-        </fieldset>
-        <fieldset>
-        <legend>Camera Position</legend>
-          <div id="centered"> 
-            <em>ICRS coordinates (parsec, deg)</em>
-          </div>
-          <div id="centered">
-          <table style="margin-left:auto;margin-right:auto;">
-            <tr><td>x</td><td><input type="text" id="camera_icrs_x" name="camera_icrs_x" size="12" value="0.0"></td>
-            <td></td>
-            <td>ra</td><td><input type="text" id="camera_icrs_ra" name="camera_icrs_ra" size="12" value="0.0"></td></tr>
-
-            <tr><td>y</td><td><input type="text" id="camera_icrs_y" name="camera_icrs_y" size="12" value="0.0"></td>
-            <td width="50">or</td>
-            <td>dec</td><td><input type="text" id="camera_icrs_dec" name="camera_icrs_dec" size="12" value="0.0"></td></tr>
-
-            <tr><td>z</td><td><input type="text" id="camera_icrs_z" name="camera_icrs_z" size="12" value="0.0"></td>
-            <td></td>
-            <td>r</td><td><input type="text" id="camera_icrs_r" name="camera_icrs_r" size="12" value="0.0"></td></tr>
-          </table>
-          </div>
-        </fieldset>
-        <fieldset>
-        <legend>Target Position</legend>
-          <div id="centered">
-            <em>ICRS coordinates (parsec, deg)</em>
-          </div>
-          <div id="centered">
-          <table style="margin-left:auto;margin-right:auto;">
-            <tr><td>x</td><td><input type="text" id="target_icrs_x" name="target_icrs_x" size="12" value="0.0"></td>
-            <td></td>
-            <td>ra</td><td><input type="text" id="target_icrs_ra" name="target_icrs_ra" size="12" value="266.4168371"></td></tr>
-  
-            <tr><td>y</td><td><input type="text" id="target_icrs_y" name="target_icrs_y" size="12" value="0.0"></td>
-            <td width="50">or</td>
-            <td>dec</td><td><input type="text" id="target_icrs_dec" name="target_icrs_dec" size="12" value="-29.0078106"></td></tr>
- 
-            <tr><td>z</td><td><input type="text" id="target_icrs_z" name="target_icrs_z" size="12" value="0.0"></td>
-            <td></td>
-            <td>r</td><td><input type="text" id="target_icrs_r" name="target_icrs_r" size="12" value="8178.0"></td></tr>
-          </table>
-          </div>
-        </fieldset>
-        <fieldset>
-        <legend>Camera Rotation/Pan/Tilt</legend>
-          <div id="centered">
-            <em>After aiming at target (deg)</em>
-          </div>
-          <div id="centered">
-          <table style="margin-left:auto;margin-right:auto;">
-          <tr><td>Rotate</td><td><input type="text" id="camera_rotation" name="camera_rotation" size="12" value="-58.6"></td></tr>
-          <tr><td>Pan</td><td><input type="text" id="camera_pan" name="camera_pan" size="12" value="0.0"></td></tr>
-          <tr><td>Tilt</td><td><input type="text" id="camera_tilt" name="camera_tilt" size="12" value="0.0"></td></tr>
-          </table>
-          </div>
-        </fieldset>
-          <p>
-          <div id="button_style">
-          <button type="reset">reset to defaults</button>&nbsp;<button type="button" onClick="updateImage()">Render</button>
-          </div>
+          <fieldset>
+            <legend>About</legend>
+            <div id="centered">
+              Sample web interface for
+              <h2><a href="https://github.com/kevinloch/bsrender">bsrender</a> 0.9.0-dev-44</h2>
+              using data from <a href="https://www.cosmos.esa.int/web/gaia/earlydr3">Gaia EDR3</a>
+              <br>and supplemental bright stars
+            </div>
+            <p>
+            <div id="button_style">
+              <button type="reset" onclick="reset_forms()">Reset to defaults</button>&nbsp;<button type="button" onclick="updateImage()">Render</button>
+            </div>
+            <table style="margin-left:auto;margin-right:auto;">
+              <tr><td>Rendering server</td><td><input type="text" name="rendering_server" id="rendering_server" size="25" value="http://r1.bsrender.io/r/"></td></tr>
+            </table>
+          </fieldset>
+          <fieldset>
+            <legend>Shareable Settings URL</legend>
+            <div id="centered">
+              <em>Always click generate before copying, link may be stale</em>
+            </div>
+            <table style="margin-left:auto;margin-right:auto;">
+            <tr><td>
+              <div id="button_style">
+                <button type="button" onclick="generate_settings_url()">Generate</button></td><td><button type="button" onclick="copy_settings_url_to_clipboard()">Copy</button></td><td><input type="text" id="settings_url" name="setting
+s_url" size=30 value=""></td></tr>
+              </div>
+            </table>
+          </fieldset>
+          <fieldset>
+            <legend>Star Filters</legend>
+            <label for "enable_Gaia">Show Gaia stars</label>
+            <select name="enable_Gaia" id="enable_Gaia">
+              <option value="yes" selected>yes</option>
+              <option value="no">no</option>
+            </select>
+            <br><label for="Gaia_min_parallax_quality">Gaia min parallax quality</label>
+            <select name="Gaia_min_parallax_quality" id="Gaia_min_parallax_quality">
+              <option value="0">0 [1.47B stars]</option>
+              <option value="1">1 [763M stars]</option>
+              <option value="2">2 [478M stars]</option>
+              <option value="3">3 [320M stars]</option>
+              <option value="5">5 [192M stars]</option>
+              <option value="10" selected>10 [98M stars]</option>
+              <option value="20">20 [49M stars]</option>
+              <option value="30">30 [31M stars]</option>
+              <option value="50">50 [16M stars]</option>
+              <option value="100">100 [5.8M] stars</option>
+            </select>
+            <br><br><label for "enable_external">Show non-Gaia stars</label>
+            <select name="enable_external" id="enable_external">
+              <option value="no" selected>no</option>
+              <option value="yes">yes</option>
+            </select>
+            <br><br><label for="render_distance_min">Min render distance (parsec)</label>
+            <input type="text" name="render_distance_min" id="render_distance_min" size="12" value="0.0">
+            <br><label for="render_distance_max">Max render distance (parsec)</label>
+            <input type="text" name="render_distance_max" id="render_distance_max" size="12" value="1.0E99">
+            <br><label for "render_distance_selector">Render distance from</label>
+            <select name="render_distance_selector" id="render_distance_selector">
+              <option value="0" selected>Camera</option>
+              <option value="1">Target</option>
+            </select>
+            <br><br><label for="star_color_min">Min star temperature (K)</label>
+            <input type="text" name="star_color_min" id="star_color_min" size="12" value="0.0">
+            <br><label for="star_color_max">Max star termperature (K)</label>
+            <input type="text" name="star_color_max" id="star_color_max" size="12" value="1.0E99">
+          </fieldset>
+          <fieldset>
+            <legend>Camera Options</legend>
+            <label for "camera_res_x">Horizontal resolution</label>
+            <input type="text" id="camera_res_x" name="camera_res_x" size="12" value="2000">
+            <br><label for "camera_res_y">Vertical resolution</label>
+            <input type="text" id="camera_res_y" name="camera_res_y" size="12" value="1000">
+            <br><label for "camera_fov">Field of view (deg)</label>
+            <input type="text" id="camera_fov" name="camera_fov" size="12" value="360">
+            <br><label for "camera_pixel_limit_mag">Pixel intensity limit (mag)</label>
+            <input type="text" id="camera_pixel_limit_mag" name="camera_pixel_limit_mag" size="12" value="8.0">
+            <br><label for "camera_pixel_limit_mode">Pixel intensity limit mode</label>
+            <select name="camera_pixel_limit_mode" id="camera_pixel_limit_mode">
+              <option value="0" selected>Saturate to white</option>
+              <option value="1">Preserve color</option>
+            </select>
+            <br><label for "camera_wb_enable">Enable white balance</label>
+            <select name="camera_wb_enable" id="camera_wb_enable">
+              <option value="no">no</option>
+              <option value="yes" selected>yes</option>
+            </select>
+            <br><label for "camera_wb_temp">White balance (K)</label>
+            <input type="text" id="camera_wb_temp" name="camera_wb_temp" size="12" value="4300">
+            <br><label for "camera_color_saturation">Color saturation</label>
+            <input type="text" id="camera_color_saturation" name="camera_color_saturation" size="12" value="1.0">
+            <br><label for "camera_gamma">Gamma</label>
+            <input type="text" id="camera_gamma" name="camera_gamma" size="12" value="1.0">
+            <br><label for "camera_projection">Raster projection</label>
+            <select name="camera_projection" id="camera_projection">
+              <option value="0">lat/lon (equirectangular)</option>
+              <option value="1">spherical</option>
+              <option value="2">Hammer</option>
+              <option value="3">Mollewide</option>
+            </select>
+            <br><label for "spherical_orientation">Spherical orientation</label>
+            <select name="spherical_orientation" id="spherical_orientation">
+              <option value="0">forward centered</option>
+              <option value="1">side-by-side</option>
+            </select>
+          </fieldset>
+          <fieldset>
+            <legend>Camera Bandpass Filters</legend>
+            <div id="centered">
+              <em>wavelength in nm</em>
+            </div>
+            <div id="centered">
+              <table style="margin-left:auto;margin-right:auto;">
+                <tr><td>Red</td><td><select name="red_filter_preset" id="red_filter_preset" onchange="red_filter_preset_select()">
+                  <option value="User">User</option>
+                  <option value="Typical-LRGB-Blue">Typical LRGB Blue</option>
+                  <option value="Typical-LRGB-Green">Typical LRGB Green</option>
+                  <option value="Typical-LRGB-Red">Typical LRGB Red</option>
+                  <option value="ACS-WFC-F435W">ACS WFC F435W</option>
+                  <option value="ACS-WFC-F475W">ACS WFC F475W</option>
+                  <option value="ACS-WFC-F555W">ACS WFC F555W</option>
+                  <option value="ACS-WFC-F606W">ACS WFC F606W</option>
+                  <option value="ACS-WFC-F625W" selected>ACS WFC F625W</option>
+                  <option value="ACS-WFC-F775W">ACS WFC F775W</option>
+                  <option value="ACS-WFC-F814W">ACS WFC F814W</option>
+                  <option value="WFC3-UVIS-F336W">WFC3 UVIS F336W</option>
+                  <option value="WFC3-UVIS-F390W">WFC3 UVIS F390W</option>
+                  <option value="WFC3-UVIS-F438W">WFC3 UVIS F438W</option>
+                  <option value="WFC3-UVIS-F475W">WFC3 UVIS F475W</option>
+                  <option value="WFC3-UVIS-F555W">WFC3 UVIS F555W</option>
+                  <option value="WFC3-UVIS-F606W">WFC3 UVIS F606W</option>
+                  <option value="WFC3-UVIS-F625W">WFC3 UVIS F625W</option>
+                  <option value="WFC3-UVIS-F775W">WFC3 UVIS F775W</option>
+                  <option value="WFC3-UVIS-F814W">WFC3 UVIS F814W</option>
+                </select></td>
+                <td><input type="text" id="red_filter_long_limit" name="red_filter_long_limit" size="12" value="705.0" onchange="set_red_filter_preset_user()"></td>
+                <td>-</td>
+                <td><input type="text" id="red_filter_short_limit" name="red_filter_short_limit" size="12" value="560.0" onchange="set_red_filter_preset_user()"></td></tr>
+                <tr><td>Green</td><td><select name="green_filter_preset" id="green_filter_preset" onchange="green_filter_preset_select()">
+                  <option value="User">User</option>
+                  <option value="Typical-LRGB-Blue">Typical LRGB Blue</option>
+                  <option value="Typical-LRGB-Green">Typical LRGB Green</option>
+                  <option value="Typical-LRGB-Red">Typical LRGB Red</option>
+                  <option value="ACS-WFC-F435W">ACS WFC F435W</option>
+                  <option value="ACS-WFC-F475W">ACS WFC F475W</option>
+                  <option value="ACS-WFC-F555W" selected>ACS WFC F555W</option>
+                  <option value="ACS-WFC-F606W">ACS WFC F606W</option>
+                  <option value="ACS-WFC-F625W">ACS WFC F625W</option>
+                  <option value="ACS-WFC-F775W">ACS WFC F775W</option>
+                  <option value="ACS-WFC-F814W">ACS WFC F814W</option>
+                  <option value="WFC3-UVIS-F336W">WFC3 UVIS F336W</option>
+                  <option value="WFC3-UVIS-F390W">WFC3 UVIS F390W</option>
+                  <option value="WFC3-UVIS-F438W">WFC3 UVIS F438W</option>
+                  <option value="WFC3-UVIS-F475W">WFC3 UVIS F475W</option>
+                  <option value="WFC3-UVIS-F555W">WFC3 UVIS F555W</option>
+                  <option value="WFC3-UVIS-F606W">WFC3 UVIS F606W</option>
+                  <option value="WFC3-UVIS-F625W">WFC3 UVIS F625W</option>
+                  <option value="WFC3-UVIS-F775W">WFC3 UVIS F775W</option>
+                  <option value="WFC3-UVIS-F814W">WFC3 UVIS F814W</option>
+                </select></td>
+                <td><input type="text" id="green_filter_long_limit" name="green_filter_long_limit" size="12" value="600.0" onchange="set_green_filter_preset_user()"></td>
+                <td>-</td>
+                <td><input type="text" id="green_filter_short_limit" name="green_filter_short_limit" size="12" value="475.0" onchange="set_green_filter_preset_user()"></td></tr>
+                <tr><td>Blue</td><td><select name="blue_filter_preset" id="blue_filter_preset" onchange="blue_filter_preset_select()">
+                  <option value="User">User</option>
+                  <option value="Typical-LRGB-Blue">Typical LRGB Blue</option>
+                  <option value="Typical-LRGB-Green">Typical LRGB Green</option>
+                  <option value="Typical-LRGB-Red">Typical LRGB Red</option>
+                  <option value="ACS-WFC-F435W" selected>ACS WFC F435W</option>
+                  <option value="ACS-WFC-F475W">ACS WFC F475W</option>
+                  <option value="ACS-WFC-F555W">ACS WFC F555W</option>
+                  <option value="ACS-WFC-F606W">ACS WFC F606W</option>
+                  <option value="ACS-WFC-F625W">ACS WFC F625W</option>
+                  <option value="ACS-WFC-F775W">ACS WFC F775W</option>
+                  <option value="ACS-WFC-F814W">ACS WFC F814W</option>
+                  <option value="WFC3-UVIS-F336W">WFC3 UVIS F336W</option>
+                  <option value="WFC3-UVIS-F390W">WFC3 UVIS F390W</option>
+                  <option value="WFC3-UVIS-F438W">WFC3 UVIS F438W</option>
+                  <option value="WFC3-UVIS-F475W">WFC3 UVIS F475W</option>
+                  <option value="WFC3-UVIS-F555W">WFC3 UVIS F555W</option>
+                  <option value="WFC3-UVIS-F606W">WFC3 UVIS F606W</option>
+                  <option value="WFC3-UVIS-F625W">WFC3 UVIS F625W</option>
+                  <option value="WFC3-UVIS-F775W">WFC3 UVIS F775W</option>
+                  <option value="WFC3-UVIS-F814W">WFC3 UVIS F814W</option>
+                </select></td>
+                <td><input type="text" id="blue_filter_long_limit" name="blue_filter_long_limit" size="12" value="480.0" onchange="set_blue_filter_preset_user()"></td>
+                <td>-</td>
+                <td><input type="text" id="blue_filter_short_limit" name="blue_filter_short_limit" size="12" value="385.0" onchange="set_blue_filter_preset_user()"></td></tr>
+              </table>
+            </div>
+          </fieldset>
+          <fieldset>
+            <legend>Diffraction</legend>
+            <div id="centered">
+              <em>Caution: Airy disks render slowly</em>
+            </div>
+            <br><label for "Airy_disk">Enable Airy disks</label>
+            <select name="Airy_disk" id="Airy_disk">
+              <option value="no" selected>no</option>
+              <option value="yes">yes</option>
+            </select>
+            <br><label for "Airy_disk_first_null">Airy disk first null (pixels)</label>
+            <input type="text" id="Airy_disk_first_null" name="Airy_disk_first_null" size="12" value="0.75">
+            <br><label for "Airy_disk_max_extent">Airy disk max extent (pixels)</label>
+            <input type="text" id="Airy_disk_max_extent" name="Airy_disk_max_extent" size="12" value="10">
+          </fieldset>
+          <fieldset>
+            <legend>Post-processing</legend>
+            <label for="Gaussian_blur_radius">Gaussian blur radius</label>
+            <input type="text" name="Gaussian_blur_radius" id="Gaussian_blur_radius" size="12" value="0.0">
+            <br><label for="output_scaling_factor">Output scaling factor</label>
+            <input type="text" name="output_scaling_factor" id="output_scaling_factor" size="12" value="1.0">
+          </fieldset>
+          <fieldset>
+            <legend>Overlays</legend>
+            <label for "draw_crosshairs">Draw crosshairs</label>
+            <select name="draw_crosshairs" id="draw_crosshairs">
+              <option value="no" selected>no</option>
+              <option value="yes">yes</option>
+            </select>
+            <br><label for "draw_grid_lines">Draw grid lines</label>
+            <select name="draw_grid_lines" id="draw_grid_lines">
+              <option value="no" selected>no</option>
+              <option value="yes">yes</option>
+            </select>
+          </fieldset>
+          <fieldset>
+            <legend>Output</legend>
+            <label for "sRGB_gamma">sRGB encoding gamma</label>
+            <select name="sRGB_gamma" id="sRGB_gamma">
+              <option value="yes" selected>on</option>
+              <option value="no">off</option>
+            </select>
+            <br><label for "bits_per_color">PNG bits per color</label>
+            <select name="bits_per_color" id="bits_per_color">
+              <option value="8" selected>8</option>
+              <option value="16">16</option>
+            </select>
+          </fieldset>
         </form>
       </div>
-      <script>
-        loadSettingsFromURL();
-      </script>
-      <div id="rendering_style">
-        <img alt="" src="" id="render_image">
+      <div id="content_style">
+        <article>
+          <form name="navigation_form">
+            <div id="navigation_style">
+              <fieldset>
+                <legend>Camera Position</legend>
+                <div id="centered">
+                  <em>ICRS coordinates (deg, parsec)</em>
+                </div>
+                <div id="centered">
+                  <table style="margin-left:auto;margin-right:auto;">
+                    <tr><td>Preset</td><td><select name="camera_icrs_preset" id="camera_icrs_preset" onchange="camera_icrs_preset_select()">
+                      <option value="User">User</option>
+                      <option value="Sun" selected>Sun</option>
+                      <option value="Galactic Center">Galactic Center</option>
+                      <option value="Galactic Anticenter">Galactic Anticenter</option>
+                      <option value="Galactic North Pole">Galactic North Pole</option>
+                      <option value="Galactic South Pole">Galactic South Pole</option>
+                      <option value="LMC">LMC</option>
+                      <option value="SMC">SMC</option>
+                    </select></td></tr>
+                    <tr><td>ra</td><td><input type="text" id="camera_icrs_ra" name="camera_icrs_ra" size="12" value="0.0" onchange="set_camera_icrs_preset_user()"></td></tr>
+                    <tr><td>dec</td><td><input type="text" id="camera_icrs_dec" name="camera_icrs_dec" size="12" value="0.0" onchange="set_camera_icrs_preset_user()"></td></tr>
+                    <tr><td>r</td><td><input type="text" id="camera_icrs_r" name="camera_icrs_r" size="12" value="0.0" onchange="set_camera_icrs_preset_user()"></td></tr>
+                  </table>
+                </div>
+              </fieldset>
+            </div>
+            <div id="navigation_style">
+              <fieldset>
+                <legend>Target Position</legend>
+                <div id="centered">
+                  <em>ICRS coordinates (deg, parsec)</em>
+                </div>
+                <div id="centered">
+                  <table style="margin-left:auto;margin-right:auto;">
+                    <tr><td>Preset</td><td><select name="target_icrs_preset" id="target_icrs_preset" onchange="target_icrs_preset_select()">
+                      <option value="User">User</option>
+                      <option value="Sun">Sun</option>
+                      <option value="Galactic Center" selected>Galactic Center</option>
+                      <option value="Galactic Anticenter">Galactic Anticenter</option>
+                      <option value="Galactic North Pole">Galactic North Pole</option>
+                      <option value="Galactic South Pole">Galactic South Pole</option>
+                      <option value="LMC">LMC</option>
+                      <option value="SMC">SMC</option>
+                    </select></td></tr>
+                    <tr><td>ra</td><td><input type="text" id="target_icrs_ra" name="target_icrs_ra" size="12" value="266.4168371" onchange="set_target_icrs_preset_user()"></td></tr>
+                    <tr><td>dec</td><td><input type="text" id="target_icrs_dec" name="target_icrs_dec" size="12" value="-29.0078106" onchange="set_target_icrs_preset_user()"></td></tr>
+                    <tr><td>r</td><td><input type="text" id="target_icrs_r" name="target_icrs_r" size="12" value="8178.0" onchange="set_target_icrs_preset_user()"></td></tr>
+                  </table>
+                </div>
+              </fieldset>
+            </div>
+            <div id="navigation_style">
+              <fieldset>
+                <legend>Camera Rotate/Pan/Tilt</legend>
+                <div id="centered">
+                  <em>After aiming at target (deg)</em>
+                </div>
+                <div id="centered">
+                  <table style="margin-left:auto;margin-right:auto;">
+                    <tr><td>&nbsp;</td><td>&nbsp;</td></tr>
+                    <tr><td>Rotate</td><td><input type="text" id="camera_rotation" name="camera_rotation" size="12" value="-58.6"></td></tr>
+                    <tr><td>Pan</td><td><input type="text" id="camera_pan" name="camera_pan" size="12" value="0.0"></td></tr>
+                    <tr><td>Tilt</td><td><input type="text" id="camera_tilt" name="camera_tilt" size="12" value="0.0"></td></tr>
+                  </table>
+                </div>
+              </fieldset>
+            </div>
+          </form>
+        </article>
         <script>
-          updateImage();
+          loadSettingsFromURL();
         </script>
+        <article>
+          <div id="rendering_style">
+            <br><img alt="" src="" id="render_image">
+            <script>
+              updateImage();
+            </script>
+          </div>
+        </article>
       </div>
-    </div>
-  </main>
-  <footer id="footer">
-    sample-frontend.html from bsrender v0.9.0-dev-43
-  </footer>
-</body>
+    </main>
+  </body>
 </html>

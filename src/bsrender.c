@@ -19,7 +19,6 @@
 #include "util.h"
 #include "rgb.h"
 #include "bsr-png.h"
-#include "overlay.h"
 #include "process-stars.h"
 #include "init-state.h"
 #include "cgi.h"
@@ -639,16 +638,6 @@ int main(int argc, char **argv) {
         }
       } 
     } // end while not done
-
-    //
-    // main thread: optionally draw overlays
-    //
-    if (bsr_config.draw_crosshairs == 1) {
-      drawCrossHairs(&bsr_config, bsr_state);
-    }
-    if (bsr_config.draw_grid_lines == 1) {
-      drawGridLines(&bsr_config, bsr_state);
-    }
 
     //
     // main thread: report rendering time if not in cgi mode

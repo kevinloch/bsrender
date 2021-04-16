@@ -5,6 +5,7 @@
 #include "util.h"
 #include "Lanczos.h"
 #include "Gaussian-blur.h"
+#include "overlay.h"
 
 int postProcess(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   struct timespec starttime;
@@ -117,6 +118,18 @@ int postProcess(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   if (bsr_config->output_scaling_factor != 1.0) {
     resizeLanczos(bsr_config, bsr_state);
   }
+
+  //
+  // main thread: optionally draw overlays
+  //
+  if (bsr_state->perthread->my_pid == bsr_state->master_pid) {
+    if (bsr_config->draw_crosshairs == 1) {
+      drawCrossHairs(bsr_config, bsr_state);
+    }
+    if (bsr_config->draw_grid_lines == 1) {
+      drawGridLines(bsr_config, bsr_state);
+    }
+  } // end if main thread
 
   return(0);
 }

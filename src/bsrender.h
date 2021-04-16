@@ -1,7 +1,7 @@
 #ifndef BSRENDER_H
 #define BSRENDER_H
 
-#define BSR_VERSION "0.9.0-dev-43"
+#define BSR_VERSION "0.9.0-dev-44"
 
 #define _GNU_SOURCE // needed for strcasestr in string.h
 #include <stdint.h> // needed for uint64_t
@@ -121,12 +121,6 @@ typedef struct {
   int render_distance_selector;
   double star_color_min;
   double star_color_max;
-  int draw_crosshairs;
-  int draw_grid_lines;
-  double Gaussian_blur_radius;
-  double output_scaling_factor;
-  int sRGB_gamma;
-  int bits_per_color;
   int camera_res_x;
   int camera_res_y;
   double camera_fov;
@@ -140,15 +134,21 @@ typedef struct {
   int camera_projection;
   int spherical_orientation;
   int Mollewide_iterations;
-  int Airy_disk;
-  double Airy_disk_first_null;
-  int Airy_disk_max_extent;
   double red_filter_long_limit;
   double red_filter_short_limit;
   double green_filter_long_limit;
   double green_filter_short_limit;
   double blue_filter_long_limit;
   double blue_filter_short_limit;
+  int Airy_disk;
+  double Airy_disk_first_null;
+  int Airy_disk_max_extent;
+  double Gaussian_blur_radius;
+  double output_scaling_factor;
+  int draw_crosshairs;
+  int draw_grid_lines;
+  int sRGB_gamma;
+  int bits_per_color;
   double camera_icrs_x;
   double camera_icrs_y;
   double camera_icrs_z;
