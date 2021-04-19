@@ -5,11 +5,10 @@
 #include <stdlib.h>
 #include <time.h>
 #include <math.h>
+#include "util.h"
 
 int GaussianBlur(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   int i;
-  volatile int cont;
-  int all_workers_done;
   double radius;
   int lines_per_thread;
   int sample_size;
@@ -102,16 +101,11 @@ int GaussianBlur(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   // main thread: tell worker threads to go
   //
   if (bsr_state->perthread->my_pid != bsr_state->master_pid) {
-    cont=0;
-    while (cont == 0) {
-      if (bsr_state->status_array[bsr_state->perthread->my_thread_id] >= 10) {
-        cont=1;
-      }
-    }
+    waitForMainThread(bsr_state, 10);
   } else {
     // main thread
     for (i=1; i <= bsr_state->num_worker_threads; i++) {
-      bsr_state->status_array[i]=10;
+      bsr_state->status_array[i].status=10;
     }
   } // end if not main thread
   
@@ -162,28 +156,15 @@ int GaussianBlur(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   // main thread: wait until all other threads are done and then signal that they can continue to next step.
   //
   if (bsr_state->perthread->my_pid != bsr_state->master_pid) {
-    bsr_state->status_array[bsr_state->perthread->my_thread_id]=11;
-    cont=0;
-    while (cont == 0) {
-      if (bsr_state->status_array[bsr_state->perthread->my_thread_id] >= 12) {
-        cont=1;
-      }
-    }
+    bsr_state->status_array[bsr_state->perthread->my_thread_id].status=11;
+    waitForMainThread(bsr_state, 12);
   } else {
-    all_workers_done=0;
-    while (all_workers_done == 0) {
-      all_workers_done=1;
-      for (i=1; i <= bsr_state->num_worker_threads; i++) {
-        if (bsr_state->status_array[i] < 11) {
-          all_workers_done=0;
-        }
-      }
-    }
+    waitForWorkerThreads(bsr_state, 11);
     //
     // ready to continue, set all worker thread status to 12
     //
     for (i=1; i <= bsr_state->num_worker_threads; i++) {
-      bsr_state->status_array[i]=12;
+      bsr_state->status_array[i].status=12;
     }
   } // end if not main thread
 
@@ -235,28 +216,15 @@ int GaussianBlur(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   // main thread: wait until all other threads are done and then signal that they can continue to next step.
   //
   if (bsr_state->perthread->my_pid != bsr_state->master_pid) {
-    bsr_state->status_array[bsr_state->perthread->my_thread_id]=13;
-    cont=0;
-    while (cont == 0) {
-      if (bsr_state->status_array[bsr_state->perthread->my_thread_id] >= 14) {
-        cont=1;
-      }
-    }
+    bsr_state->status_array[bsr_state->perthread->my_thread_id].status=13;
+    waitForMainThread(bsr_state, 14);
   } else {
-    all_workers_done=0;
-    while (all_workers_done == 0) {
-      all_workers_done=1;
-      for (i=1; i <= bsr_state->num_worker_threads; i++) {
-        if (bsr_state->status_array[i] < 13) {
-          all_workers_done=0;
-        }
-      }
-    }
+    waitForWorkerThreads(bsr_state, 13);
     //
     // ready to continue, set all worker thread status to 14
     //
     for (i=1; i <= bsr_state->num_worker_threads; i++) {
-      bsr_state->status_array[i]=14;
+      bsr_state->status_array[i].status=14;
     }
   } // end if not main thread
 

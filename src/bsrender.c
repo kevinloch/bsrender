@@ -373,8 +373,8 @@ int main(int argc, char **argv) {
     main_thread_buf_p++;
   }
   // allocate shared memory for thread status array
-  status_array_size=(bsr_state->num_worker_threads + 1) * sizeof(int);
-  bsr_state->status_array=(int *)mmap(NULL, status_array_size, mmap_protection, mmap_visibility, -1, 0);
+  status_array_size=(bsr_state->num_worker_threads + 1) * sizeof(bsr_status_t);
+  bsr_state->status_array=(bsr_status_t *)mmap(NULL, status_array_size, mmap_protection, mmap_visibility, -1, 0);
   if (bsr_state->status_array == NULL) {
     if (bsr_config.cgi_mode != 1) {
       printf("Error: could not allocate shared memory for thread status array\n");
@@ -530,17 +530,20 @@ int main(int argc, char **argv) {
   // fork rendering threads
   //
   bsr_state->master_pid=getpid();
+  bsr_state->master_pgid=getpgrp();
+  bsr_state->httpd_pid=getppid();
   if (bsr_state->num_worker_threads > 0) {
     for (i=1; i <= bsr_state->num_worker_threads; i++) {
       bsr_state->perthread->my_pid=getpid();
       if (bsr_state->perthread->my_pid == bsr_state->master_pid) {
         bsr_state->perthread->my_thread_id=i; // this gets inherited by forked process
-        bsr_state->status_array[i]=0;
+        bsr_state->status_array[i].status=0;
         fork();
       }
     }
   }
   bsr_state->perthread->my_pid=getpid();
+  bsr_state->status_array[bsr_state->perthread->my_thread_id].pid=bsr_state->perthread->my_pid;
   if (bsr_state->perthread->my_pid == bsr_state->master_pid) {
     bsr_state->perthread->my_thread_id=0;
   }
@@ -595,9 +598,10 @@ int main(int argc, char **argv) {
     } // end if enable Gaia
 
     //
-    // let main thread know we are done
+    // let main thread know we are done, then wait until main thread says ok to continue
     //
-    bsr_state->status_array[bsr_state->perthread->my_thread_id]=1;
+    bsr_state->status_array[bsr_state->perthread->my_thread_id].status=1;
+    waitForMainThread(bsr_state, 2);
   } else {
 
     //
@@ -605,9 +609,12 @@ int main(int argc, char **argv) {
     //
     empty_passes=0;
     while (empty_passes < 2) { // do second pass once empty
+      // check if any worker threads have died
+      checkExceptions(bsr_state);
+
+      // scan buffer for new pixel data
       main_thread_buf_p=bsr_state->thread_buf;
       buffer_is_empty=1;
-      // scan buffer for new pixel data
       for (main_thread_buffer_index=0; main_thread_buffer_index < thread_buffer_count; main_thread_buffer_index++) {
         if ((main_thread_buf_p->status_left == 1) && (main_thread_buf_p->status_right == 1)) {
           // buffer location has new pixel data, add to image composition buffer
@@ -628,7 +635,7 @@ int main(int argc, char **argv) {
       if (buffer_is_empty == 1) {
         all_workers_done=1;
         for (i=1; i <= bsr_state->num_worker_threads; i++) {
-          if (bsr_state->status_array[i] < 1) {
+          if (bsr_state->status_array[i].status < 1) {
             all_workers_done=0;
           }
         }
@@ -638,6 +645,13 @@ int main(int argc, char **argv) {
         }
       } 
     } // end while not done
+
+    //
+    // main thread: tell worker threads it's ok to continue
+    //
+    for (i=1; i <= bsr_state->num_worker_threads; i++) {
+      bsr_state->status_array[i].status=2;
+    }
 
     //
     // main thread: report rendering time if not in cgi mode

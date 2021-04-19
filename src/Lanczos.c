@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <time.h>
+#include "util.h"
 
 int resizeLanczos(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   struct timespec starttime;
@@ -37,8 +38,6 @@ int resizeLanczos(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   int current_image_res_x;
   int current_image_res_y;
   int lines_per_thread;
-  volatile int cont;
-  int all_workers_done;
   int i;
 
   //
@@ -66,16 +65,11 @@ int resizeLanczos(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   // main thread: tell worker threads to go
   //
   if (bsr_state->perthread->my_pid != bsr_state->master_pid) {
-    cont=0;
-    while (cont == 0) {
-      if (bsr_state->status_array[bsr_state->perthread->my_thread_id] >= 20) {
-        cont=1;
-      }
-    }
+    waitForMainThread(bsr_state, 20);
   } else {
     // main thread
     for (i=1; i <= bsr_state->num_worker_threads; i++) {
-      bsr_state->status_array[i]=20;
+      bsr_state->status_array[i].status=20;
     }
   } // end if not main thread
 
@@ -173,28 +167,15 @@ int resizeLanczos(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   // main thread: wait until all other threads are done and then signal that they can continue to next step.
   //
   if (bsr_state->perthread->my_pid != bsr_state->master_pid) {
-    bsr_state->status_array[bsr_state->perthread->my_thread_id]=21;
-    cont=0;
-    while (cont == 0) {
-      if (bsr_state->status_array[bsr_state->perthread->my_thread_id] >= 22) {
-        cont=1;
-      }
-    }
+    bsr_state->status_array[bsr_state->perthread->my_thread_id].status=21;
+    waitForMainThread(bsr_state, 22);
   } else {
-    all_workers_done=0;
-    while (all_workers_done == 0) {
-      all_workers_done=1;
-      for (i=1; i <= bsr_state->num_worker_threads; i++) {
-        if (bsr_state->status_array[i] < 21) {
-          all_workers_done=0;
-        }
-      }
-    }
+    waitForWorkerThreads(bsr_state, 21);
     //
     // ready to continue, set all worker thread status to 22
     //
     for (i=1; i <= bsr_state->num_worker_threads; i++) {
-      bsr_state->status_array[i]=22;
+      bsr_state->status_array[i].status=22;
     }
   } // end if not main thread
 

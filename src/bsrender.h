@@ -1,7 +1,7 @@
 #ifndef BSRENDER_H
 #define BSRENDER_H
 
-#define BSR_VERSION "0.9.0-dev-44"
+#define BSR_VERSION "0.9.0-dev-45"
 
 #define _GNU_SOURCE // needed for strcasestr in string.h
 #include <stdint.h> // needed for uint64_t
@@ -14,6 +14,11 @@ typedef struct {
   double icrs_z;
   uint64_t intensity_and_temperature;
 } star_record_t;
+
+typedef struct {
+  pid_t pid;
+  int status;
+} bsr_status_t;
 
 typedef struct {
   int status_left;
@@ -64,9 +69,11 @@ typedef struct {
   int current_image_res_y;
   int num_worker_threads;
   pid_t master_pid;
+  pid_t master_pgid;
+  pid_t httpd_pid;
   bsr_thread_state_t *perthread;
   int per_thread_buffers;
-  int *status_array;
+  bsr_status_t *status_array;
   double *rgb_red;
   double *rgb_green;
   double *rgb_blue;

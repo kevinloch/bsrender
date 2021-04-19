@@ -1,6 +1,7 @@
 #include "bsrender.h" // needs to be first to get GNU_SOURCE define for strcasestr
 #include <stdio.h>
 #include <math.h>
+#include "util.h"
 
 int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_file) {
   int i;
@@ -49,6 +50,8 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
   long int dedup_index_offset;
   int dedup_count;
   int dedup_buf_i;
+  int idle_count;
+  long long input_count;
 
   Airymap_half_xy=bsr_config->Airy_disk_max_extent;
   Airymap_xy=(Airymap_half_xy * 2) + 1;
@@ -56,9 +59,18 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
   //
   // read and process each line of input file and render stars to image
   //
+  input_count=0;
   dedup_count=0;
   fread(&star_record, star_record_size, 1, input_file);
   while ((feof(input_file) == 0) && (ferror(input_file) == 0)) {
+    input_count++;
+
+    //
+    // periodically check if main thread is still alive
+    //
+    if (input_count % 100000) {
+      checkExceptions(bsr_state);
+    } 
 
     //
     // convert original star x,y,z to new coordinates as seen by camera position
@@ -358,6 +370,7 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
                       bsr_state->perthread->thread_buf_p-=bsr_state->per_thread_buffers;
                     }
                     success=0;
+                    idle_count=0;
                     while (success == 0) {
                       // check if we've written a pixel to this location before and it has not been read/cleared by main thread yet
                       if ((bsr_state->perthread->thread_buf_p->status_left == 0) && (bsr_state->perthread->thread_buf_p->status_right == 0)) {
@@ -377,6 +390,13 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
                         dedup_index_p->dedup_record=NULL;
                         dedup_buf_p++;
                         success=1;
+                      } else {
+                        idle_count++;
+                        if (idle_count > 10000) {
+                          // check if main thread is still alive
+                          checkExceptions(bsr_state);
+                          idle_count=0;
+                        }
                       } // end if buffer slot is available
                     } // end while success=0
                   } // end for dedup_buf_i
@@ -425,6 +445,7 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
                 bsr_state->perthread->thread_buf_p-=bsr_state->per_thread_buffers;
               }
               success=0;
+              idle_count=0;
               while (success == 0) {
                 // check if we've written a pixel to this location before and it has not been read/cleared by main thread yet
                 if ((bsr_state->perthread->thread_buf_p->status_left == 0) && (bsr_state->perthread->thread_buf_p->status_right == 0)) {
@@ -444,6 +465,13 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
                   dedup_index_p->dedup_record=NULL;
                   dedup_buf_p++;
                   success=1;
+                } else {
+                  idle_count++;
+                  if (idle_count > 10000) {
+                    // check if main thread is still alive
+                    checkExceptions(bsr_state);
+                    idle_count=0;
+                  }
                 } // end if buffer slot is available
               } // end while success=0
             } // end for dedup_buf_i
