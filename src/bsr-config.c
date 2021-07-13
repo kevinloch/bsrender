@@ -47,13 +47,13 @@ void initConfig(bsr_config_t *bsr_config) {
   strcpy(bsr_config->data_file_directory, "./galaxydata");
   bsr_config->num_threads=16;
   bsr_config->per_thread_buffer=10000;
-  bsr_config->per_thread_buffer_Airy=2000000;
+  bsr_config->per_thread_buffer_Airy=200000;
   bsr_config->cgi_mode=0;
-  bsr_config->cgi_max_res_x=33000;
-  bsr_config->cgi_max_res_y=17000;
+  bsr_config->cgi_max_res_x=999999;
+  bsr_config->cgi_max_res_y=999999;
   bsr_config->cgi_Gaia_min_parallax_quality=0;
   bsr_config->cgi_allow_Airy_disk=1;
-  bsr_config->cgi_max_Airy_disk_camera_fov=360.0;
+  bsr_config->cgi_max_Airy_disk_camera_fov=400.0;
   bsr_config->cgi_min_Airy_disk_first_null=0.3;
   bsr_config->cgi_max_Airy_disk_max_extent=100;
   bsr_config->enable_Gaia=1;
