@@ -9,7 +9,7 @@
 # to use in bsrender.cfg.  pq100 through pq010 is a total of 3.2GB.
 #
 datahost="https://bsrender.io"
-datadir="/sample_data/0.9.0-dev-43"
+datadir="/sample_data/0.9"
 #
 wget ${datahost}${datadir}/README.txt
 wget ${datahost}${datadir}/external.csv

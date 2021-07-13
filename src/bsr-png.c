@@ -1,3 +1,41 @@
+//
+// Billion Star 3D Rendering Engine
+// Kevin M. Loch
+//
+// 3D rendering engine for the ESA Gaia EDR3 star dataset
+
+/*
+ * BSD 3-Clause License
+ *
+ * Copyright (c) 2021, Kevin Loch
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ *    list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution.
+ *
+ * 3. Neither the name of the copyright holder nor the names of its
+ *    contributors may be used to endorse or promote products derived from
+ *    this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
 #include "bsrender.h" // needs to be first to get GNU_SOURCE define for strcasestr
 #include <stdlib.h>
 #include <math.h>
@@ -13,7 +51,6 @@ int writePNGFile(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   double pixel_r;
   double pixel_g;
   double pixel_b;
-  int i;
   int output_x;
   int output_y;
   FILE *output_file=NULL;
@@ -28,6 +65,7 @@ int writePNGFile(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   double one_over_2dot4;
   int output_res_x;
   int output_res_y;
+  long long image_offset;
 
   //
   // display status message if not in cgi mode
@@ -55,10 +93,10 @@ int writePNGFile(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   //
   image_output_buf=NULL;
   if (bsr_config->bits_per_color == 8) {
-    image_output_buf=(png_byte *)malloc(output_res_x * output_res_y * 3 * sizeof(png_byte));
+    image_output_buf=(png_byte *)malloc((long long)output_res_x * (long long)output_res_y * (long long)3 * sizeof(png_byte));
     bit_depth=8;
   } else if (bsr_config->bits_per_color == 16) {
-    image_output_buf=(png_byte *)malloc(output_res_x * output_res_y * 6 * sizeof(png_byte));
+    image_output_buf=(png_byte *)malloc((long long)output_res_x * (long long)output_res_y * (long long)6 * sizeof(png_byte));
     bit_depth=16;
   }
   if (image_output_buf == NULL) {
@@ -90,7 +128,7 @@ int writePNGFile(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   output_y=0;
   row_pointers[0]=image_output_p;
   one_over_2dot4=1.0 / 2.4;
-  for (i=0; i < (output_res_x * output_res_y); i++) {
+  for (image_offset=0; image_offset < ((long long)output_res_x * (long long)output_res_y); image_offset++) {
 
     //
     // set new row pointer if we have reached end of row

@@ -1,7 +1,47 @@
+//
+// Billion Star 3D Rendering Engine
+// Kevin M. Loch
+//
+// 3D rendering engine for the ESA Gaia EDR3 star dataset
+
+/*
+ * BSD 3-Clause License
+ *
+ * Copyright (c) 2021, Kevin Loch
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ *    list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution.
+ *
+ * 3. Neither the name of the copyright holder nor the names of its
+ *    contributors may be used to endorse or promote products derived from
+ *    this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
 #include "bsrender.h" // needs to be first to get GNU_SOURCE define for strcasestr
 #include <stdio.h>
 #include <math.h>
 #include "util.h"
+
+//#define DEBUG
 
 int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_file) {
   int i;
@@ -12,10 +52,11 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
   double star_y;
   double star_z;
   double star_r;
+  double star_r2; // squared
   double star_xy_r;
   double star_xz_r;
   double star_yz_r;
-  double render_distance;            // distance from selected point to star
+  double render_distance2; // distance from selected point to star (squared)
   double star_3az_xy;
   double star_3az_xz;
   double star_3az_yz;
@@ -47,20 +88,34 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
   double star_rgb_blue;
   dedup_buffer_t *dedup_buf_p;
   dedup_index_t *dedup_index_p;
-  long int dedup_index_offset;
+  long long dedup_index_offset;
+  long long image_offset;
   int dedup_count;
   int dedup_buf_i;
   int idle_count;
   long long input_count;
+#ifdef DEBUG
+  long long collision_count;
+  long long initial_count;
+  long long dup_count;
+#endif
 
+  //
+  // init shortcut variables
+  //
   Airymap_half_xy=bsr_config->Airy_disk_max_extent;
   Airymap_xy=(Airymap_half_xy * 2) + 1;
 
   //
-  // read and process each line of input file and render stars to image
+  // read and process each line of input file, translate and rotate into position
   //
   input_count=0;
   dedup_count=0;
+#ifdef DEBUG
+  collision_count=0;
+  initial_count=0;
+  dup_count=0;
+#endif
   fread(&star_record, star_record_size, 1, input_file);
   while ((feof(input_file) == 0) && (ferror(input_file) == 0)) {
     input_count++;
@@ -73,12 +128,13 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
     } 
 
     //
-    // convert original star x,y,z to new coordinates as seen by camera position
+    // translate original star x,y,z to new coordinates as seen by camera position
     //
     star_x=star_record.icrs_x - bsr_config->camera_icrs_x;
     star_y=star_record.icrs_y - bsr_config->camera_icrs_y;
     star_z=star_record.icrs_z - bsr_config->camera_icrs_z;
-    star_r=sqrt(pow(star_x, 2.0) + pow(star_y, 2.0) + pow(star_z, 2.0));
+    //star_r=sqrt(pow(star_x, 2.0) + pow(star_y, 2.0) + pow(star_z, 2.0));
+    star_r2=pow(star_x, 2.0) + pow(star_y, 2.0) + pow(star_z, 2.0); // leave squared for better performance
 
     //
     // extract color_temperature from combined field
@@ -90,12 +146,12 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
     // greater than zero, and color temperature is within allowed range
     //
     if (bsr_config->render_distance_selector == 0) { // selected point is camera
-      render_distance=star_r; // star distance from camera
+      render_distance2=star_r2; // star distance from camera
     } else { // selected point is target
-      render_distance=sqrt(pow((star_record.icrs_x - bsr_config->target_icrs_x), 2.0) + pow((star_record.icrs_y - bsr_config->target_icrs_y), 2.0) + pow((star_record.icrs_z - bsr_config->target_icrs_z), 2.0)); // important, use un-rotated coordinates
+      render_distance2=pow((star_record.icrs_x - bsr_config->target_icrs_x), 2.0) + pow((star_record.icrs_y - bsr_config->target_icrs_y), 2.0) + pow((star_record.icrs_z - bsr_config->target_icrs_z), 2.0); // important, use un-translated/rotated coordinates
     }
-    if ((star_r > 0.0)\
-     && (render_distance >= bsr_config->render_distance_min) && (render_distance <= bsr_config->render_distance_max)\
+    if ((star_r2 > 0.0)\
+     && (render_distance2 >= bsr_config->render_distance_min2) && (render_distance2 <= bsr_config->render_distance_max2)\
      && (color_temperature >= bsr_config->star_color_min) && (color_temperature <= bsr_config->star_color_max)) {
 
       //
@@ -103,7 +159,7 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
       //
       star_record.intensity_and_temperature >>=32;
       star_linear_1pc_intensity=*((float*)&star_record.intensity_and_temperature);
-      star_linear_intensity=star_linear_1pc_intensity / pow(star_r, 2.0);
+      star_linear_intensity=star_linear_1pc_intensity / star_r2;
 
       //
       // setup initial triple-azimuth (3az) variables for this star
@@ -338,24 +394,68 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
                 //
                 // Airymap pixel is within image raster, put in my thread buffer
                 //
-                dedup_index_offset=(bsr_config->camera_res_x * Airymap_output_y) + Airymap_output_x;
+                image_offset=((long long)bsr_config->camera_res_x * (long long)Airymap_output_y) + (long long)Airymap_output_x;
+                if (bsr_state->dedup_index_mode == 0) {
+                  dedup_index_offset=(int)image_offset;
+                } else {
+                  dedup_index_offset=(int)(image_offset & 0xffffff);
+                }
                 dedup_index_p=bsr_state->dedup_index + dedup_index_offset;
-                if (dedup_index_p->dedup_record == NULL) {
+                if (dedup_index_p->dedup_record_p == NULL) {
+#ifdef DEBUG
+                  initial_count++;
+#endif
                   // no dup yet, just store value in next dedup buffer record and update index
                   dedup_count++;
                   dedup_buf_p=bsr_state->dedup_buf + (dedup_count - 1);
-                  dedup_buf_p->image_offset=dedup_index_offset;
+                  dedup_buf_p->image_offset=image_offset;
                   dedup_buf_p->r=(star_linear_intensity * *Airymap_red_p * star_rgb_red);
                   dedup_buf_p->g=(star_linear_intensity * *Airymap_green_p * star_rgb_green);
                   dedup_buf_p->b=(star_linear_intensity * *Airymap_green_p * star_rgb_blue);
-                  dedup_index_p->dedup_record=dedup_buf_p;
-                } else {
+                  dedup_index_p->dedup_record_p=dedup_buf_p;
+                } else if (dedup_index_p->dedup_record_p->image_offset == image_offset) {
+#ifdef DEBUG
+                  dup_count++;
+#endif
                   // duplicate pixel locaiton, add to existing dedup buffer record values
-                  dedup_buf_p=dedup_index_p->dedup_record;
+                  dedup_buf_p=dedup_index_p->dedup_record_p;
                   dedup_buf_p->r+=(star_linear_intensity * *Airymap_green_p * star_rgb_red);
                   dedup_buf_p->g+=(star_linear_intensity * *Airymap_green_p * star_rgb_green);
                   dedup_buf_p->b+=(star_linear_intensity * *Airymap_green_p * star_rgb_blue);
-                }
+                } else {
+                  // dedup index collision, send this pixel directly to main thread
+#ifdef DEBUG
+                  collision_count++;
+#endif
+                  if (bsr_state->perthread->thread_buffer_index == bsr_state->per_thread_buffers) {
+                    // end of our section of thread_buf, rewind
+                    bsr_state->perthread->thread_buffer_index=0;
+                    bsr_state->perthread->thread_buf_p-=bsr_state->per_thread_buffers;
+                  }
+                  success=0;
+                  idle_count=0;
+                  while (success == 0) {
+                    // check if we've written a pixel to this location before and it has not been read/cleared by main thread yet
+                    if ((bsr_state->perthread->thread_buf_p->status_left == 0) && (bsr_state->perthread->thread_buf_p->status_right == 0)) {
+                      bsr_state->perthread->thread_buf_p->status_left=1;
+                      bsr_state->perthread->thread_buf_p->image_offset=image_offset;
+                      bsr_state->perthread->thread_buf_p->r=(star_linear_intensity * *Airymap_red_p * star_rgb_red);
+                      bsr_state->perthread->thread_buf_p->g=(star_linear_intensity * *Airymap_green_p * star_rgb_green);
+                      bsr_state->perthread->thread_buf_p->b=(star_linear_intensity * *Airymap_green_p * star_rgb_blue);
+                      bsr_state->perthread->thread_buf_p->status_right=1;
+                      bsr_state->perthread->thread_buf_p++;
+                      bsr_state->perthread->thread_buffer_index++;
+                      success=1;
+                    } else {
+                      idle_count++;
+                      if (idle_count > 10000) {
+                        // check if main thread is still alive
+                        checkExceptions(bsr_state);
+                        idle_count=0;
+                      }
+                    } // end if buffer slot is available
+                  } // end while success=0
+                } // end if dedup_index_p->dedup_record_p
 
                 //
                 // check if dedup buffer is full and if it is send pixels to main thread
@@ -363,7 +463,6 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
                 if (dedup_count == bsr_state->per_thread_buffers) {
                   dedup_buf_p=bsr_state->dedup_buf;
                   for (dedup_buf_i=0; dedup_buf_i < dedup_count; dedup_buf_i++) {
-                    dedup_index_p=bsr_state->dedup_index + dedup_buf_p->image_offset;
                     if (bsr_state->perthread->thread_buffer_index == bsr_state->per_thread_buffers) {
                       // end of our section of thread_buf, rewind
                       bsr_state->perthread->thread_buffer_index=0;
@@ -382,12 +481,22 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
                         bsr_state->perthread->thread_buf_p->status_right=1;
                         bsr_state->perthread->thread_buf_p++;
                         bsr_state->perthread->thread_buffer_index++;
-                        // clear buffer location and reset index
+                        // clear dedup index record 
+                        if (bsr_state->dedup_index_mode == 0) {
+                          dedup_index_offset=(int)dedup_buf_p->image_offset;
+                        } else {
+                          dedup_index_offset=((int)dedup_buf_p->image_offset & 0xffffff);
+
+                        }
+                        dedup_index_p=bsr_state->dedup_index + dedup_index_offset;
+                        if (dedup_index_p->dedup_record_p == dedup_buf_p) {
+                          dedup_index_p->dedup_record_p=NULL;
+                        }
+                        // clear dedup buffer record
                         dedup_buf_p->image_offset=-1;
                         dedup_buf_p->r=0.0;
                         dedup_buf_p->g=0.0;
                         dedup_buf_p->b=0.0;
-                        dedup_index_p->dedup_record=NULL;
                         dedup_buf_p++;
                         success=1;
                       } else {
@@ -413,24 +522,68 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
           //
           // not Airy disk mode, check if this pixel in the dedup buffer
           //
-          dedup_index_offset=(bsr_config->camera_res_x * output_y) + output_x;
+          image_offset=((long long)bsr_config->camera_res_x * (long long)output_y) + (long long)output_x;
+          if (bsr_state->dedup_index_mode == 0) {
+            dedup_index_offset=(int)image_offset;
+          } else {
+            dedup_index_offset=((int)image_offset & 0xffffff);
+          }
           dedup_index_p=bsr_state->dedup_index + dedup_index_offset;
-          if (dedup_index_p->dedup_record == NULL) {
+          if (dedup_index_p->dedup_record_p == NULL) {
+#ifdef DEBUG
+            initial_count++;
+#endif
             // no dup yet, just store value in next dedup buffer record and update index
             dedup_count++;
             dedup_buf_p=bsr_state->dedup_buf + (dedup_count - 1);
-            dedup_buf_p->image_offset=dedup_index_offset;
+            dedup_buf_p->image_offset=image_offset;
             dedup_buf_p->r=(star_linear_intensity * bsr_state->rgb_red[color_temperature]);
             dedup_buf_p->g=(star_linear_intensity * bsr_state->rgb_green[color_temperature]);
             dedup_buf_p->b=(star_linear_intensity * bsr_state->rgb_blue[color_temperature]);
-            dedup_index_p->dedup_record=dedup_buf_p;
-          } else {
+            dedup_index_p->dedup_record_p=dedup_buf_p;
+          } else if (dedup_index_p->dedup_record_p->image_offset == image_offset) {
+#ifdef DEBUG
+            dup_count++;
+#endif
             // duplicate pixel locaiton, add to existing dedup buffer record values
-            dedup_buf_p=dedup_index_p->dedup_record;
+            dedup_buf_p=dedup_index_p->dedup_record_p;
             dedup_buf_p->r+=(star_linear_intensity * bsr_state->rgb_red[color_temperature]);
             dedup_buf_p->g+=(star_linear_intensity * bsr_state->rgb_green[color_temperature]);
             dedup_buf_p->b+=(star_linear_intensity * bsr_state->rgb_blue[color_temperature]);
-          }
+          } else {
+            // dedup index collision, send this pixel directly to main thread
+#ifdef DEBUG
+            collision_count++;
+#endif
+            if (bsr_state->perthread->thread_buffer_index == bsr_state->per_thread_buffers) {
+              // end of our section of thread_buf, rewind
+              bsr_state->perthread->thread_buffer_index=0;
+              bsr_state->perthread->thread_buf_p-=bsr_state->per_thread_buffers;
+            }
+            success=0;
+            idle_count=0;
+            while (success == 0) {
+              // check if we've written a pixel to this location before and it has not been read/cleared by main thread yet
+              if ((bsr_state->perthread->thread_buf_p->status_left == 0) && (bsr_state->perthread->thread_buf_p->status_right == 0)) {
+                bsr_state->perthread->thread_buf_p->status_left=1;
+                bsr_state->perthread->thread_buf_p->image_offset=image_offset;
+                bsr_state->perthread->thread_buf_p->r=(star_linear_intensity * bsr_state->rgb_red[color_temperature]);
+                bsr_state->perthread->thread_buf_p->g=(star_linear_intensity * bsr_state->rgb_green[color_temperature]);
+                bsr_state->perthread->thread_buf_p->b=(star_linear_intensity * bsr_state->rgb_blue[color_temperature]);
+                bsr_state->perthread->thread_buf_p->status_right=1;
+                bsr_state->perthread->thread_buf_p++;
+                bsr_state->perthread->thread_buffer_index++;
+                success=1;
+              } else {
+                idle_count++;
+                if (idle_count > 10000) {
+                  // check if main thread is still alive
+                  checkExceptions(bsr_state);
+                  idle_count=0;
+                }
+              } // end if buffer slot is available
+            } // end while success=0
+          } // end if dedup_index_p->dedup_record_p
 
           //
           // check if dedup buffer is full and if it is send pixels to main thread
@@ -438,7 +591,6 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
           if (dedup_count == bsr_state->per_thread_buffers) {
             dedup_buf_p=bsr_state->dedup_buf;
             for (dedup_buf_i=0; dedup_buf_i < dedup_count; dedup_buf_i++) { 
-              dedup_index_p=bsr_state->dedup_index + dedup_buf_p->image_offset;
               if (bsr_state->perthread->thread_buffer_index == bsr_state->per_thread_buffers) {
                 // end of our section of thread_buf, rewind
                 bsr_state->perthread->thread_buffer_index=0;
@@ -457,12 +609,21 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
                   bsr_state->perthread->thread_buf_p->status_right=1;
                   bsr_state->perthread->thread_buf_p++;
                   bsr_state->perthread->thread_buffer_index++;
-                  // clear buffer location and reset index
+                  // clear dedup index record 
+                  if (bsr_state->dedup_index_mode == 0) {
+                    dedup_index_offset=(int)dedup_buf_p->image_offset;
+                  } else {
+                    dedup_index_offset=((int)dedup_buf_p->image_offset & 0xffffff);
+                  }
+                  dedup_index_p=bsr_state->dedup_index + dedup_index_offset;
+                  if (dedup_index_p->dedup_record_p == dedup_buf_p) {
+                    dedup_index_p->dedup_record_p=NULL;
+                  }
+                  // clear dedup buffer record
                   dedup_buf_p->image_offset=-1;
                   dedup_buf_p->r=0.0;
                   dedup_buf_p->g=0.0;
                   dedup_buf_p->b=0.0;
-                  dedup_index_p->dedup_record=NULL;
                   dedup_buf_p++;
                   success=1;
                 } else {
@@ -494,7 +655,6 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
   if (dedup_count > 0) {
     dedup_buf_p=bsr_state->dedup_buf;
     for (dedup_buf_i=0; dedup_buf_i < dedup_count; dedup_buf_i++) {
-      dedup_index_p=bsr_state->dedup_index + dedup_buf_p->image_offset;
       if (bsr_state->perthread->thread_buffer_index == bsr_state->per_thread_buffers) {
         // end of our section of thread_buf, rewind
         bsr_state->perthread->thread_buffer_index=0;
@@ -512,18 +672,32 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
           bsr_state->perthread->thread_buf_p->status_right=1;
           bsr_state->perthread->thread_buf_p++;
           bsr_state->perthread->thread_buffer_index++;
-          // clear buffer location and reset index
+          // clear dedup index record
+          if (bsr_state->dedup_index_mode == 0) {
+            dedup_index_offset=dedup_buf_p->image_offset;
+          } else {
+            dedup_index_offset=(dedup_buf_p->image_offset & 0xffffff);
+          }
+          dedup_index_p=bsr_state->dedup_index + dedup_index_offset;
+          if (dedup_index_p->dedup_record_p == dedup_buf_p) {
+            dedup_index_p->dedup_record_p=NULL;
+          }
+          // clear dedup buffer record
           dedup_buf_p->image_offset=-1;
           dedup_buf_p->r=0.0;
           dedup_buf_p->g=0.0;
           dedup_buf_p->b=0.0;
-          dedup_index_p->dedup_record=NULL;
           dedup_buf_p++;
           success=1;
         } // end if buffer slot is available
       } // end while success=0
     } // end for dedup_buf_i
   } // end if dedup buffer has remaining entries
+
+#ifdef DEBUG
+  printf("inputs: %lld, initial: %lld, dups: %lld, dedup ratio: %.4f, collisions: %lld, collision ratio: %.4f\n", input_count, initial_count, dup_count, ((float)dup_count / (float)initial_count), collision_count, ((float)collision_count / (float)(initial_count + dup_count))); 
+  fflush(stdout);
+#endif
 
   return(0);
 }

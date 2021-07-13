@@ -1,3 +1,41 @@
+//
+// Billion Star 3D Rendering Engine
+// Kevin M. Loch
+//
+// 3D rendering engine for the ESA Gaia EDR3 star dataset
+
+/*
+ * BSD 3-Clause License
+ *
+ * Copyright (c) 2021, Kevin Loch
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ *    list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution.
+ *
+ * 3. Neither the name of the copyright holder nor the names of its
+ *    contributors may be used to endorse or promote products derived from
+ *    this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
 #include "bsrender.h" // needs to be first to get GNU_SOURCE define for strcasestr
 #include <stdio.h>
 #include <stdlib.h>
@@ -19,17 +57,19 @@ void initConfig(bsr_config_t *bsr_config) {
   bsr_config->cgi_min_Airy_disk_first_null=0.3;
   bsr_config->cgi_max_Airy_disk_max_extent=100;
   bsr_config->enable_Gaia=1;
-  bsr_config->Gaia_min_parallax_quality=10;
+  bsr_config->Gaia_min_parallax_quality=0;
   bsr_config->enable_external=0;
   bsr_config->render_distance_min=0.0;
+  bsr_config->render_distance_min2=bsr_config->render_distance_min * bsr_config->render_distance_min;
   bsr_config->render_distance_max=1.0E99;
+  bsr_config->render_distance_max2=bsr_config->render_distance_max * bsr_config->render_distance_max;
   bsr_config->render_distance_selector=0;
   bsr_config->star_color_min=0.0;
   bsr_config->star_color_max=1.0E99;
   bsr_config->camera_res_x=2000;
   bsr_config->camera_res_y=1000;
   bsr_config->camera_fov=360.0;
-  bsr_config->camera_pixel_limit_mag=8.0;
+  bsr_config->camera_pixel_limit_mag=7.75;
   bsr_config->camera_pixel_limit=pow(100.0, (-bsr_config->camera_pixel_limit_mag / 5.0));
   bsr_config->camera_pixel_limit_mode=0;
   bsr_config->camera_wb_enable=1;
@@ -40,11 +80,11 @@ void initConfig(bsr_config_t *bsr_config) {
   bsr_config->spherical_orientation=0;
   bsr_config->Mollewide_iterations=5;
   bsr_config->red_filter_long_limit=705.0;
-  bsr_config->red_filter_short_limit=560.0;
+  bsr_config->red_filter_short_limit=550.0;
   bsr_config->green_filter_long_limit=600.0;
-  bsr_config->green_filter_short_limit=475.0;
-  bsr_config->blue_filter_long_limit=480.0;
-  bsr_config->blue_filter_short_limit=385.0;
+  bsr_config->green_filter_short_limit=445.0;
+  bsr_config->blue_filter_long_limit=465.0;
+  bsr_config->blue_filter_short_limit=395.0;
   bsr_config->Airy_disk=0;
   bsr_config->Airy_disk_first_null=0.75;
   bsr_config->Airy_disk_max_extent=10;

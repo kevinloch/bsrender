@@ -1,7 +1,45 @@
+//
+// Billion Star 3D Rendering Engine
+// Kevin M. Loch
+//
+// 3D rendering engine for the ESA Gaia EDR3 star dataset
+
+/*
+ * BSD 3-Clause License
+ *
+ * Copyright (c) 2021, Kevin Loch
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ *    list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution.
+ *
+ * 3. Neither the name of the copyright holder nor the names of its
+ *    contributors may be used to endorse or promote products derived from
+ *    this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
 #ifndef BSRENDER_H
 #define BSRENDER_H
 
-#define BSR_VERSION "0.9.0-dev-45"
+#define BSR_VERSION "0.9-dev-49"
 
 #define _GNU_SOURCE // needed for strcasestr in string.h
 #include <stdint.h> // needed for uint64_t
@@ -22,22 +60,22 @@ typedef struct {
 
 typedef struct {
   int status_left;
-  long int image_offset;
+  long long image_offset;
   double r;
   double g;
   double b;
-  int status_right; // left/right status fields help us deal with situation where truct is split between difference cache lines and written back at different times
+  int status_right; // left/right status fields help us deal with situation where struct is split between difference cache lines and written back at different times
 } thread_buffer_t;
 
 typedef struct {
-  long int image_offset;
+  long long image_offset;
   double r;
   double g;
   double b;
 } dedup_buffer_t;
 
 typedef struct {
-  dedup_buffer_t *dedup_record;
+  dedup_buffer_t *dedup_record_p;
 } dedup_index_t;
 
 typedef struct {
@@ -62,6 +100,7 @@ typedef struct {
   pixel_composition_t *image_resize_buf;  // globally mmaped
   dedup_buffer_t *dedup_buf; // not globally mmapped
   dedup_index_t *dedup_index; // not globally mmapped
+  int dedup_index_mode;
   int resize_res_x;
   int resize_res_y;
   pixel_composition_t *current_image_buf;
@@ -77,9 +116,9 @@ typedef struct {
   double *rgb_red;
   double *rgb_green;
   double *rgb_blue;
-  double *Airymap_red;
-  double *Airymap_green;
-  double *Airymap_blue;
+  double *Airymap_red; // globally mmaped
+  double *Airymap_green; // globally mmaped
+  double *Airymap_blue; // globally mmaped
   double camera_hfov;
   double camera_half_res_x;
   double camera_half_res_y;
@@ -124,7 +163,9 @@ typedef struct {
   int Gaia_min_parallax_quality;
   int enable_external;
   double render_distance_min;
+  double render_distance_min2;
   double render_distance_max;
+  double render_distance_max2;
   int render_distance_selector;
   double star_color_min;
   double star_color_max;

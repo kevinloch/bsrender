@@ -44,10 +44,10 @@ Operation:
 
   By default it will render a 360 degree lat/lon (equirectangular) projected panorama of the entire sky from the sun with the following camera settings:
     Resolution: 2000x1000
-    Parallax quality: 10 [98M stars]
+    Parallax quality: 0 [1.47B stars]
     White balance: 4300K
-    Color saturation: 4.0
-    Pixel saturation magnitude: 8.0
+    Color saturation: 1.0
+    Pixel saturation magnitude: 7.75
     Raster projection: lat/lon (equirectangular)
     And other default settings identical to the sample bsrender.cfg
 

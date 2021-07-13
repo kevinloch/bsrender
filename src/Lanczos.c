@@ -1,3 +1,41 @@
+//
+// Billion Star 3D Rendering Engine
+// Kevin M. Loch
+//
+// 3D rendering engine for the ESA Gaia EDR3 star dataset
+
+/*
+ * BSD 3-Clause License
+ *
+ * Copyright (c) 2021, Kevin Loch
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ *    list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution.
+ *
+ * 3. Neither the name of the copyright holder nor the names of its
+ *    contributors may be used to endorse or promote products derived from
+ *    this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
 #include "bsrender.h" // needs to be first to get GNU_SOURCE define for strcasestr
 #include <stdio.h>
 #include <stdlib.h>
@@ -11,7 +49,7 @@ int resizeLanczos(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   double elapsed_time;
   pixel_composition_t *current_image_p;
   pixel_composition_t *image_resize_p;
-  int current_image_offset;
+  long long current_image_offset;
   int resize_res_x;
   int resize_res_y;
   double source_w;
@@ -79,7 +117,7 @@ int resizeLanczos(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   Lanczos_order=2;
   resize_x=0;
   resize_y=(bsr_state->perthread->my_thread_id * lines_per_thread);
-  image_resize_p=bsr_state->image_resize_buf + (bsr_state->perthread->my_thread_id * lines_per_thread * resize_res_x);
+  image_resize_p=bsr_state->image_resize_buf + ((long long)bsr_state->perthread->my_thread_id * (long long)lines_per_thread * resize_res_x);
   for (resize_i=0; ((resize_i < (resize_res_x * lines_per_thread)) && (resize_y < (resize_res_y - 1))); resize_i++) {
     if (resize_x == resize_res_x) {
       resize_x=0;
@@ -101,7 +139,7 @@ int resizeLanczos(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
       L_x_b=0.0;
       for (i_x=((int)source_x_center - Lanczos_order + 1); i_x <= ((int)source_x_center + Lanczos_order); i_x++) {
         source_x=i_x;
-        current_image_offset=(source_y * current_image_res_x) + source_x;
+        current_image_offset=((long long)source_y * (long long)current_image_res_x) + (long long)source_x;
         current_image_p=bsr_state->current_image_buf + current_image_offset;
         if ((source_x >= 0) && (source_x < current_image_res_x) && (source_y >= 0) && (source_y < current_image_res_y)) {
           L_distance_x=source_x_center - (double)i_x;

@@ -1,3 +1,41 @@
+//
+// Billion Star 3D Rendering Engine
+// Kevin M. Loch
+//
+// 3D rendering engine for the ESA Gaia EDR3 star dataset
+
+/*
+ * BSD 3-Clause License
+ *
+ * Copyright (c) 2021, Kevin Loch
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ *    list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution.
+ *
+ * 3. Neither the name of the copyright holder nor the names of its
+ *    contributors may be used to endorse or promote products derived from
+ *    this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
 #include "bsrender.h" // needs to be first to get GNU_SOURCE define for strcasestr
 #include <stdio.h>
 #include <unistd.h>
@@ -23,7 +61,7 @@ int GaussianBlur(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   int kernel_i;
   int current_image_res_x;
   int current_image_res_y;
-  int current_image_offset;
+  long long current_image_offset;
   double *G_kernel_array;
   double *G_kernel_p;
   double G_kernel_sum;
@@ -114,7 +152,7 @@ int GaussianBlur(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   //
   blur_x=0;
   blur_y=(bsr_state->perthread->my_thread_id * lines_per_thread);
-  image_blur_p=bsr_state->image_blur_buf + (bsr_state->perthread->my_thread_id * lines_per_thread * blur_res_x);
+  image_blur_p=bsr_state->image_blur_buf + ((long long)bsr_state->perthread->my_thread_id * (long long)lines_per_thread * (long long)blur_res_x);
   for (blur_i=0; ((blur_i < (blur_res_x * lines_per_thread)) && (blur_y < (blur_res_y - 1))); blur_i++) {
     if (blur_x == blur_res_x) {
       blur_x=0;
@@ -131,7 +169,7 @@ int GaussianBlur(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
     for (kernel_i=-half_sample_size+1; kernel_i < half_sample_size; kernel_i++) {
       source_x=blur_x + kernel_i;
       if ((source_x >= 0) && (source_x < current_image_res_x)) {
-        current_image_offset=(blur_y * blur_res_x) + source_x;
+        current_image_offset=((long long)blur_y * (long long)blur_res_x) + (long long)source_x;
         current_image_p=bsr_state->current_image_buf + current_image_offset;
         G_r+=(current_image_p->r * *G_kernel_p);
         G_g+=(current_image_p->g * *G_kernel_p);
@@ -174,7 +212,7 @@ int GaussianBlur(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   //
   blur_x=0;
   blur_y=(bsr_state->perthread->my_thread_id * lines_per_thread);
-  image_blur_p=bsr_state->current_image_buf + (bsr_state->perthread->my_thread_id * lines_per_thread * blur_res_x);
+  image_blur_p=bsr_state->current_image_buf + ((long long)bsr_state->perthread->my_thread_id * (long long)lines_per_thread * blur_res_x);
   for (blur_i=0; ((blur_i < (blur_res_x * lines_per_thread)) && (blur_y < (blur_res_y - 1))); blur_i++) {
     if (blur_x == blur_res_x) {
       blur_x=0;
@@ -191,7 +229,7 @@ int GaussianBlur(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
     for (kernel_i=-half_sample_size+1; kernel_i < half_sample_size; kernel_i++) {
       source_y=blur_y + kernel_i;
       if ((source_y >= 0) && (source_y < current_image_res_y)) {
-        current_image_offset=(source_y * blur_res_x) + blur_x;
+        current_image_offset=((long long)source_y * (long long)blur_res_x) + (long long)blur_x;
         current_image_p=bsr_state->image_blur_buf + current_image_offset;
         G_r+=(current_image_p->r * *G_kernel_p);
         G_g+=(current_image_p->g * *G_kernel_p);

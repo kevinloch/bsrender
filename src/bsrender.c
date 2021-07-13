@@ -3,7 +3,38 @@
 // Kevin M. Loch
 //
 // 3D rendering engine for the ESA Gaia EDR3 star dataset
-//
+
+/*
+ * BSD 3-Clause License
+ * 
+ * Copyright (c) 2021, Kevin Loch
+ * All rights reserved.
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ * 
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ *    list of conditions and the following disclaimer.
+ * 
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution.
+ * 
+ * 3. Neither the name of the copyright holder nor the names of its
+ *    contributors may be used to endorse or promote products derived from
+ *    this software without specific prior written permission.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
 
 #include "bsrender.h" // needs to be first to get GNU_SOURCE define for strcasestr
 #include <stdint.h>
@@ -113,6 +144,8 @@ int main(int argc, char **argv) {
   int buffer_is_empty;
   int empty_passes;
   int Airymap_xy;
+  long long image_composition_i;
+
 
   //
   // initialize bsr_config to default values
@@ -201,7 +234,7 @@ int main(int argc, char **argv) {
   }
 
   //
-  // allocate memory for Airy disk maps and initialize
+  // allocate shared memory for Airy disk maps and initialize
   //
   if (bsr_config.Airy_disk == 1) {
     if (bsr_config.cgi_mode != 1) {
@@ -209,11 +242,13 @@ int main(int argc, char **argv) {
       printf("Initializing Airy disk maps...");
       fflush(stdout);
     }
+    mmap_protection=PROT_READ | PROT_WRITE;
+    mmap_visibility=MAP_SHARED | MAP_ANONYMOUS;
     Airymap_xy=(bsr_config.Airy_disk_max_extent * 2) + 1;
     Airymap_size=Airymap_xy * Airymap_xy * sizeof(double);
-    bsr_state->Airymap_red=(double *)malloc(Airymap_size);
-    bsr_state->Airymap_green=(double *)malloc(Airymap_size);
-    bsr_state->Airymap_blue=(double *)malloc(Airymap_size);
+    bsr_state->Airymap_red=(double *)mmap(NULL, Airymap_size, mmap_protection, mmap_visibility, -1, 0);
+    bsr_state->Airymap_green=(double *)mmap(NULL, Airymap_size, mmap_protection, mmap_visibility, -1, 0);
+    bsr_state->Airymap_blue=(double *)mmap(NULL, Airymap_size, mmap_protection, mmap_visibility, -1, 0);
     initAiryMaps(&bsr_config, bsr_state);
     if (bsr_config.cgi_mode != 1) {
       clock_gettime(CLOCK_REALTIME, &endtime);
@@ -233,7 +268,7 @@ int main(int argc, char **argv) {
   }
   mmap_protection=PROT_READ | PROT_WRITE;
   mmap_visibility=MAP_SHARED | MAP_ANONYMOUS;
-  composition_buffer_size=bsr_config.camera_res_x * bsr_config.camera_res_y * sizeof(pixel_composition_t);
+  composition_buffer_size=(size_t)bsr_config.camera_res_x * (size_t)bsr_config.camera_res_y * sizeof(pixel_composition_t);
   bsr_state->image_composition_buf=(pixel_composition_t *)mmap(NULL, composition_buffer_size, mmap_protection, mmap_visibility, -1, 0);
   if (bsr_state->image_composition_buf == NULL) {
     if (bsr_config.cgi_mode != 1) {
@@ -243,7 +278,7 @@ int main(int argc, char **argv) {
   }
   // initialize (clear) image composition buffer
   image_composition_p=bsr_state->image_composition_buf;
-  for (i=0; i < (bsr_config.camera_res_x * bsr_config.camera_res_y); i++) {
+  for (image_composition_i=0; image_composition_i < ((long long)bsr_config.camera_res_x * (long long)bsr_config.camera_res_y); image_composition_i++) {
     image_composition_p->r=0.0;
     image_composition_p->g=0.0;
     image_composition_p->b=0.0;
@@ -265,7 +300,7 @@ int main(int argc, char **argv) {
   if (bsr_config.Gaussian_blur_radius > 0.0) {
     mmap_protection=PROT_READ | PROT_WRITE;
     mmap_visibility=MAP_SHARED | MAP_ANONYMOUS;
-    blur_buffer_size=bsr_config.camera_res_x * bsr_config.camera_res_y * sizeof(pixel_composition_t);
+    blur_buffer_size=(size_t)bsr_config.camera_res_x * (size_t)bsr_config.camera_res_y * sizeof(pixel_composition_t);
     bsr_state->image_blur_buf=(pixel_composition_t *)mmap(NULL, blur_buffer_size, mmap_protection, mmap_visibility, -1, 0);
     if (bsr_state->image_blur_buf == NULL) {
       if (bsr_config.cgi_mode != 1) {
@@ -284,7 +319,7 @@ int main(int argc, char **argv) {
     bsr_state->resize_res_y=(int)(((double)bsr_config.camera_res_y * bsr_config.output_scaling_factor) + 0.5);
     mmap_protection=PROT_READ | PROT_WRITE;
     mmap_visibility=MAP_SHARED | MAP_ANONYMOUS;
-    resize_buffer_size=bsr_state->resize_res_x * bsr_state->resize_res_y * sizeof(pixel_composition_t);
+    resize_buffer_size=(size_t)bsr_state->resize_res_x * (size_t)bsr_state->resize_res_y * sizeof(pixel_composition_t);
     bsr_state->image_resize_buf=(pixel_composition_t *)mmap(NULL, resize_buffer_size, mmap_protection, mmap_visibility, -1, 0);
     if (bsr_state->image_resize_buf == NULL) {
       if (bsr_config.cgi_mode != 1) {
@@ -324,7 +359,13 @@ int main(int argc, char **argv) {
   //
   // allocate non-shared memory for dedup index and initialize
   //
-  dedup_index_size=bsr_config.camera_res_x * bsr_config.camera_res_y * sizeof(dedup_index_t);
+  if ((long long)bsr_config.camera_res_x * (long long)bsr_config.camera_res_y <= 16777216) {
+    bsr_state->dedup_index_mode=0; // use image_offset for dedup index
+    dedup_index_size=bsr_config.camera_res_x * bsr_config.camera_res_y * sizeof(dedup_index_t); 
+  } else {
+    bsr_state->dedup_index_mode=1; // use lowest 24 bits of image_offset for dedup index
+    dedup_index_size=0xffffff * sizeof(dedup_index_t);
+  }
   bsr_state->dedup_index=(dedup_index_t *)malloc(dedup_index_size);
   if (bsr_state->dedup_index == NULL) {
     if (bsr_config.cgi_mode != 1) {
@@ -334,8 +375,8 @@ int main(int argc, char **argv) {
   }
   // initialize dedup index
   dedup_index_p=bsr_state->dedup_index;
-  for (i=0; i < (bsr_config.camera_res_x * bsr_config.camera_res_y); i++) {
-    dedup_index_p->dedup_record=NULL;
+  for (i=0; i < (bsr_state->per_thread_buffers); i++) {
+    dedup_index_p->dedup_record_p=NULL;
     dedup_index_p++;
   }
   if (bsr_config.cgi_mode != 1) {
@@ -722,9 +763,9 @@ int main(int argc, char **argv) {
     }
     munmap(bsr_state->thread_buf, thread_buffer_size);
     munmap(bsr_state->status_array, status_array_size);
-    free(bsr_state->Airymap_red);
-    free(bsr_state->Airymap_green);
-    free(bsr_state->Airymap_blue);
+    munmap(bsr_state->Airymap_red, Airymap_size);
+    munmap(bsr_state->Airymap_green, Airymap_size);
+    munmap(bsr_state->Airymap_blue, Airymap_size);
 
     //
     // main thread: output total runtime
