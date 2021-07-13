@@ -398,7 +398,7 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
                 if (bsr_state->dedup_index_mode == 0) {
                   dedup_index_offset=(int)image_offset;
                 } else {
-                  dedup_index_offset=(int)(image_offset & 0xffffff);
+                  dedup_index_offset=(int)(image_offset & 0xffffff); // truncate image_offset to 24 bits
                 }
                 dedup_index_p=bsr_state->dedup_index + dedup_index_offset;
                 if (dedup_index_p->dedup_record_p == NULL) {
@@ -485,8 +485,7 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
                         if (bsr_state->dedup_index_mode == 0) {
                           dedup_index_offset=(int)dedup_buf_p->image_offset;
                         } else {
-                          dedup_index_offset=((int)dedup_buf_p->image_offset & 0xffffff);
-
+                          dedup_index_offset=((int)dedup_buf_p->image_offset & 0xffffff); // truncate image_offset to 24 bits
                         }
                         dedup_index_p=bsr_state->dedup_index + dedup_index_offset;
                         if (dedup_index_p->dedup_record_p == dedup_buf_p) {
@@ -526,7 +525,7 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
           if (bsr_state->dedup_index_mode == 0) {
             dedup_index_offset=(int)image_offset;
           } else {
-            dedup_index_offset=((int)image_offset & 0xffffff);
+            dedup_index_offset=((int)image_offset & 0xffffff); // truncate image_offset to 24 bits
           }
           dedup_index_p=bsr_state->dedup_index + dedup_index_offset;
           if (dedup_index_p->dedup_record_p == NULL) {
@@ -613,7 +612,7 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
                   if (bsr_state->dedup_index_mode == 0) {
                     dedup_index_offset=(int)dedup_buf_p->image_offset;
                   } else {
-                    dedup_index_offset=((int)dedup_buf_p->image_offset & 0xffffff);
+                    dedup_index_offset=((int)dedup_buf_p->image_offset & 0xffffff); // truncate image_offset to 24 bits
                   }
                   dedup_index_p=bsr_state->dedup_index + dedup_index_offset;
                   if (dedup_index_p->dedup_record_p == dedup_buf_p) {
@@ -676,7 +675,7 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
           if (bsr_state->dedup_index_mode == 0) {
             dedup_index_offset=dedup_buf_p->image_offset;
           } else {
-            dedup_index_offset=(dedup_buf_p->image_offset & 0xffffff);
+            dedup_index_offset=(dedup_buf_p->image_offset & 0xffffff); // truncate image_offset to 24 bits
           }
           dedup_index_p=bsr_state->dedup_index + dedup_index_offset;
           if (dedup_index_p->dedup_record_p == dedup_buf_p) {
