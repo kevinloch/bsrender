@@ -133,7 +133,6 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
     star_x=star_record.icrs_x - bsr_config->camera_icrs_x;
     star_y=star_record.icrs_y - bsr_config->camera_icrs_y;
     star_z=star_record.icrs_z - bsr_config->camera_icrs_z;
-    //star_r=sqrt(pow(star_x, 2.0) + pow(star_y, 2.0) + pow(star_z, 2.0));
     star_r2=pow(star_x, 2.0) + pow(star_y, 2.0) + pow(star_z, 2.0); // leave squared for better performance
 
     //
@@ -330,7 +329,7 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
         output_y=(int)((-bsr_state->pixels_per_radian * output_el) + bsr_state->camera_half_res_y - 0.5);
       } else if (bsr_config->camera_projection == 1) {
         // spherical
-        star_r=sqrt(pow(star_x, 2.0) + pow(star_y, 2.0) + pow(star_z, 2.0));
+        star_r=sqrt(star_r2);
         spherical_distance=asin(sqrt(pow(star_y, 2.0) + pow(star_z, 2.0)) / star_r);
         spherical_angle=star_3az_yz;
         output_az=spherical_distance * cos(spherical_angle);
