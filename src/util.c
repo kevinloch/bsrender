@@ -165,13 +165,13 @@ int limitIntensityPreserveColor(double *pixel_r, double *pixel_g, double *pixel_
   //
   // limit pixel to range 0.0-1.0 while maintaining color (max channel=1.0)
   //
-  if (*pixel_r < 0) {
+  if (*pixel_r < 0.0) {
     *pixel_r=0;
   }
-  if (*pixel_g < 0) {
+  if (*pixel_g < 0.0) {
     *pixel_g=0;
   }
-  if (*pixel_b < 0) {
+  if (*pixel_b < 0.0) {
     *pixel_b=0;
   }
 

@@ -233,7 +233,7 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
       //
       // optionally pan camera left/right (xy angle)
       //
-      if (bsr_config->camera_pan != 0) {
+      if (bsr_config->camera_pan != 0.0) {
         // initialize 3az_xy and xy_r
         star_3az_xy=atan2(star_y, star_x);
         star_xy_r=sqrt((star_x * star_x) + (star_y * star_y));
@@ -251,7 +251,7 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
       }
 
       //
-      // optionally pan camera up/down (xz_angle)
+      // optionally tilt camera up/down (xz_angle)
       //
       if (bsr_config->camera_tilt != 0.0) {
         // initialize 3az_xz and xz_r
@@ -291,14 +291,14 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
         output_az=spherical_distance * cos(spherical_angle);
         output_el=spherical_distance * sin(spherical_angle);
         if (bsr_config->spherical_orientation == 1) { // side by side orientation
-          if (star_x > 0) { // star is in front of camera, draw on left side
+          if (star_x > 0.0) { // star is in front of camera, draw on left side
             output_az+=pi_over_2;
           } else { // star is behind camera, draw on right
             output_az=-pi_over_2-output_az;
           }
         } else { // front=center orientation
-          if (star_x < 0) { // star is behind camera we need to move to sides of front spherical frame
-            if (star_y > 0) { // left
+          if (star_x < 0.0) { // star is behind camera we need to move to sides of front spherical frame
+            if (star_y > 0.0) { // left
               output_az=M_PI-output_az;
             } else { // right
               output_az=-M_PI-output_az;

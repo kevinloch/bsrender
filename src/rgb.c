@@ -210,15 +210,15 @@ int initRGBTables(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
     } 
     color_mid=(color_max + color_min) / 2.0;
     red_intensity=color_mid + (bsr_config->camera_color_saturation * (red_intensity - color_mid));
-    if (red_intensity < 0) {
+    if (red_intensity < 0.0) {
       red_intensity=0;
     }
     green_intensity=color_mid + (bsr_config->camera_color_saturation * (green_intensity - color_mid));
-    if (green_intensity < 0) {
+    if (green_intensity < 0.0) {
       green_intensity=0;
     }
     blue_intensity=color_mid + (bsr_config->camera_color_saturation * (blue_intensity - color_mid));
-    if (blue_intensity < 0) {
+    if (blue_intensity < 0.0) {
       blue_intensity=0;
     }
 
