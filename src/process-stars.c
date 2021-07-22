@@ -64,9 +64,9 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
   double star_z;
   double star_r;
   double star_r2; // squared
-  double star_xy_r;
-  double star_xz_r;
-  double star_yz_r;
+  double star_3az_xy_r;
+  double star_3az_xz_r;
+  double star_3az_yz_r;
   double render_distance2; // distance from selected point to star (squared)
   double star_3az_xy;
   double star_3az_xz;
@@ -165,11 +165,19 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
       star_linear_intensity=star_linear_1pc_intensity / star_r2;
 
       //
+      // Note: 3D rotations for the camera, target, and stars are done with a 'triple-azimuth' (3az) method.  
+      // Three full 360 degree orthogonal angles (x->y), (x->z), and (y->z) provide redundancy for constant precision and eliminates gimbal lock.
+      // All angles range from -pi to +pi.  From the camera's perspective +x=forward, +y=left, and +z=up.  Thus the camera is
+      // aimed at the target when the target is at 3az_xy=0, 3az_xz=0. Camera rotation (about the x axis) is controlled by the 3az_yz angle.
+      // Optional after-aim pan and tilt is done by rotating the 3az_xy and 3az_xz angles respectively away from the target.
+      //
+
+      //
       // rotate star xy angle by target xy angle
       //
-      // initialize 3az_xy and xy_r
+      // initialize 3az_xy and 3az_xy_r
       star_3az_xy=atan2(star_y, star_x);
-      star_xy_r=sqrt((star_x * star_x) + (star_y * star_y));
+      star_3az_xy_r=sqrt((star_x * star_x) + (star_y * star_y));
       // rotate
       star_3az_xy-=bsr_state->target_3az_xy;
       // wrap
@@ -179,15 +187,15 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
         star_3az_xy = two_pi + star_3az_xy;
       }
       // update x and y
-      star_x=star_xy_r * cos(star_3az_xy);
-      star_y=star_xy_r * sin(star_3az_xy);
+      star_x=star_3az_xy_r * cos(star_3az_xy);
+      star_y=star_3az_xy_r * sin(star_3az_xy);
 
       //
       // rotate star xz angle by (rotated) target xz angle
       //
-      // initialize 3az_xz and xz_r
+      // initialize 3az_xz and 3az_xz_r
       star_3az_xz=atan2(star_z, star_x);
-      star_xz_r=sqrt((star_x * star_x) + (star_z * star_z));
+      star_3az_xz_r=sqrt((star_x * star_x) + (star_z * star_z));
       // rotate
       star_3az_xz-=bsr_state->target_3az_xz;
       // wrap
@@ -197,15 +205,15 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
         star_3az_xz = two_pi + star_3az_xz;
       }
       // update x and z
-      star_x=star_xz_r * cos(star_3az_xz);
-      star_z=star_xz_r * sin(star_3az_xz);
+      star_x=star_3az_xz_r * cos(star_3az_xz);
+      star_z=star_3az_xz_r * sin(star_3az_xz);
 
       //
       // rotate star yz angle by camera rotation angle
       //
-      // initialize 3az_xy and xy_r
+      // initialize 3az_xy and 3az_xy_r
       star_3az_yz=atan2(star_z, star_y);
-      star_yz_r=sqrt((star_y * star_y) + (star_z * star_z));
+      star_3az_yz_r=sqrt((star_y * star_y) + (star_z * star_z));
       // rotate
       star_3az_yz+=bsr_state->camera_3az_yz;
       // wrap
@@ -215,16 +223,16 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
         star_3az_yz = two_pi + star_3az_yz;
       }
       // update y and z
-      star_y=star_yz_r * cos(star_3az_yz);
-      star_z=star_yz_r * sin(star_3az_yz);
+      star_y=star_3az_yz_r * cos(star_3az_yz);
+      star_z=star_3az_yz_r * sin(star_3az_yz);
 
       //
       // optionally pan camera left/right (xy angle)
       //
       if (bsr_config->camera_pan != 0.0) {
-        // initialize 3az_xy and xy_r
+        // initialize 3az_xy and 3az_xy_r
         star_3az_xy=atan2(star_y, star_x);
-        star_xy_r=sqrt((star_x * star_x) + (star_y * star_y));
+        star_3az_xy_r=sqrt((star_x * star_x) + (star_y * star_y));
         // rotate
         star_3az_xy+=bsr_state->camera_3az_xy;
         // wrap
@@ -234,17 +242,17 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
           star_3az_xy = two_pi + star_3az_xy;
         }
         // update x and y
-        star_x=star_xy_r * cos(star_3az_xy);
-        star_y=star_xy_r * sin(star_3az_xy);
+        star_x=star_3az_xy_r * cos(star_3az_xy);
+        star_y=star_3az_xy_r * sin(star_3az_xy);
       }
 
       //
       // optionally tilt camera up/down (xz_angle)
       //
       if (bsr_config->camera_tilt != 0.0) {
-        // initialize 3az_xz and xz_r
+        // initialize 3az_xz and 3az_xz_r
         star_3az_xz=atan2(star_z, star_x);
-        star_xz_r=sqrt((star_x * star_x) + (star_z * star_z));
+        star_3az_xz_r=sqrt((star_x * star_x) + (star_z * star_z));
         // rotate
         star_3az_xz+=bsr_state->camera_3az_xz;
         // wrap
@@ -254,8 +262,8 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
           star_3az_xz = two_pi + star_3az_xz;
         }
         // update x and z
-        star_x=star_xz_r * cos(star_3az_xz);
-        star_z=star_xz_r * sin(star_3az_xz);
+        star_x=star_3az_xz_r * cos(star_3az_xz);
+        star_z=star_3az_xz_r * sin(star_3az_xz);
       }
 
       //
@@ -272,8 +280,8 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
       } else if (bsr_config->camera_projection == 1) {
         // spherical
         star_r=sqrt(star_r2);
-        star_yz_r=sqrt((star_y * star_y) + (star_z * star_z));
-        spherical_distance=asin(star_yz_r / star_r);
+        star_3az_yz_r=sqrt((star_y * star_y) + (star_z * star_z));
+        spherical_distance=asin(star_3az_yz_r / star_r);
         star_3az_yz=atan2(star_z, star_y);
         spherical_angle=star_3az_yz;
         output_az=spherical_distance * cos(spherical_angle);

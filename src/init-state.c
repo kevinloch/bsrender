@@ -102,8 +102,8 @@ int initState(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   //
   // initialize target xz angle used in star rotations by setting target xy angle to 0
   //
-  bsr_state->target_xy_r=sqrt((bsr_state->target_x * bsr_state->target_x) + (bsr_state->target_y * bsr_state->target_y)); 
-  bsr_state->target_x=bsr_state->target_xy_r; // xy=0
+  bsr_state->target_3az_xy_r=sqrt((bsr_state->target_x * bsr_state->target_x) + (bsr_state->target_y * bsr_state->target_y)); 
+  bsr_state->target_x=bsr_state->target_3az_xy_r; // xy=0
   bsr_state->target_3az_xz=atan2(bsr_state->target_z, bsr_state->target_x);
 
   return(0);

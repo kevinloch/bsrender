@@ -129,13 +129,9 @@ typedef struct {
   double target_x;
   double target_y;
   double target_z;
-  //double target_r;
-  double target_xy_r;
-  double target_xz_r;
-  double target_yz_r;
+  double target_3az_xy_r;
   double target_3az_xy;
   double target_3az_xz;
-  //double target_3az_yz;
 } bsr_state_t;
 
 typedef struct {

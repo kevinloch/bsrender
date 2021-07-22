@@ -10,23 +10,23 @@
 
 Key features:
 
-  - 3D translations and rotations of camera position and aiming using ICRS spherical or Euclidian coordinates
+  - 3D translations/rotations of camera position/aiming using ICRS spherical or Euclidian coordinates
   - Customizable camera resolution, field of view, sensitivity, white balance, color saturation, and gamma
   - Camera color is accurately modeled with Planck spectrum and customizable bandpass filters for each color channel
   - Several raster projection modes are supported: lat/lon (equirectangular), Spherical (forward hemisphere centered), Spherical (front/rear hemispheres), Hammer, Mollewide
-  - Optional Airy disks dramatically improve the appearance of fields with individual stars and clusters
-  - Stars can be selected by parallax quality (parallax over error), distance from camera or target, and effective color temperature
+  - Optional accuratly modeled Airy disks provide photorealistic renderings of individual stars and clusters at the expense of significantly increased rendering time
+  - Stars can be filtered by parallax quality (parallax over error), distance from camera or target, and effective color temperature
   - Optional Gaussian blur and/or Lanczos2 output scaling.  This allows very high resolution renderings to be smoothed and downsampled on a server before downloading
-  - Good performance when the data files can be cached in ram.  On an AWS c6gd.12xlarge instance (48vcpu/96Gram) the full pq000 dataset (1.4B stars) can be rendered in 14 seconds at 2k resolution.  The default pq010 data set (98M stars) renders in just 2 seconds
+  - Good performance when the data files can be cached in ram.  On an AWS m6gd.12xlarge instance (48vcpu/192GBram) the full pq000 dataset (1.4B stars) can be rendered in 14 seconds at 2k resolution.  The default pq010 data set (98M stars) renders in just 2 seconds
   - Support for user-supplied stars.  This can be used to add stars that are too bright or dim to have their parallax measured by the Gaia satellite.  A sample external.csv is provided with the Sun and all stars brighter than magnitude 3 that are not included in the Gaia dataset or are not able to be imported into bsrender because they lack parallax and/or G-band flux
-  - Effective star temperature (color) is derived from Gaia bp/G and/or rp/G flux ratios
+  - Effective star temperature (color) is derived from Gaia bp/G and/or rp/G flux ratios for most stars.
   - 8 or 16 bits per color PNG output, with or without sRGB encoding gamma for either bit depth
   - Sample web interface includes presets for a few camera targets and several common Hubble bandpass filter settings (along with typical LRGB)
   
 Installation:
 
-  - Requires gcc and GNU make
-  - Requires libpng (static library)
+  - Requires gcc and GNU make (sudo bash; yum install gcc on aws)
+  - Requires libpng (static library) (sudo bash; yum install libpng-static on aws)
   - Compile with make (make on Linux and Mac w/Xcode, gmake on FreeBSD).  There is no 'configure' script yet
   - To extract and process your own data files, make sure the ./gaia_source contains the Gaia EDR3 compresed csv files
     - run 'gaia-edr3-extract.sh'
@@ -34,7 +34,7 @@ Installation:
     - edit 'external/external.csv' for user-supplied stars
     - run 'mkexternal' in the same directory as external.csv to generate the data files for user-supplied stars
   - To download sample data files (43GB total size) run the script 'getgalaxydata.sh'.  It will download the data files to the current directory
-  - Move galaxy-pq*.dat files to ./galaxydata or path specified in config file or -d comand line option
+  - Move galaxy-pq*.dat files to ./galaxydata or path specified in config file or -d comand line option.  Alternatively create a symbolic link to the galaxydata directory.
   - Edit options in bsrender.cfg for desired rendering settings.  Make sure bsrender.cfg is in current directory or use -c command line option to specify name and location
   - run 'bsrender', it will print progress messages and output an image to 'galaxy.png'
   - To use in cgi mode set 'cgi_mode' in bsrender.cfg.  All status messages are suppressed, and an html header followed by the png image is printed to stdout
@@ -42,14 +42,7 @@ Installation:
 
 Operation:
 
-  By default it will render a 360 degree lat/lon (equirectangular) projected panorama of the entire sky from the sun with the following camera settings:
-    Resolution: 2000x1000
-    Parallax quality: 0 [1.47B stars]
-    White balance: 4300K
-    Color saturation: 1.0
-    Pixel saturation magnitude: 7.75
-    Raster projection: lat/lon (equirectangular)
-    And other default settings identical to the sample bsrender.cfg
+  By default it will render a 360 degree lat/lon (equirectangular) projected panorama of the entire sky from the sun with the default settings in the sample bsrender.cfg.
 
   Descriptions of configuration options and their function are provided in the sample configuration file.  Options are set in the following sequence:
     - Compiled-in defaults
@@ -58,11 +51,14 @@ Operation:
     - CGI options
   Some options are privileged and cannot be set by CGI users.
 
-Notes:
+Helpful hints:
 
-  - Due to uncertainty in the parallax data of approximately 20 microarcseconds, things start to look weird as the camera is positioned a short distance away from the sun (more than 10 parsecs).  This is a limitation of the source data and not any bug or problem with the rendering engine.  If override parallax is enabled in mkgalaxy (by setting -p > 0), there will be a spherical shell of residual stars at 1000 / minimum_parallax parsecs from the Sun.  This is of course artificial but is better than having some stars (like LMC and SMC) much farther away from the galaxy than they really are.  The sample data files were generated with a 20 microarcsecond minimum parallax enforced and a 50 kpc artifical shell of distance-limited stars.
-  - Rendering with Airy disks enabled can be extremely slow.   Extra processing increases with the square of 'Airy_disk_max_extent' but is also increased by small values of 'Airy_disk_first_null' less than 1.0.  Additional cpus/rendering threads may help somewhat but the extra Airy disk pixels can still saturate memory bandwidth and the main thread.
-  - Otherwise, performance strongly depends on whether the binary data files can be completely cached in memory by the operating system. Multiple rendering threads are supported and performance typically limited by memory bandwidth on systems with more than 48 cores that have enough ram to cache all of the data files.
+  - Reducing the 'camera_fov' (zooming in) will generally require increasing 'camera_pixel_limit_mag' (pixel intensity limit in the web interface) which makes camera more sensitive to maintain the same subjective iamge brightness.  This is because dense star fields aggregate to brighter individual pixels with wider field of view.  For very narrow fields of view with individual stars, enabling Airy disks is Highly recommended. Otherwise the individual star pixels can be very hard to see and increasing 'camera_pixel_limit_mag' may just saturate those pixels without increasing subjective brightness.
+Notes:
+  - Similarly, increasing the camera resolution will generally require increasing 'camera_pixel_limit_mag' to maintain the same subjective image brightness.  Use caution with increasing 'camera_pixel_limit_mag' too high with very high resolutions and/or narrow fields of view.  Colors will desaturate as pixel intensity is saturated unless 'camera_pixel_limit_mode' is set to 1 (preserve color) and even then unnatural colors will result.  The key is to remain aware of when stars start to map to individual pixels and the approximate magnitude of those stars.  Enabling Airy disks provides significant freedom to "overexpose" pixels as overexposed stars will appear larger and still preserve some of their color in the outer parts of the Airy disk.
+  - Rendering time depends on many factors. It is essential that there is enough ram for the operating system to cache the entire binary dataset.   Enabling airy disks can take drastically longer, and this increases quadratically with the setting of 'Airy_disk_max_extent'.  This is because each star must then be mapped to ((2*max_extent)+1)^2 pixels instead of just one. The setting of 'Gaia_min_parallax_quality' affects rendering time based on the number of stars selected.  Wider fields of view contain more stars and take longer to render.  Very large image resolutions take longer, mainly due to the time spent initializing and processing the image buffers, but also in PNG generation.  Optional Gaussian blur and Lanczos2 resizing add minimal time but are also slower at larger resolutions.
+ - Star 'temperature' is effective temperature not actual star temperature, except for supplemental stars in he external.csv dataset.  This effective temperature corresponds to a Planck blackbody spectrum that is the closest fit to the Gaia rp, bp and G flux data.  Despite ignoring the distortion of stellar spectra by extinction this produces amazingly accurate star colors, often indistinguishable from Hubble photographs when Airy disks are enabled and the correct simulated Hubble passband filters are selected.
+  - Due to uncertainty in the parallax data of approximately 20 microarcseconds, things start to look weird as the camera is positioned more than a short distance away from the sun.  This is a limitation of the source data and not any bug or problem with the rendering engine.  If override parallax is enabled in mkgalaxy (by setting -p > 0), there will be a spherical shell of residual stars at 1000 / minimum_parallax parsecs from the Sun.  This is of course artificial but is better than having some stars (like LMC and SMC) much farther away from the galaxy than they really are.  The sample data files were generated with a 20 microarcsecond minimum parallax enforced and a 50 kpc artifical shell of distance-limited stars.
 
 CGI mode:
 
@@ -79,7 +75,7 @@ Methodology:
 
   Stars can be filtered by parallax quality, distance from either camera or target, and effective color temperature.
 
-  3D rotations for the camera target and stars are done with a 'triple-azimuth' method.  Three full 360 degree orthoganal angles (x,y), (x,z), and (y,z) provide redundancy for constant precision and avoiding gimbal lock.  After camera and star translation, the stars are rotated so the camera target is at x=0,z=0,r=r (if pan/tilt options are used then stars are further rotated by these angles). This allows for simple and fast mapping to verious raster projections (especially lat/lon).
+  3D rotations for the camera, target, and stars are done with a 'triple-azimuth' (3az) method. Three full 360 degree orthogonal angles (x->y), (x->z), and (y->z) provide redundancy for constant precision and eliminates gimbal lock. All angles range from -pi to +pi.  From the camera's perspective +x=forward, +y=left, and +z=up. Thus the camera is aimed at the target when the target is at 3az_xy=0, 3az_xz=0. Camera rotation (about the x axis) is controlled by the 3az_yz angle. Optional after-aim pan and tilt is done by rotating the 3az_xy and 3az_xz angles respectively away from the target.
 
   After translation and rotation stars are filtered by field of view and mapped to an image composition buffer pixel by the selected raster projection.  A star's linear intensity (adjusted for distance) is multiplied by the r,g,b lookup table for the star's effective color temperature.   If Airy disks are enabled then the pre-computed Airy disk map is used to generate additional pixels up to 'Airy_disk_max_radius' around the central pixel and the star's intensity*(r,g,b) values are multiplied by the Airy map factor for each Airy disk pixel.  These pixel(s) are added to any existing values for those pixel(s) and stored in the image composition buffer. The image composition buffer uses double precision floating point format so it can accurately handle many stars (or Airy map pixels) at the same location and to provide maximum flexibility for the post-processing steps.
 
