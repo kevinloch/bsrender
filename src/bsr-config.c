@@ -226,7 +226,9 @@ void setOptionValue(bsr_config_t *bsr_config, char *option, char *value, int fro
   checkOptionInt(&bsr_config->Gaia_min_parallax_quality, option, value, "Gaia_min_parallax_quality");
   checkOptionBool(&bsr_config->enable_external, option, value, "enable_external");
   checkOptionDouble(&bsr_config->render_distance_min, option, value, "render_distance_min");
+  bsr_config->render_distance_min2=bsr_config->render_distance_min * bsr_config->render_distance_min;
   checkOptionDouble(&bsr_config->render_distance_max, option, value, "render_distance_max");
+  bsr_config->render_distance_max2=bsr_config->render_distance_max * bsr_config->render_distance_max;
   checkOptionInt(&bsr_config->render_distance_selector, option, value, "render_distance_selector");
   checkOptionDouble(&bsr_config->star_color_min, option, value, "star_color_min");
   checkOptionDouble(&bsr_config->star_color_max, option, value, "star_color_max");

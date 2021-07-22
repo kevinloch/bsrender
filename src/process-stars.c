@@ -44,6 +44,19 @@
 //#define DEBUG
 
 int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_file) {
+  //
+  // This unreasonably monolithic function handles the most expensive operations in bsrender.  It performs the following:
+  //
+  // - reads stars from the supplied input file
+  // - filters stars by distance from target or camera, and color temperature
+  // - translates position relative to camera position
+  // - rotates stars to center on target
+  // - applies selected raster projection
+  // - optionally maps Airy disk pixels
+  // - deduplicates pixels to reduce load on memory bandwidth, which is typically the limiting performance factor on large servers with many cpus
+  // - sends pixels to main thread for integration into the image composition buffer
+  //
+
   int i;
   volatile int success; // gcc optimization breaks code without volatile keyword
   star_record_t star_record;
@@ -107,7 +120,7 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
   Airymap_xy=(Airymap_half_xy * 2) + 1;
 
   //
-  // read and process each line of input file, translate and rotate into position
+  // read and process each line of input file
   //
   input_count=0;
   dedup_count=0;
@@ -133,7 +146,7 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
     star_x=star_record.icrs_x - bsr_config->camera_icrs_x;
     star_y=star_record.icrs_y - bsr_config->camera_icrs_y;
     star_z=star_record.icrs_z - bsr_config->camera_icrs_z;
-    star_r2=pow(star_x, 2.0) + pow(star_y, 2.0) + pow(star_z, 2.0); // leave squared for better performance
+    star_r2=(star_x * star_x) + (star_y * star_y) + (star_z * star_z); // leave squared for now for better performance
 
     //
     // extract color_temperature from combined field
@@ -147,7 +160,10 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
     if (bsr_config->render_distance_selector == 0) { // selected point is camera
       render_distance2=star_r2; // star distance from camera
     } else { // selected point is target
-      render_distance2=pow((star_record.icrs_x - bsr_config->target_icrs_x), 2.0) + pow((star_record.icrs_y - bsr_config->target_icrs_y), 2.0) + pow((star_record.icrs_z - bsr_config->target_icrs_z), 2.0); // important, use un-translated/rotated coordinates
+      // leave squared
+      render_distance2=((star_record.icrs_x - bsr_config->target_icrs_x) * (star_record.icrs_x - bsr_config->target_icrs_x))\
+                     + ((star_record.icrs_y - bsr_config->target_icrs_y) * (star_record.icrs_y - bsr_config->target_icrs_y))\
+                     + ((star_record.icrs_z - bsr_config->target_icrs_z) * (star_record.icrs_z - bsr_config->target_icrs_z)); // important, use un-translated/rotated coordinates
     }
     if ((star_r2 > 0.0)\
      && (render_distance2 >= bsr_config->render_distance_min2) && (render_distance2 <= bsr_config->render_distance_max2)\
@@ -161,161 +177,97 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
       star_linear_intensity=star_linear_1pc_intensity / star_r2;
 
       //
-      // setup initial triple-azimuth (3az) variables for this star
-      //
-      star_xy_r=sqrt(pow(star_x, 2.0) + pow(star_y, 2.0)); // may be used in future rotations or raster projections
-      //star_xz_r=sqrt(pow(star_x, 2.0) + pow(star_z, 2.0)); // may be used in future rotations or raster projections
-      //star_yz_r=sqrt(pow(star_y, 2.0) + pow(star_z, 2.0)); // may be used in future rotations or raster projections
-      if ((star_x == 0.0) && (star_y == 0.0)) {
-        star_3az_xy=0.0;
-      } else {
-        star_3az_xy=atan2(star_y, star_x);
-      }
-      if ((star_x == 0.0) && (star_z == 0.0)) {
-        star_3az_xz=0.0;
-      } else {
-        star_3az_xz=atan2(star_z, star_x);
-      }
-      if ((star_y == 0.0) && (star_z == 0.0)) {
-        star_3az_yz=0.0;
-      } else {
-        star_3az_yz=atan2(star_z, star_y);
-      }
-
-      //
       // rotate star xy angle by target xy angle
       //
+      // initialize 3az_xy and xy_r
+      star_3az_xy=atan2(star_y, star_x);
+      star_xy_r=sqrt((star_x * star_x) + (star_y * star_y));
+      // rotate
       star_3az_xy-=bsr_state->target_3az_xy;
+      // wrap
       if (star_3az_xy > M_PI) {
         star_3az_xy = -two_pi + star_3az_xy;
       } else if (star_3az_xy < -M_PI) {
         star_3az_xy = two_pi + star_3az_xy;
       }
-      // apply star xy rotation angle to star xz angle, only x has changed
+      // update x and y
       star_x=star_xy_r * cos(star_3az_xy);
-      star_xz_r=sqrt(pow(star_x, 2.0) + pow(star_z, 2.0)); // may be used in future rotations or raster projections
-      if ((star_x == 0.0) && (star_z == 0.0)) {
-        star_3az_xz=0.0;
-      } else {
-        star_3az_xz=atan2(star_z, star_x);
-      }
-      // apply star xy rotation angle to star yz angle, only y has changed
       star_y=star_xy_r * sin(star_3az_xy);
-      //star_yz_r=sqrt(pow(star_y, 2.0) + pow(star_z, 2.0)); // may be used in future rotations or raster projections
-      if ((star_y == 0.0) && (star_z == 0.0)) {
-        star_3az_yz=0.0;
-      } else {
-        star_3az_yz=atan2(star_z, star_y);
-      }
 
       //
       // rotate star xz angle by (rotated) target xz angle
       //
+      // initialize 3az_xz and xz_r
+      star_3az_xz=atan2(star_z, star_x);
+      star_xz_r=sqrt((star_x * star_x) + (star_z * star_z));
+      // rotate
       star_3az_xz-=bsr_state->target_3az_xz;
+      // wrap
       if (star_3az_xz > M_PI) {
         star_3az_xz = -two_pi + star_3az_xz;
       } else if (star_3az_xz < -M_PI) {
         star_3az_xz = two_pi + star_3az_xz;
       }
-      // apply star xz rotation to star xy angle, only x has changed
+      // update x and z
       star_x=star_xz_r * cos(star_3az_xz);
-      //star_xy_r=sqrt(pow(star_x, 2.0) + pow(star_y, 2.0)); // may be used in future rotations or raster projections
-      if ((star_x == 0.0) && (star_y == 0.0)) {
-        star_3az_xy=0.0;
-      } else {
-        star_3az_xy=atan2(star_y, star_x);
-      }
-      // apply star xz rotation to star yz angle, only z has changed
       star_z=star_xz_r * sin(star_3az_xz);
-      star_yz_r=sqrt(pow(star_y, 2.0) + pow(star_z, 2.0)); // may be used in future rotations or raster projections
-      if ((star_y == 0.0) && (star_z == 0.0)) {
-        star_3az_yz=0.0;
-      } else {
-        star_3az_yz=atan2(star_z, star_y);
-      }
 
       //
       // rotate star yz angle by camera rotation angle
       //
+      // initialize 3az_xy and xy_r
+      star_3az_yz=atan2(star_z, star_y);
+      star_yz_r=sqrt((star_y * star_y) + (star_z * star_z));
+      // rotate
       star_3az_yz+=bsr_state->camera_3az_yz;
+      // wrap
       if (star_3az_yz > M_PI) {
         star_3az_yz = -two_pi + star_3az_yz;
       } else if (star_3az_yz < -M_PI) {
         star_3az_yz = two_pi + star_3az_yz;
       }
-      // apply star yz rotation to star xy angle, only y has changed
+      // update y and z
       star_y=star_yz_r * cos(star_3az_yz);
-      star_xy_r=sqrt(pow(star_x, 2.0) + pow(star_y, 2.0)); // may be used in future rotations or raster projections
-      if ((star_x == 0.0) && (star_y == 0.0)) {
-        star_3az_xy=0.0;
-      } else {
-        star_3az_xy=atan2(star_y, star_x);
-      }
-      // apply star yz rotation to star xz angle, only z has changed
       star_z=star_yz_r * sin(star_3az_yz);
-      star_xz_r=sqrt(pow(star_x, 2.0) + pow(star_z, 2.0)); // may be used in future rotations or raster projections
-      if ((star_x == 0.0) && (star_z == 0.0)) {
-        star_3az_xz=0.0;
-      } else {
-        star_3az_xz=atan2(star_z, star_x);
-      }
 
       //
-      // optionally pan camera left/right
+      // optionally pan camera left/right (xy angle)
       //
       if (bsr_config->camera_pan != 0) {
-        // optionally rotate star xy angle by camera pan angle
+        // initialize 3az_xy and xy_r
+        star_3az_xy=atan2(star_y, star_x);
+        star_xy_r=sqrt((star_x * star_x) + (star_y * star_y));
+        // rotate
         star_3az_xy+=bsr_state->camera_3az_xy;
+        // wrap
         if (star_3az_xy > M_PI) {
           star_3az_xy = -two_pi + star_3az_xy;
         } else if (star_3az_xy < -M_PI) {
           star_3az_xy = two_pi + star_3az_xy;
         }
-        // apply star xy rotation angle to star xz angle, only x has changed
+        // update x and y
         star_x=star_xy_r * cos(star_3az_xy);
-        star_xz_r=sqrt(pow(star_x, 2.0) + pow(star_z, 2.0)); // may be used in future rotations or raster projections
-        if ((star_x == 0.0) && (star_z == 0.0)) {
-          star_3az_xz=0.0;
-        } else {
-          star_3az_xz=atan2(star_z, star_x);
-        }
-        // apply star xy rotation angle to star yz angle, only y has changed
         star_y=star_xy_r * sin(star_3az_xy);
-        //star_yz_r=sqrt(pow(star_y, 2.0) + pow(star_z, 2.0)); // may be used in future rotations or raster projections
-        if ((star_y == 0.0) && (star_z == 0.0)) {
-          star_3az_yz=0.0;
-        } else {
-          star_3az_yz=atan2(star_z, star_y);
-        }
       }
 
       //
-      // optionally pan camera up/down
+      // optionally pan camera up/down (xz_angle)
       //
       if (bsr_config->camera_tilt != 0.0) {
-        // optionally rotate star xz angle by camera tilt angle
+        // initialize 3az_xz and xz_r
+        star_3az_xz=atan2(star_z, star_x);
+        star_xz_r=sqrt((star_x * star_x) + (star_z * star_z));
+        // rotate
         star_3az_xz+=bsr_state->camera_3az_xz;
+        // wrap
         if (star_3az_xz > M_PI) {
           star_3az_xz = -two_pi + star_3az_xz;
         } else if (star_3az_xz < -M_PI) {
           star_3az_xz = two_pi + star_3az_xz;
         }
-        // apply star xz rotation to star xy angle, only x has changed
+        // update x and z
         star_x=star_xz_r * cos(star_3az_xz);
-        star_xy_r=sqrt(pow(star_x, 2.0) + pow(star_y, 2.0)); // may be used in future rotations or raster projections
-        if ((star_x == 0.0) && (star_y == 0.0)) {
-          star_3az_xy=0.0;
-        } else {
-          star_3az_xy=atan2(star_y, star_x);
-        }
-        // apply star xz rotation to star yz angle, only z has changed
         star_z=star_xz_r * sin(star_3az_xz);
-        //star_yz_r=sqrt(pow(star_y, 2.0) + pow(star_z, 2.0)); // may be used in future rotations or raster projections
-        if ((star_y == 0.0) && (star_z == 0.0)) {
-          star_3az_yz=0.0;
-        } else {
-          star_3az_yz=atan2(star_z, star_y);
-        }
       }
 
       //
@@ -323,14 +275,18 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
       //
       if (bsr_config->camera_projection == 0) {
         // lat/lon 
+        star_r=sqrt(star_r2);
+        star_3az_xy=atan2(star_y, star_x);
         output_az=star_3az_xy;
-        output_el=atan2(star_z, star_xy_r);
+        output_el=asin(star_z / star_r);
         output_x=(int)((-bsr_state->pixels_per_radian * output_az) + bsr_state->camera_half_res_x - 0.5);
         output_y=(int)((-bsr_state->pixels_per_radian * output_el) + bsr_state->camera_half_res_y - 0.5);
       } else if (bsr_config->camera_projection == 1) {
         // spherical
         star_r=sqrt(star_r2);
-        spherical_distance=asin(sqrt(pow(star_y, 2.0) + pow(star_z, 2.0)) / star_r);
+        star_yz_r=sqrt((star_y * star_y) + (star_z * star_z));
+        spherical_distance=asin(star_yz_r / star_r);
+        star_3az_yz=atan2(star_z, star_y);
         spherical_angle=star_3az_yz;
         output_az=spherical_distance * cos(spherical_angle);
         output_el=spherical_distance * sin(spherical_angle);
@@ -353,14 +309,18 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
         output_y=(int)((-bsr_state->pixels_per_radian * output_el) + bsr_state->camera_half_res_y - 0.5);
       } else if (bsr_config->camera_projection == 2) {
         // Hammer
+        star_r=sqrt(star_r2);
+        star_3az_xy=atan2(star_y, star_x);
         output_az_by2=star_3az_xy / 2.0;
-        output_el=atan2(star_z, star_xy_r);
+        output_el=asin(star_z / star_r);
         output_x=(int)((-bsr_state->pixels_per_radian * M_PI * cos(output_el) * sin(output_az_by2) / (sqrt(1.0 + (cos(output_el) * cos(output_az_by2))))) + bsr_state->camera_half_res_x - 0.5);
         output_y=(int)((-bsr_state->pixels_per_radian * pi_over_2 * sin(output_el) / (sqrt(1.0 + (cos(output_el) * cos(output_az_by2))))) + bsr_state->camera_half_res_y - 0.5);
       } else if (bsr_config->camera_projection == 3) {
         // Mollewide
+        star_r=sqrt(star_r2);
+        star_3az_xy=atan2(star_y, star_x);
         output_az=star_3az_xy;
-        output_el=atan2(star_z, star_xy_r);
+        output_el=asin(star_z / star_r);
         two_mollewide_angle=2.0 * asin(2.0 * output_el / M_PI);
         for (i=0; i < bsr_config->Mollewide_iterations; i++) {
           two_mollewide_angle-=(two_mollewide_angle + sin(two_mollewide_angle) - (M_PI * sin(output_el))) / (1.0 + cos(two_mollewide_angle));
@@ -371,7 +331,7 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
       }
 
       //
-      // if star is within raster bounds, write to thread buffer to send to main thread for integration in final image
+      // if star is within raster bounds, write to dedup buffer and ultimately send to main thread for integration in final image
       //
       if ((output_x >= 0) && (output_x < bsr_config->camera_res_x) && (output_y >= 0) && (output_y < bsr_config->camera_res_y)) {
         if (bsr_config->Airy_disk == 1) {
@@ -391,7 +351,7 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
               if ((Airymap_output_x >= 0) && (Airymap_output_x < bsr_config->camera_res_x) && (Airymap_output_y >= 0) && (Airymap_output_y < bsr_config->camera_res_y)
                 && (*Airymap_red_p > 0.0) && (*Airymap_green_p > 0.0) && (*Airymap_blue_p > 0.0)) {
                 //
-                // Airymap pixel is within image raster, put in my thread buffer
+                // Airymap pixel is within image raster, check dedup buffer
                 //
                 image_offset=((long long)bsr_config->camera_res_x * (long long)Airymap_output_y) + (long long)Airymap_output_x;
                 if (bsr_state->dedup_index_mode == 0) {
@@ -518,7 +478,7 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
           } // end for Airymap_y
         } else {
           //
-          // not Airy disk mode, check if this pixel in the dedup buffer
+          // not Airy disk mode, check dedup buffer for this pixel location
           //
           image_offset=((long long)bsr_config->camera_res_x * (long long)output_y) + (long long)output_x;
           if (bsr_state->dedup_index_mode == 0) {
@@ -648,7 +608,7 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
   } // end input loop
 
   //
-  // check for remaining pixels in dedup buffer and send to main thread
+  // done with input file, check for any remaining pixels in dedup buffer and send to main thread
   //
   if (dedup_count > 0) {
     dedup_buf_p=bsr_state->dedup_buf;

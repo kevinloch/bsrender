@@ -93,37 +93,21 @@ int initState(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   bsr_state->target_x=bsr_config->target_icrs_x - bsr_config->camera_icrs_x;
   bsr_state->target_y=bsr_config->target_icrs_y - bsr_config->camera_icrs_y;
   bsr_state->target_z=bsr_config->target_icrs_z - bsr_config->camera_icrs_z;
-  //bsr_state->target_r=sqrt(pow(bsr_state->target_x, 2.0) + pow(bsr_state->target_y, 2.0) + pow(bsr_state.target_z, 2.0));
-  bsr_state->target_xy_r=sqrt(pow(bsr_state->target_x, 2.0) + pow(bsr_state->target_y, 2.0)); // may be used in future rotations or raster projections
-  //bsr_state->target_xz_r=sqrt(pow(bsr_state->target_x, 2.0) + pow(bsr_state->target_z, 2.0)); // may be used in future rotations or raster projections
-  //bsr_state->target_yz_r=sqrt(pow(bsr_state->target_y, 2.0) + pow(bsr_state->target_z, 2.0)); // may be used in future rotations or raster projections
-  if ((bsr_state->target_x == 0.0) && (bsr_state->target_y == 0.0)) {
-    bsr_state->target_3az_xy=0.0;
-  } else {
-    bsr_state->target_3az_xy=atan2(bsr_state->target_y, bsr_state->target_x);
-  }
-  if ((bsr_state->target_x == 0.0) && (bsr_state->target_z == 0.0)) {
-    bsr_state->target_3az_xz=0.0;
-  } else {
-    bsr_state->target_3az_xz=atan2(bsr_state->target_z, bsr_state->target_x);
-  }
-  //if ((bsr_state->target_y == 0.0) && (bsr_state->target_z == 0.0)) {
-  //  bsr_state->target_3az_yz=0.0;
-  //} else {
-  //  bsr_state->target_3az_yz=atan2(bsr_state->target_z, bsr_state->target_y);
-  //}
+  //bsr_state->target_r=sqrt((bsr_state->target_x * bsr_state->target_x) + (bsr_state->target_y * bsr_state->target_y) + (bsr_state.target_z * bsr_state.target_z));
+  bsr_state->target_xy_r=sqrt((bsr_state->target_x * bsr_state->target_x) + (bsr_state->target_y * bsr_state->target_y)); // may be used in future rotations or raster projections
+  //bsr_state->target_xz_r=sqrt((bsr_state->target_x * bsr_state->target_x) + (bsr_state->target_z * bsr_state->target_z)); // may be used in future rotations or raster projections
+  //bsr_state->target_yz_r=sqrt((bsr_state->target_y * bsr_state->target_y) + (bsr_state->target_z * bsr_state->target_z)); // may be used in future rotations or raster projections
+  bsr_state->target_3az_xy=atan2(bsr_state->target_y, bsr_state->target_x);
+  bsr_state->target_3az_xz=atan2(bsr_state->target_z, bsr_state->target_x);
+  //bsr_state->target_3az_yz=atan2(bsr_state->target_z, bsr_state->target_y);
 
   //
   // calculate target xz rotation after setting xy=0
   //
   // apply target xy rotation angle to target xz angle, only x has changed
   bsr_state->target_x=bsr_state->target_xy_r; // xy=0
-  //bsr_state->target_xz_r=sqrt(pow(bsr_state->target_x, 2.0) + pow(bsr_state->target_z, 2.0)); // may be used in future rotations or raster projections
-  if ((bsr_state->target_x == 0.0) && (bsr_state->target_z == 0.0)) {
-    bsr_state->target_3az_xz=0.0;
-  } else {
-    bsr_state->target_3az_xz=atan2(bsr_state->target_z, bsr_state->target_x);
-  }
+  //bsr_state->target_xz_r=sqrt((bsr_state->target_x * bsr_state->target_x) + (bsr_state->target_z * bsr_state->target_z)); // may be used in future rotations or raster projections
+  bsr_state->target_3az_xz=atan2(bsr_state->target_z, bsr_state->target_x);
 
   return(0);
 }
