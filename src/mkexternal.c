@@ -216,9 +216,6 @@ int main(int argc, char **argv) {
       star_record.intensity_and_temperature <<= 32;
       star_record.intensity_and_temperature |= color_temperature;
 
-printf("ra_rad: %.6e, dec_rad: %.6e, distance: %.6e, linear_intensity: %.6e, linear_1pc_intensity: %.6e, temperature: %ld, intensity_and_temperature: %16lx\n", ra_rad, dec_rad, distance, linear_intensity, linear_1pc_intensity, color_temperature, star_record.intensity_and_temperature);
-fflush(stdout);
-
       //
       // output transformed fields to output dat file
       //

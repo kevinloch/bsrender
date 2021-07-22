@@ -619,6 +619,7 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
         bsr_state->perthread->thread_buf_p-=bsr_state->per_thread_buffers;
       }
       success=0;
+      idle_count=0;
       while (success == 0) {
         // check if we've written a pixel to this location before and it has not been read/cleared by main thread yet
         if ((bsr_state->perthread->thread_buf_p->status_left == 0) && (bsr_state->perthread->thread_buf_p->status_right == 0)) {
@@ -647,6 +648,13 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
           dedup_buf_p->b=0.0;
           dedup_buf_p++;
           success=1;
+        } else {
+          idle_count++;
+          if (idle_count > 10000) {
+            // check if main thread is still alive
+            checkExceptions(bsr_state);
+            idle_count=0;
+          }
         } // end if buffer slot is available
       } // end while success=0
     } // end for dedup_buf_i
