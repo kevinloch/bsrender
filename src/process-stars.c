@@ -41,8 +41,6 @@
 #include <math.h>
 #include "util.h"
 
-//#define DEBUG
-
 int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_file) {
   //
   // This unreasonably monolithic function handles the most expensive operations in bsrender.  It performs the following:
@@ -107,11 +105,6 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
   int dedup_buf_i;
   int idle_count;
   long long input_count;
-#ifdef DEBUG
-  long long collision_count;
-  long long initial_count;
-  long long dup_count;
-#endif
 
   //
   // init shortcut variables
@@ -124,11 +117,6 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
   //
   input_count=0;
   dedup_count=0;
-#ifdef DEBUG
-  collision_count=0;
-  initial_count=0;
-  dup_count=0;
-#endif
   fread(&star_record, star_record_size, 1, input_file);
   while ((feof(input_file) == 0) && (ferror(input_file) == 0)) {
     input_count++;
@@ -361,9 +349,6 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
                 }
                 dedup_index_p=bsr_state->dedup_index + dedup_index_offset;
                 if (dedup_index_p->dedup_record_p == NULL) {
-#ifdef DEBUG
-                  initial_count++;
-#endif
                   // no dup yet, just store value in next dedup buffer record and update index
                   dedup_count++;
                   dedup_buf_p=bsr_state->dedup_buf + (dedup_count - 1);
@@ -373,9 +358,6 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
                   dedup_buf_p->b=(star_linear_intensity * *Airymap_green_p * star_rgb_blue);
                   dedup_index_p->dedup_record_p=dedup_buf_p;
                 } else if (dedup_index_p->dedup_record_p->image_offset == image_offset) {
-#ifdef DEBUG
-                  dup_count++;
-#endif
                   // duplicate pixel locaiton, add to existing dedup buffer record values
                   dedup_buf_p=dedup_index_p->dedup_record_p;
                   dedup_buf_p->r+=(star_linear_intensity * *Airymap_green_p * star_rgb_red);
@@ -383,9 +365,6 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
                   dedup_buf_p->b+=(star_linear_intensity * *Airymap_green_p * star_rgb_blue);
                 } else {
                   // dedup index collision, send this pixel directly to main thread
-#ifdef DEBUG
-                  collision_count++;
-#endif
                   if (bsr_state->perthread->thread_buffer_index == bsr_state->per_thread_buffers) {
                     // end of our section of thread_buf, rewind
                     bsr_state->perthread->thread_buffer_index=0;
@@ -488,9 +467,6 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
           }
           dedup_index_p=bsr_state->dedup_index + dedup_index_offset;
           if (dedup_index_p->dedup_record_p == NULL) {
-#ifdef DEBUG
-            initial_count++;
-#endif
             // no dup yet, just store value in next dedup buffer record and update index
             dedup_count++;
             dedup_buf_p=bsr_state->dedup_buf + (dedup_count - 1);
@@ -500,9 +476,6 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
             dedup_buf_p->b=(star_linear_intensity * bsr_state->rgb_blue[color_temperature]);
             dedup_index_p->dedup_record_p=dedup_buf_p;
           } else if (dedup_index_p->dedup_record_p->image_offset == image_offset) {
-#ifdef DEBUG
-            dup_count++;
-#endif
             // duplicate pixel locaiton, add to existing dedup buffer record values
             dedup_buf_p=dedup_index_p->dedup_record_p;
             dedup_buf_p->r+=(star_linear_intensity * bsr_state->rgb_red[color_temperature]);
@@ -510,9 +483,6 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
             dedup_buf_p->b+=(star_linear_intensity * bsr_state->rgb_blue[color_temperature]);
           } else {
             // dedup index collision, send this pixel directly to main thread
-#ifdef DEBUG
-            collision_count++;
-#endif
             if (bsr_state->perthread->thread_buffer_index == bsr_state->per_thread_buffers) {
               // end of our section of thread_buf, rewind
               bsr_state->perthread->thread_buffer_index=0;
@@ -659,11 +629,6 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
       } // end while success=0
     } // end for dedup_buf_i
   } // end if dedup buffer has remaining entries
-
-#ifdef DEBUG
-  printf("inputs: %lld, initial: %lld, dups: %lld, dedup ratio: %.4f, collisions: %lld, collision ratio: %.4f\n", input_count, initial_count, dup_count, ((float)dup_count / (float)initial_count), collision_count, ((float)collision_count / (float)(initial_count + dup_count))); 
-  fflush(stdout);
-#endif
 
   return(0);
 }
