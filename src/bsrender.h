@@ -39,7 +39,7 @@
 #ifndef BSRENDER_H
 #define BSRENDER_H
 
-#define BSR_VERSION "0.9-dev-52"
+#define BSR_VERSION "0.9-dev-54"
 
 #define _GNU_SOURCE // needed for strcasestr in string.h
 #include <stdint.h> // needed for uint64_t
@@ -90,6 +90,7 @@ typedef struct {
   int thread_buffer_index;
   int my_thread_id;
   pid_t my_pid;
+  int dedup_count;
 } bsr_thread_state_t;
 
 typedef struct {

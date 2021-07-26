@@ -355,6 +355,7 @@ int main(int argc, char **argv) {
     dedup_buf_p->b=0.0;
     dedup_buf_p++;
   }
+  bsr_state->perthread->dedup_count=0;
 
   //
   // allocate non-shared memory for dedup index and initialize
