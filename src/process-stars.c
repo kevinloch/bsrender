@@ -224,7 +224,6 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
   double star_x;
   double star_y;
   double star_z;
-  double star_r;
   double star_r2; // squared
   double star_3az_xy_r;
   double star_3az_xz_r;
@@ -393,19 +392,16 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
       //
       if (bsr_config->camera_projection == 0) {
         // lat/lon 
-        star_r=sqrt(star_r2);
-        star_3az_xy=atan2(star_y, star_x);
-        output_az=star_3az_xy;
-        output_el=asin(star_z / star_r);
-        output_x=(int)((-bsr_state->pixels_per_radian * output_az) + bsr_state->camera_half_res_x - 0.5);
-        output_y=(int)((-bsr_state->pixels_per_radian * output_el) + bsr_state->camera_half_res_y - 0.5);
+        star_3az_xy_r=sqrt((star_x * star_x) + (star_y * star_y));
+        output_az=atan2(star_y, star_x); // star_3az_xy
+        output_el=atan2(star_z, star_3az_xy_r);
+        output_x=(int)((-bsr_state->pixels_per_radian * output_az) + bsr_state->camera_half_res_x);
+        output_y=(int)((-bsr_state->pixels_per_radian * output_el) + bsr_state->camera_half_res_y);
       } else if (bsr_config->camera_projection == 1) {
         // spherical
-        star_r=sqrt(star_r2);
         star_3az_yz_r=sqrt((star_y * star_y) + (star_z * star_z));
-        spherical_distance=asin(star_3az_yz_r / star_r);
-        star_3az_yz=atan2(star_z, star_y);
-        spherical_angle=star_3az_yz;
+        spherical_angle=atan2(star_z, star_y); // star_3az_yz
+        spherical_distance=atan2(star_3az_yz_r, fabs(star_x));
         output_az=spherical_distance * cos(spherical_angle);
         output_el=spherical_distance * sin(spherical_angle);
         if (bsr_config->spherical_orientation == 1) { // side by side orientation
@@ -423,29 +419,28 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
             } 
           }
         }
-        output_x=(int)((-bsr_state->pixels_per_radian * output_az) + bsr_state->camera_half_res_x - 0.5);
-        output_y=(int)((-bsr_state->pixels_per_radian * output_el) + bsr_state->camera_half_res_y - 0.5);
+        output_x=(int)((-bsr_state->pixels_per_radian * output_az) + bsr_state->camera_half_res_x);
+        output_y=(int)((-bsr_state->pixels_per_radian * output_el) + bsr_state->camera_half_res_y);
       } else if (bsr_config->camera_projection == 2) {
         // Hammer
-        star_r=sqrt(star_r2);
+        star_3az_xy_r=sqrt((star_x * star_x) + (star_y * star_y));
         star_3az_xy=atan2(star_y, star_x);
         output_az_by2=star_3az_xy / 2.0;
-        output_el=asin(star_z / star_r);
-        output_x=(int)((-bsr_state->pixels_per_radian * M_PI * cos(output_el) * sin(output_az_by2) / (sqrt(1.0 + (cos(output_el) * cos(output_az_by2))))) + bsr_state->camera_half_res_x - 0.5);
-        output_y=(int)((-bsr_state->pixels_per_radian * pi_over_2 * sin(output_el) / (sqrt(1.0 + (cos(output_el) * cos(output_az_by2))))) + bsr_state->camera_half_res_y - 0.5);
+        output_el=atan2(star_z, star_3az_xy_r);
+        output_x=(int)((-bsr_state->pixels_per_radian * M_PI * cos(output_el) * sin(output_az_by2) / (sqrt(1.0 + (cos(output_el) * cos(output_az_by2))))) + bsr_state->camera_half_res_x);
+        output_y=(int)((-bsr_state->pixels_per_radian * pi_over_2 * sin(output_el) / (sqrt(1.0 + (cos(output_el) * cos(output_az_by2))))) + bsr_state->camera_half_res_y);
       } else if (bsr_config->camera_projection == 3) {
         // Mollewide
-        star_r=sqrt(star_r2);
-        star_3az_xy=atan2(star_y, star_x);
-        output_az=star_3az_xy;
-        output_el=asin(star_z / star_r);
+        star_3az_xy_r=sqrt((star_x * star_x) + (star_y * star_y));
+        output_az=atan2(star_y, star_x); // star_3az_xy
+        output_el=atan2(star_z, star_3az_xy_r);
         two_mollewide_angle=2.0 * asin(2.0 * output_el / M_PI);
         for (i=0; i < bsr_config->Mollewide_iterations; i++) {
           two_mollewide_angle-=(two_mollewide_angle + sin(two_mollewide_angle) - (M_PI * sin(output_el))) / (1.0 + cos(two_mollewide_angle));
         }
         mollewide_angle=two_mollewide_angle * 0.5;
-        output_x=(int)((-bsr_state->pixels_per_radian * output_az * cos(mollewide_angle)) + bsr_state->camera_half_res_x - 0.5);
-        output_y=(int)((-bsr_state->pixels_per_radian * pi_over_2 * sin(mollewide_angle)) + bsr_state->camera_half_res_y - 0.5);
+        output_x=(int)((-bsr_state->pixels_per_radian * output_az * cos(mollewide_angle)) + bsr_state->camera_half_res_x);
+        output_y=(int)((-bsr_state->pixels_per_radian * pi_over_2 * sin(mollewide_angle)) + bsr_state->camera_half_res_y);
       }
 
       //

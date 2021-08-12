@@ -53,9 +53,9 @@ void initConfig(bsr_config_t *bsr_config) {
   bsr_config->cgi_max_res_y=999999;
   bsr_config->cgi_Gaia_min_parallax_quality=0;
   bsr_config->cgi_allow_Airy_disk=1;
-  bsr_config->cgi_max_Airy_disk_camera_fov=400.0;
+  bsr_config->cgi_max_Airy_disk_camera_fov=500.0;
   bsr_config->cgi_min_Airy_disk_first_null=0.3;
-  bsr_config->cgi_max_Airy_disk_max_extent=100;
+  bsr_config->cgi_max_Airy_disk_max_extent=500;
   bsr_config->enable_Gaia=1;
   bsr_config->Gaia_min_parallax_quality=0;
   bsr_config->enable_external=0;
@@ -433,14 +433,14 @@ int loadConfigFromQueryString(bsr_config_t *bsr_config, char *query_string) {
 }
 
 int validateCGIOptions(bsr_config_t *bsr_config) {
-  if (bsr_config->camera_res_x < 10) {
-    bsr_config->camera_res_x=10;
+  if (bsr_config->camera_res_x < 1) {
+    bsr_config->camera_res_x=1;
   }
   if (bsr_config->camera_res_x > bsr_config->cgi_max_res_x) {
     bsr_config->camera_res_x=bsr_config->cgi_max_res_x;
   }
-  if (bsr_config->camera_res_y < 10) {
-    bsr_config->camera_res_y=10;
+  if (bsr_config->camera_res_y < 1) {
+    bsr_config->camera_res_y=1;
   }
   if (bsr_config->camera_res_y > bsr_config->cgi_max_res_y) {
     bsr_config->camera_res_y=bsr_config->cgi_max_res_y;

@@ -118,13 +118,13 @@ int resizeLanczos(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   resize_x=0;
   resize_y=(bsr_state->perthread->my_thread_id * lines_per_thread);
   image_resize_p=bsr_state->image_resize_buf + ((long long)bsr_state->perthread->my_thread_id * (long long)lines_per_thread * resize_res_x);
-  for (resize_i=0; ((resize_i < (resize_res_x * lines_per_thread)) && (resize_y < (resize_res_y - 1))); resize_i++) {
+  for (resize_i=0; ((resize_i < (resize_res_x * lines_per_thread)) && (resize_y < resize_res_y)); resize_i++) {
     if (resize_x == resize_res_x) {
       resize_x=0;
       resize_y++;
     }
-    source_x_center=((double)resize_x * source_w) + half_source_w + 0.5;
-    source_y_center=((double)resize_y * source_w) + half_source_w + 0.5;
+    source_x_center=((double)resize_x * source_w) + half_source_w - 0.5;
+    source_y_center=((double)resize_y * source_w) + half_source_w - 0.5;
     L_y_r=0.0;
     L_y_g=0.0;
     L_y_b=0.0;

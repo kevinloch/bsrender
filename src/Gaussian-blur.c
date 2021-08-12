@@ -108,7 +108,7 @@ int GaussianBlur(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   //
   G_kernel_sum=0.0;
   G_kernel_p=G_kernel_array;
-  for (kernel_i=-half_sample_size+1; kernel_i < half_sample_size; kernel_i++) {
+  for (kernel_i=-half_sample_size + 1; kernel_i < half_sample_size; kernel_i++) {
     G=exp(-(double)kernel_i * (double)kernel_i / (2.0 * radius * radius)) / sqrt(2.0 * M_PI * radius * radius);
     G_kernel_sum+=G;
     *G_kernel_p=G;
@@ -119,7 +119,7 @@ int GaussianBlur(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   // all threads: normalize Gaussian kernel
   //
   G_kernel_p=G_kernel_array;
-  for (kernel_i=-half_sample_size+1; kernel_i < half_sample_size; kernel_i++) {
+  for (kernel_i=-half_sample_size + 1; kernel_i < half_sample_size; kernel_i++) {
     *G_kernel_p/=G_kernel_sum;
     G_kernel_p++;
   } // end for kernel
@@ -133,6 +133,9 @@ int GaussianBlur(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   blur_res_x=current_image_res_x;
   blur_res_y=current_image_res_y;
   lines_per_thread=(int)ceil(((double)current_image_res_y / (double)(bsr_state->num_worker_threads + 1)));
+  if (lines_per_thread < 1) {
+    lines_per_thread=1;
+  }
 
   //
   // worker threads:  wait for main thread to say go
@@ -153,7 +156,7 @@ int GaussianBlur(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   blur_x=0;
   blur_y=(bsr_state->perthread->my_thread_id * lines_per_thread);
   image_blur_p=bsr_state->image_blur_buf + ((long long)bsr_state->perthread->my_thread_id * (long long)lines_per_thread * (long long)blur_res_x);
-  for (blur_i=0; ((blur_i < (blur_res_x * lines_per_thread)) && (blur_y < (blur_res_y - 1))); blur_i++) {
+  for (blur_i=0; ((blur_i < (blur_res_x * lines_per_thread)) && (blur_y < blur_res_y)); blur_i++) {
     if (blur_x == blur_res_x) {
       blur_x=0;
       blur_y++;
@@ -166,7 +169,7 @@ int GaussianBlur(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
     G_g=0.0;
     G_b=0.0;
     G_kernel_p=G_kernel_array;
-    for (kernel_i=-half_sample_size+1; kernel_i < half_sample_size; kernel_i++) {
+    for (kernel_i=-half_sample_size + 1; kernel_i < half_sample_size; kernel_i++) {
       source_x=blur_x + kernel_i;
       if ((source_x >= 0) && (source_x < current_image_res_x)) {
         current_image_offset=((long long)blur_y * (long long)blur_res_x) + (long long)source_x;
@@ -174,8 +177,8 @@ int GaussianBlur(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
         G_r+=(current_image_p->r * *G_kernel_p);
         G_g+=(current_image_p->g * *G_kernel_p);
         G_b+=(current_image_p->b * *G_kernel_p);
-        G_kernel_p++;
       } // end if within current image bounds
+        G_kernel_p++;
     } // end for kernel
 
     //
@@ -213,7 +216,7 @@ int GaussianBlur(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   blur_x=0;
   blur_y=(bsr_state->perthread->my_thread_id * lines_per_thread);
   image_blur_p=bsr_state->current_image_buf + ((long long)bsr_state->perthread->my_thread_id * (long long)lines_per_thread * blur_res_x);
-  for (blur_i=0; ((blur_i < (blur_res_x * lines_per_thread)) && (blur_y < (blur_res_y - 1))); blur_i++) {
+  for (blur_i=0; ((blur_i < (blur_res_x * lines_per_thread)) && (blur_y < blur_res_y)); blur_i++) {
     if (blur_x == blur_res_x) {
       blur_x=0;
       blur_y++;
@@ -226,7 +229,7 @@ int GaussianBlur(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
     G_g=0.0;
     G_b=0.0;
     G_kernel_p=G_kernel_array;
-    for (kernel_i=-half_sample_size+1; kernel_i < half_sample_size; kernel_i++) {
+    for (kernel_i=-half_sample_size + 1; kernel_i < half_sample_size; kernel_i++) {
       source_y=blur_y + kernel_i;
       if ((source_y >= 0) && (source_y < current_image_res_y)) {
         current_image_offset=((long long)source_y * (long long)blur_res_x) + (long long)blur_x;
@@ -234,8 +237,8 @@ int GaussianBlur(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
         G_r+=(current_image_p->r * *G_kernel_p);
         G_g+=(current_image_p->g * *G_kernel_p);
         G_b+=(current_image_p->b * *G_kernel_p);
-        G_kernel_p++;
       } // end if within current image bounds
+        G_kernel_p++;
     } // end for kernel
 
     //

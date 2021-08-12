@@ -127,6 +127,7 @@ int main(int argc, char **argv) {
   size_t resize_buffer_size=0;
   size_t status_array_size=0;
   size_t dedup_buffer_size=0;
+  size_t dedup_index_count=0;
   size_t dedup_index_size=0;
   size_t Airymap_size=0;
   size_t thread_buffer_size=0;
@@ -362,10 +363,12 @@ int main(int argc, char **argv) {
   //
   if ((long long)bsr_config.camera_res_x * (long long)bsr_config.camera_res_y <= 16777216) {
     bsr_state->dedup_index_mode=0; // use image_offset for dedup index
-    dedup_index_size=bsr_config.camera_res_x * bsr_config.camera_res_y * sizeof(dedup_index_t); 
+    dedup_index_count=bsr_config.camera_res_x * bsr_config.camera_res_y;
+    dedup_index_size=dedup_index_count * sizeof(dedup_index_t); 
   } else {
     bsr_state->dedup_index_mode=1; // use lowest 24 bits of image_offset for dedup index
-    dedup_index_size=0xffffff * sizeof(dedup_index_t);
+    dedup_index_count=0xffffff;
+    dedup_index_size=dedup_index_count * sizeof(dedup_index_t);
   }
   bsr_state->dedup_index=(dedup_index_t *)malloc(dedup_index_size);
   if (bsr_state->dedup_index == NULL) {
@@ -376,7 +379,7 @@ int main(int argc, char **argv) {
   }
   // initialize dedup index
   dedup_index_p=bsr_state->dedup_index;
-  for (i=0; i < (bsr_state->per_thread_buffers); i++) {
+  for (i=0; i < dedup_index_count; i++) {
     dedup_index_p->dedup_record_p=NULL;
     dedup_index_p++;
   }
@@ -669,7 +672,7 @@ int main(int argc, char **argv) {
           image_composition_p->b+=main_thread_buf_p->b;
           // set this buffer location to free
           main_thread_buf_p->status_left=0;
-	  main_thread_buf_p->status_right=0;
+          main_thread_buf_p->status_right=0;
         }
         main_thread_buf_p++;
       } // end for thread_buffer_index
