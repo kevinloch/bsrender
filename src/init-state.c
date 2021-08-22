@@ -69,7 +69,7 @@ bsr_state_t *initState(bsr_config_t *bsr_config) {
   }
 
   //
-  // calculate number of rendering threads to be forked
+  // calculate number of worker threads to be forked
   //
   bsr_state->num_worker_threads=bsr_config->num_threads-1;
   if (bsr_state->num_worker_threads < 1) {

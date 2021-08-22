@@ -172,7 +172,7 @@ int main(int argc, char **argv) {
   bsr_state->perthread=&perthread;
 
   //
-  // calculate number of rendering threads to be forked
+  // calculate number of worker threads to be forked
   //
   bsr_state->num_worker_threads=bsr_config.num_threads-1;
   if (bsr_state->num_worker_threads < 1) {
@@ -346,7 +346,7 @@ int main(int argc, char **argv) {
   } // end if enable Gaia
 
   //
-  // fork rendering threads
+  // fork worker threads
   //
   bsr_state->master_pid=getpid();
   bsr_state->master_pgid=getpgrp();
@@ -452,7 +452,7 @@ int main(int argc, char **argv) {
     waitForMainThread(bsr_state, THREAD_STATUS_PROCESS_STARS_CONTINUE);
   } else {
     //
-    // main thread: scan rendering thread buffers for pixels to integrate into image until all rendering threads are done
+    // main thread: scan worker thread buffers for pixels to integrate into image until all worker threads are done
     //
     empty_passes=0;
     while (empty_passes < 2) { // do second pass once empty
