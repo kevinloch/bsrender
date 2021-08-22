@@ -67,9 +67,8 @@
 #include "bandpass-ratio.h"
 
 void printUsage() {
-
-printf("mkgalaxy version %s\n", BSR_VERSION);
-printf("\n\
+  printf("mkgalaxy version %s\n", BSR_VERSION);
+  printf("\n\
 NAME\n\
      mkgalaxy -- create binary data files for use with bsrender\n\
 \n\
@@ -98,7 +97,6 @@ DESCRIPTON\n\
 }
 
 int setDefaults(mkg_config_t *mkg_config) {
-  
   mkg_config->use_bandpass_ratios=1;
   mkg_config->calibrate_parallax=0;
   mkg_config->override_parallax_toolow=1;

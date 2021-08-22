@@ -40,9 +40,8 @@
 #include <stdio.h>
 
 void printUsage() {
-
-printf("bsrender version %s\n", BSR_VERSION);
-printf("\n\
+  printf("bsrender version %s\n", BSR_VERSION);
+  printf("\n\
 NAME\n\
      bsrender -- Render PNG image from 3D star database\n\
 \n\

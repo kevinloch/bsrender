@@ -132,7 +132,6 @@ int waitForMainThread(bsr_state_t *bsr_state, int min_status) {
 }
 
 int limitIntensity(double *pixel_r, double *pixel_g, double *pixel_b) {
-
   //
   // limit pixel to range 0.0-1.0 without regard to color
   //

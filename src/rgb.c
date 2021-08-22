@@ -42,10 +42,9 @@
 #include "Gaia-passbands.h"
 
 int initRGBTables(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
-//
-// generate RGB color values for a given blackbody temperature
-//
-
+  //
+  // This function generates RGB color values for a range of blackbody temperatures
+  //
   int i;
   const double kb=1.380649E-23;
   const double h=6.62607015E-34;

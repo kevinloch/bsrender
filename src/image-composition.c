@@ -45,7 +45,7 @@
 #include "Gaussian-blur.h"
 #include "overlay.h"
 
-int postProcess(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
+int initImageCompositionBuffer(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   struct timespec starttime;
   struct timespec endtime;
   double elapsed_time;
@@ -53,36 +53,10 @@ int postProcess(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   int current_image_x;
   int current_image_y;
   pixel_composition_t *current_image_p;
-  double inv_camera_pixel_limit;
-  double pixel_r;
-  double pixel_g;
-  double pixel_b;
   int current_image_res_x;
   int current_image_res_y;
   int lines_per_thread;
   int i;
-
-  //
-  // main thread: display status message if not in cgi mode
-  //
-  if ((bsr_state->perthread->my_pid == bsr_state->master_pid) && (bsr_config->cgi_mode != 1)) {
-    clock_gettime(CLOCK_REALTIME, &starttime);
-    printf("Applying camera gamma and intensity limit...");
-    fflush(stdout);
-  }
-
-  //
-  // worker threads:  wait for main thread to say go
-  // main thread: tell worker threads to go
-  //
-  if (bsr_state->perthread->my_pid != bsr_state->master_pid) {
-    waitForMainThread(bsr_state, THREAD_STATUS_POST_PROCESS_BEGIN);
-  } else {
-    // main thread
-    for (i=1; i <= bsr_state->num_worker_threads; i++) {
-      bsr_state->status_array[i].status=THREAD_STATUS_POST_PROCESS_BEGIN;
-    }
-  } // end if not main thread
 
   //
   // all threads: get current image resolution and lines per thread
@@ -93,46 +67,42 @@ int postProcess(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   if (lines_per_thread < 1) {
     lines_per_thread=1;
   }
-  inv_camera_pixel_limit = 1.0 / bsr_config->camera_pixel_limit;
 
   //
-  // all threads: apply cmaera_gamma and intensity limiting
+  // main thread: display status message if not in cgi mode
+  //
+  if ((bsr_state->perthread->my_pid == bsr_state->master_pid) && (bsr_config->cgi_mode != 1)) {
+    clock_gettime(CLOCK_REALTIME, &starttime);
+    printf("Initializing image composition buffer %dx%d...", current_image_res_x, current_image_res_y);
+    fflush(stdout);
+  }
+
+  //
+  // worker threads:  wait for main thread to say go
+  // main thread: tell worker threads to go
+  //
+  if (bsr_state->perthread->my_pid != bsr_state->master_pid) {
+    waitForMainThread(bsr_state, THREAD_STATUS_INIT_BEGIN);
+  } else {
+    // main thread
+    for (i=1; i <= bsr_state->num_worker_threads; i++) {
+      bsr_state->status_array[i].status=THREAD_STATUS_INIT_BEGIN;
+    }
+  } // end if not main thread
+
+  //
+  // all threads: initialize image composition buffer
   //
   current_image_x=0;
   current_image_y=(bsr_state->perthread->my_thread_id * lines_per_thread);
   current_image_p=bsr_state->current_image_buf + ((long long)current_image_res_x * (long long)current_image_y);
   for (image_offset=0; ((image_offset < ((long long)bsr_state->current_image_res_x * (long long)lines_per_thread)) && (current_image_y < current_image_res_y)); image_offset++) {
     //
-    // convert pixel values to output range ~0-1.0 with camera sensitivity reference level = 1.0
+    // set pixel rgb to zero
     //
-    pixel_r=current_image_p->r * inv_camera_pixel_limit;
-    pixel_g=current_image_p->g * inv_camera_pixel_limit;
-    pixel_b=current_image_p->b * inv_camera_pixel_limit;
-
-    //
-    // optionally apply camera gamma setting
-    //
-    if (bsr_config->camera_gamma != 1.0) { // this is expensive so only if not 1.0
-      pixel_r=pow(pixel_r, bsr_config->camera_gamma);
-      pixel_g=pow(pixel_g, bsr_config->camera_gamma);
-      pixel_b=pow(pixel_b, bsr_config->camera_gamma);
-    }
-
-    //
-    // limit pixel intensity to range [0..1]
-    //
-    if (bsr_config->camera_pixel_limit_mode == 0) {
-      limitIntensity(&pixel_r, &pixel_g, &pixel_b);
-    } else if (bsr_config->camera_pixel_limit_mode == 1) {
-      limitIntensityPreserveColor(&pixel_r, &pixel_g, &pixel_b);
-    }
-
-    //
-    // copy back to current image buf
-    //
-    current_image_p->r=pixel_r;
-    current_image_p->g=pixel_g;
-    current_image_p->b=pixel_b;
+    current_image_p->r=0.0;
+    current_image_p->g=0.0;
+    current_image_p->b=0.0;
 
     current_image_x++;
     if (current_image_x == bsr_state->current_image_res_x) {
@@ -147,15 +117,15 @@ int postProcess(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   // main thread: wait until all other threads are done and then signal that they can continue to next step.
   //
   if (bsr_state->perthread->my_pid != bsr_state->master_pid) {
-    bsr_state->status_array[bsr_state->perthread->my_thread_id].status=THREAD_STATUS_POST_PROCESS_COMPLETE;
-    waitForMainThread(bsr_state, THREAD_STATUS_POST_PROCESS_CONTINUE);
+    bsr_state->status_array[bsr_state->perthread->my_thread_id].status=THREAD_STATUS_INIT_COMPLETE;
+    waitForMainThread(bsr_state, THREAD_STATUS_INIT_CONTINUE);
   } else {
-    waitForWorkerThreads(bsr_state, THREAD_STATUS_POST_PROCESS_COMPLETE);
+    waitForWorkerThreads(bsr_state, THREAD_STATUS_INIT_COMPLETE);
     //
     // ready to continue, set all worker thread status to continue
     //
     for (i=1; i <= bsr_state->num_worker_threads; i++) {
-      bsr_state->status_array[i].status=THREAD_STATUS_POST_PROCESS_CONTINUE;
+      bsr_state->status_array[i].status=THREAD_STATUS_INIT_CONTINUE;
     }
   } // end if not main thread
 
@@ -168,32 +138,6 @@ int postProcess(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
     printf(" (%.4fs)\n", elapsed_time);
     fflush(stdout);
   }
-
-  //
-  // all threads: optionally blur image
-  //
-  if (bsr_config->Gaussian_blur_radius > 0.0) {
-    GaussianBlur(bsr_config, bsr_state); 
-  }
-
-  //
-  // all threads: optionally resize image
-  //
-  if (bsr_config->output_scaling_factor != 1.0) {
-    resizeLanczos(bsr_config, bsr_state);
-  }
-
-  //
-  // main thread: optionally draw overlays
-  //
-  if (bsr_state->perthread->my_pid == bsr_state->master_pid) {
-    if (bsr_config->draw_crosshairs == 1) {
-      drawCrossHairs(bsr_config, bsr_state);
-    }
-    if (bsr_config->draw_grid_lines == 1) {
-      drawGridLines(bsr_config, bsr_state);
-    }
-  } // end if main thread
 
   return(0);
 }

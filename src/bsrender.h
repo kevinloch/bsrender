@@ -39,12 +39,39 @@
 #ifndef BSRENDER_H
 #define BSRENDER_H
 
-#define BSR_VERSION "0.9-dev-55"
+#define BSR_VERSION "0.9-dev-61"
+
+//
+// these checkpoints are used to monitor and control worker thread progress
+// they need to be in correct numerical order corresponding to the order in which each
+// step might be executed.
+//
+#define THREAD_STATUS_INVALID -1
+#define THREAD_STATUS_INIT_BEGIN 0
+#define THREAD_STATUS_INIT_COMPLETE 1
+#define THREAD_STATUS_INIT_CONTINUE 2
+#define THREAD_STATUS_PROCESS_STARS_BEGIN 10
+#define THREAD_STATUS_PROCESS_STARS_COMPLETE 11
+#define THREAD_STATUS_PROCESS_STARS_CONTINUE 12
+#define THREAD_STATUS_POST_PROCESS_BEGIN 20
+#define THREAD_STATUS_POST_PROCESS_COMPLETE 21
+#define THREAD_STATUS_POST_PROCESS_CONTINUE 22
+#define THREAD_STATUS_GAUSSIAN_BLUR_HORIZONTAL_BEGIN 30
+#define THREAD_STATUS_GAUSSIAN_BLUR_HORIZONTAL_COMPLETE 31
+#define THREAD_STATUS_GAUSSIAN_BLUR_VERTICAL_BEGIN 32
+#define THREAD_STATUS_GAUSSIAN_BLUR_VERTICAL_COMPLETE 33
+#define THREAD_STATUS_GAUSSIAN_BLUR_CONTINUE 34
+#define THREAD_STATUS_LANCZOS_BEGIN 40
+#define THREAD_STATUS_LANCZOS_COMPLETE 41
+#define THREAD_STATUS_LANCZOS_CONTINUE 42
+#define THREAD_STATUS_QUANTIZE_BEGIN 50
+#define THREAD_STATUS_QUANTIZE_COMPLETE 51
+#define THREAD_STATUS_QUANTIZE_CONTINUE 52
 
 #define _GNU_SOURCE // needed for strcasestr in string.h
 #include <stdint.h> // needed for uint64_t
-
 #include <unistd.h>
+#include <png.h>
 
 typedef struct {
   double icrs_x;
@@ -97,6 +124,8 @@ typedef struct {
   // bsr_state is globally mmapped so these should be the same in each thread
   thread_buffer_t *thread_buf; // globally mmaped
   pixel_composition_t *image_composition_buf; // globally mmaped
+  png_byte *image_output_buf; // globally mmaped
+  png_bytep *row_pointers; // globally mmaped
   pixel_composition_t *image_blur_buf; // globally mmaped
   pixel_composition_t *image_resize_buf;  // globally mmaped
   dedup_buffer_t *dedup_buf; // not globally mmapped
@@ -113,6 +142,7 @@ typedef struct {
   pid_t httpd_pid;
   bsr_thread_state_t *perthread;
   int per_thread_buffers;
+  int thread_buffer_count;
   bsr_status_t *status_array;
   double *rgb_red;
   double *rgb_green;
@@ -133,6 +163,17 @@ typedef struct {
   double target_3az_xy_r;
   double target_3az_xy;
   double target_3az_xz;
+  size_t composition_buffer_size;
+  size_t output_buffer_size;
+  size_t row_pointers_size;
+  size_t blur_buffer_size;
+  size_t resize_buffer_size;
+  size_t thread_buffer_size;
+  size_t status_array_size;
+  size_t dedup_buffer_size;
+  size_t dedup_index_size;
+  size_t Airymap_size;
+  size_t bsr_state_size;
 } bsr_state_t;
 
 typedef struct {

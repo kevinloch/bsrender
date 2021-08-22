@@ -38,8 +38,8 @@
 
 #include "bsrender.h" // needs to be first to get GNU_SOURCE define for strcasestr
 #include <stdint.h>
-#include <stdio.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 #include <sys/mman.h>
@@ -53,8 +53,10 @@
 #include "process-stars.h"
 #include "init-state.h"
 #include "cgi.h"
-#include "diffraction.h"
 #include "post-process.h"
+#include "image-composition.h"
+#include "memory.h"
+#include "quantize.h"
 
 int processCmdArgs(bsr_config_t *bsr_config, int argc, char **argv) {
   int i;
@@ -114,39 +116,21 @@ int main(int argc, char **argv) {
   FILE *input_file_pq002=NULL;
   FILE *input_file_pq001=NULL;
   FILE *input_file_pq000=NULL;
-  int mmap_protection;
-  int mmap_visibility;
   struct timespec overall_starttime;
   struct timespec overall_endtime;
   struct timespec starttime;
   struct timespec endtime;
   double elapsed_time;
-  size_t bsr_state_size=0;
-  size_t composition_buffer_size=0;
-  size_t blur_buffer_size=0;
-  size_t resize_buffer_size=0;
-  size_t status_array_size=0;
-  size_t dedup_buffer_size=0;
-  size_t dedup_index_count=0;
-  size_t dedup_index_size=0;
-  size_t Airymap_size=0;
-  size_t thread_buffer_size=0;
-  int thread_buffer_count;
   int all_workers_done;
   int i;
   double rgb_red[32768];
   double rgb_green[32768];
   double rgb_blue[32768];
   pixel_composition_t *image_composition_p;
-  dedup_buffer_t *dedup_buf_p;
-  dedup_index_t *dedup_index_p;
-  thread_buffer_t *main_thread_buf_p;
   int main_thread_buffer_index;
   int buffer_is_empty;
   int empty_passes;
-  int Airymap_xy;
-  long long image_composition_i;
-
+  thread_buffer_t *main_thread_buf_p;
 
   //
   // initialize bsr_config to default values
@@ -175,24 +159,17 @@ int main(int argc, char **argv) {
   }
 
   //
-  // allocate shared memory for bsr_state
+  // allocate memory for and initialize bsr_state
   //
-  mmap_protection=PROT_READ | PROT_WRITE;
-  mmap_visibility=MAP_SHARED | MAP_ANONYMOUS;
-  bsr_state_size=sizeof(bsr_state_t);
-  bsr_state=(bsr_state_t *)mmap(NULL, bsr_state_size, mmap_protection, mmap_visibility, -1, 0);
+  bsr_state=initState(&bsr_config);
   if (bsr_state == NULL) {
     if (bsr_config.cgi_mode != 1) {
-      printf("Error: could not allocate shared memory for bsr_state\n");
+      printf("Error: could initialize bsr_state\n");
+      fflush(stdout);
     }
-    return(1);
+    exit(1);
   }
   bsr_state->perthread=&perthread;
-
-  //
-  // initialize bsr_state (store processed settings and setup camera target)
-  //
-  initState(&bsr_config, bsr_state);
 
   //
   // calculate number of rendering threads to be forked
@@ -235,203 +212,9 @@ int main(int argc, char **argv) {
   }
 
   //
-  // allocate shared memory for Airy disk maps and initialize
+  // allocate memory and initialize various buffers that get attached to bsr_state
   //
-  if (bsr_config.Airy_disk == 1) {
-    if (bsr_config.cgi_mode != 1) {
-      clock_gettime(CLOCK_REALTIME, &starttime);
-      printf("Initializing Airy disk maps...");
-      fflush(stdout);
-    }
-    mmap_protection=PROT_READ | PROT_WRITE;
-    mmap_visibility=MAP_SHARED | MAP_ANONYMOUS;
-    Airymap_xy=(bsr_config.Airy_disk_max_extent * 2) + 1;
-    Airymap_size=Airymap_xy * Airymap_xy * sizeof(double);
-    bsr_state->Airymap_red=(double *)mmap(NULL, Airymap_size, mmap_protection, mmap_visibility, -1, 0);
-    bsr_state->Airymap_green=(double *)mmap(NULL, Airymap_size, mmap_protection, mmap_visibility, -1, 0);
-    bsr_state->Airymap_blue=(double *)mmap(NULL, Airymap_size, mmap_protection, mmap_visibility, -1, 0);
-    initAiryMaps(&bsr_config, bsr_state);
-    if (bsr_config.cgi_mode != 1) {
-      clock_gettime(CLOCK_REALTIME, &endtime);
-      elapsed_time=((double)(endtime.tv_sec - 1500000000) + ((double)endtime.tv_nsec / 1.0E9)) - ((double)(starttime.tv_sec - 1500000000) + ((double)starttime.tv_nsec) / 1.0E9);
-      printf(" (%.3fs)\n", elapsed_time);
-      fflush(stdout);
-    }
-  }
-
-  //
-  // allocate shared memory for image composition buffer (floating point rgb)
-  //
-  if (bsr_config.cgi_mode != 1) {
-    clock_gettime(CLOCK_REALTIME, &starttime);
-    printf("Initializing image composition buffer...");
-    fflush(stdout);
-  }
-  mmap_protection=PROT_READ | PROT_WRITE;
-  mmap_visibility=MAP_SHARED | MAP_ANONYMOUS;
-  composition_buffer_size=(size_t)bsr_config.camera_res_x * (size_t)bsr_config.camera_res_y * sizeof(pixel_composition_t);
-  bsr_state->image_composition_buf=(pixel_composition_t *)mmap(NULL, composition_buffer_size, mmap_protection, mmap_visibility, -1, 0);
-  if (bsr_state->image_composition_buf == NULL) {
-    if (bsr_config.cgi_mode != 1) {
-      printf("Error: could not allocate shared memory for image composition buffer\n");
-    }
-    return(1);
-  }
-  // initialize (clear) image composition buffer
-  image_composition_p=bsr_state->image_composition_buf;
-  for (image_composition_i=0; image_composition_i < ((long long)bsr_config.camera_res_x * (long long)bsr_config.camera_res_y); image_composition_i++) {
-    image_composition_p->r=0.0;
-    image_composition_p->g=0.0;
-    image_composition_p->b=0.0;
-    image_composition_p++;
-  }
-  bsr_state->current_image_buf=bsr_state->image_composition_buf;
-  bsr_state->current_image_res_x=bsr_config.camera_res_x;
-  bsr_state->current_image_res_y=bsr_config.camera_res_y;
-  if (bsr_config.cgi_mode != 1) {
-    clock_gettime(CLOCK_REALTIME, &endtime);
-    elapsed_time=((double)(endtime.tv_sec - 1500000000) + ((double)endtime.tv_nsec / 1.0E9)) - ((double)(starttime.tv_sec - 1500000000) + ((double)starttime.tv_nsec) / 1.0E9);
-    printf(" (%.3fs)\n", elapsed_time);
-    fflush(stdout);
-  }
-
-  //
-  // allocate shared memory for image blur buffer if needed
-  //
-  if (bsr_config.Gaussian_blur_radius > 0.0) {
-    mmap_protection=PROT_READ | PROT_WRITE;
-    mmap_visibility=MAP_SHARED | MAP_ANONYMOUS;
-    blur_buffer_size=(size_t)bsr_config.camera_res_x * (size_t)bsr_config.camera_res_y * sizeof(pixel_composition_t);
-    bsr_state->image_blur_buf=(pixel_composition_t *)mmap(NULL, blur_buffer_size, mmap_protection, mmap_visibility, -1, 0);
-    if (bsr_state->image_blur_buf == NULL) {
-      if (bsr_config.cgi_mode != 1) {
-        printf("Error: could not allocate shared memory for image blur buffer\n");
-        fflush(stdout);
-      }
-      return(1);
-    }
-  }
-
-  //
-  // allocate shared memory for image resize buffer if needed
-  //
-  if (bsr_config.output_scaling_factor != 1.0) {
-    bsr_state->resize_res_x=(int)(((double)bsr_config.camera_res_x * bsr_config.output_scaling_factor) + 0.5);
-    bsr_state->resize_res_y=(int)(((double)bsr_config.camera_res_y * bsr_config.output_scaling_factor) + 0.5);
-    mmap_protection=PROT_READ | PROT_WRITE;
-    mmap_visibility=MAP_SHARED | MAP_ANONYMOUS;
-    resize_buffer_size=(size_t)bsr_state->resize_res_x * (size_t)bsr_state->resize_res_y * sizeof(pixel_composition_t);
-    bsr_state->image_resize_buf=(pixel_composition_t *)mmap(NULL, resize_buffer_size, mmap_protection, mmap_visibility, -1, 0);
-    if (bsr_state->image_resize_buf == NULL) {
-      if (bsr_config.cgi_mode != 1) {
-        printf("Error: could not allocate shared memory for image resize buffer\n");
-        fflush(stdout);
-      }
-      return(1);
-    }
-  }
-
-  //
-  // allocate non-shared memory for dedup buffer and initialize
-  //
-  if (bsr_config.cgi_mode != 1) {
-    clock_gettime(CLOCK_REALTIME, &starttime);
-    printf("Initializing dedup buffer and index...");
-    fflush(stdout);
-  }
-  dedup_buffer_size=bsr_state->per_thread_buffers * sizeof(dedup_buffer_t);
-  bsr_state->dedup_buf=(dedup_buffer_t *)malloc(dedup_buffer_size);
-  if (bsr_state->dedup_buf == NULL) {
-    if (bsr_config.cgi_mode != 1) {
-      printf("Error: could not allocate shared memory for dedup buffer\n");
-    }
-    return(1);
-  }
-  // initialize dedup buffer
-  dedup_buf_p=bsr_state->dedup_buf;
-  for (i=0; i < (bsr_state->per_thread_buffers); i++) {
-    dedup_buf_p->image_offset=-1;
-    dedup_buf_p->r=0.0;
-    dedup_buf_p->g=0.0;
-    dedup_buf_p->b=0.0;
-    dedup_buf_p++;
-  }
-  bsr_state->perthread->dedup_count=0;
-
-  //
-  // allocate non-shared memory for dedup index and initialize
-  //
-  if ((long long)bsr_config.camera_res_x * (long long)bsr_config.camera_res_y <= 16777216) {
-    bsr_state->dedup_index_mode=0; // use image_offset for dedup index
-    dedup_index_count=bsr_config.camera_res_x * bsr_config.camera_res_y;
-    dedup_index_size=dedup_index_count * sizeof(dedup_index_t); 
-  } else {
-    bsr_state->dedup_index_mode=1; // use lowest 24 bits of image_offset for dedup index
-    dedup_index_count=0xffffff;
-    dedup_index_size=dedup_index_count * sizeof(dedup_index_t);
-  }
-  bsr_state->dedup_index=(dedup_index_t *)malloc(dedup_index_size);
-  if (bsr_state->dedup_index == NULL) {
-    if (bsr_config.cgi_mode != 1) {
-      printf("Error: could not allocate shared memory for dedup index\n");
-    }
-    return(1);
-  }
-  // initialize dedup index
-  dedup_index_p=bsr_state->dedup_index;
-  for (i=0; i < dedup_index_count; i++) {
-    dedup_index_p->dedup_record_p=NULL;
-    dedup_index_p++;
-  }
-  if (bsr_config.cgi_mode != 1) {
-    clock_gettime(CLOCK_REALTIME, &endtime);
-    elapsed_time=((double)(endtime.tv_sec - 1500000000) + ((double)endtime.tv_nsec / 1.0E9)) - ((double)(starttime.tv_sec - 1500000000) + ((double)starttime.tv_nsec) / 1.0E9);
-    printf(" (%.3fs)\n", elapsed_time);
-    fflush(stdout);
-  }
-
-  //
-  // allocate shared memory for thread buffer and status array
-  //
-  if (bsr_config.cgi_mode != 1) {
-    clock_gettime(CLOCK_REALTIME, &starttime);
-    printf("Initializing rendering thread buffers...");
-    fflush(stdout);
-  }
-  if (bsr_state->per_thread_buffers < 1) {
-    bsr_state->per_thread_buffers=1;
-  }
-  thread_buffer_count=bsr_state->num_worker_threads * bsr_state->per_thread_buffers;
-  thread_buffer_size=thread_buffer_count * sizeof(thread_buffer_t);
-  bsr_state->thread_buf=(thread_buffer_t *)mmap(NULL, thread_buffer_size, mmap_protection, mmap_visibility, -1, 0);
-  if (bsr_state->thread_buf == NULL) {
-    if (bsr_config.cgi_mode != 1) {
-      printf("Error: could not allocate shared memory for thread buffer\n");
-    }
-    return(1);
-  }
-  // initialize thread buffer
-  main_thread_buf_p=bsr_state->thread_buf;
-  for (i=0; i < (bsr_state->num_worker_threads * bsr_state->per_thread_buffers); i++) {
-    main_thread_buf_p->status_left=0;
-    main_thread_buf_p->status_right=0;
-    main_thread_buf_p++;
-  }
-  // allocate shared memory for thread status array
-  status_array_size=(bsr_state->num_worker_threads + 1) * sizeof(bsr_status_t);
-  bsr_state->status_array=(bsr_status_t *)mmap(NULL, status_array_size, mmap_protection, mmap_visibility, -1, 0);
-  if (bsr_state->status_array == NULL) {
-    if (bsr_config.cgi_mode != 1) {
-      printf("Error: could not allocate shared memory for thread status array\n");
-    }
-    return(1);
-  }
-  if (bsr_config.cgi_mode != 1) {
-    clock_gettime(CLOCK_REALTIME, &endtime);
-    elapsed_time=((double)(endtime.tv_sec - 1500000000) + ((double)endtime.tv_nsec / 1.0E9)) - ((double)(starttime.tv_sec - 1500000000) + ((double)starttime.tv_nsec) / 1.0E9);
-    printf(" (%.3fs)\n", elapsed_time);
-    fflush(stdout);
-  }
+  allocateMemory(&bsr_config, bsr_state);
 
   //
   // attempt to open 'external' input file
@@ -444,7 +227,7 @@ int main(int argc, char **argv) {
         printf("Error: could not open %s\n", file_path);
         fflush(stdout);
       }
-      return(1);
+      exit(1);
     }
   } // end if enable external
 
@@ -459,7 +242,7 @@ int main(int argc, char **argv) {
         printf("Error: could not open %s\n", file_path);
         fflush(stdout);
       }
-      return(1);
+      exit(1);
     }
     if (bsr_config.Gaia_min_parallax_quality < 100) {
       sprintf(file_path, "%s/galaxy-pq050.dat", bsr_config.data_file_directory);
@@ -469,7 +252,7 @@ int main(int argc, char **argv) {
           printf("Error: could not open %s\n", file_path);
           fflush(stdout);
         }
-        return(1);
+        exit(1);
       }
     }
     if (bsr_config.Gaia_min_parallax_quality < 50) {
@@ -480,7 +263,7 @@ int main(int argc, char **argv) {
           printf("Error: could not open %s\n", file_path);
           fflush(stdout);
         }
-        return(1);
+        exit(1);
       }
     }
     if (bsr_config.Gaia_min_parallax_quality < 30) {
@@ -491,7 +274,7 @@ int main(int argc, char **argv) {
           printf("Error: could not open %s\n", file_path);
           fflush(stdout);
         }
-        return(1);
+        exit(1);
       }
     }
     if (bsr_config.Gaia_min_parallax_quality < 20) {
@@ -502,7 +285,7 @@ int main(int argc, char **argv) {
           printf("Error: could not open %s\n", file_path);
           fflush(stdout);
         }
-        return(1);
+        exit(1);
       }
     }
     if (bsr_config.Gaia_min_parallax_quality < 10) {
@@ -513,7 +296,7 @@ int main(int argc, char **argv) {
           printf("Error: could not open %s\n", file_path);
           fflush(stdout);
         }
-        return(1);
+        exit(1);
       }
     }
     if (bsr_config.Gaia_min_parallax_quality < 5) {
@@ -524,7 +307,7 @@ int main(int argc, char **argv) {
           printf("Error: could not open %s\n", file_path);
           fflush(stdout);
         }
-        return(1);
+        exit(1);
       }
     }
     if (bsr_config.Gaia_min_parallax_quality < 3) {
@@ -535,7 +318,7 @@ int main(int argc, char **argv) {
           printf("Error: could not open %s\n", file_path);
           fflush(stdout);
         }
-        return(1);
+        exit(1);
       }
     }
     if (bsr_config.Gaia_min_parallax_quality < 2) {
@@ -546,7 +329,7 @@ int main(int argc, char **argv) {
           printf("Error: could not open %s\n", file_path);
           fflush(stdout);
         }
-        return(1);
+        exit(1);
       }
     }
     if (bsr_config.Gaia_min_parallax_quality < 1) {
@@ -557,19 +340,10 @@ int main(int argc, char **argv) {
           printf("Error: could not open %s\n", file_path);
           fflush(stdout);
         }
-        return(1);
+        exit(1);
       }
     }
   } // end if enable Gaia
-
-  //
-  // display begin rendering status if not in cgi mode
-  //
-  if (bsr_config.cgi_mode != 1) {
-    clock_gettime(CLOCK_REALTIME, &starttime);
-    printf("Rendering stars to image composition buffer...");
-    fflush(stdout);
-  }
 
   //
   // fork rendering threads
@@ -582,7 +356,7 @@ int main(int argc, char **argv) {
       bsr_state->perthread->my_pid=getpid();
       if (bsr_state->perthread->my_pid == bsr_state->master_pid) {
         bsr_state->perthread->my_thread_id=i; // this gets inherited by forked process
-        bsr_state->status_array[i].status=0;
+        bsr_state->status_array[i].status=THREAD_STATUS_INVALID;
         fork();
       }
     }
@@ -593,20 +367,49 @@ int main(int argc, char **argv) {
     bsr_state->perthread->my_thread_id=0;
   }
 
-  // 
-  // begin thread specific processing.  Rendering threads read data files and send pixles to main thread.  Main integrates these pixels into
-  // the image composition buffer
+// 
+// begin thread specific processing.
+//
+
+  //
+  // all threads: initialize (clear) image composition buffer
+  //
+  initImageCompositionBuffer(&bsr_config, bsr_state);
+
+  //
+  // main thread: display begin rendering status if not in cgi mode
+  //
+  if ((bsr_state->perthread->my_pid == bsr_state->master_pid) && (bsr_config.cgi_mode != 1)) {
+    clock_gettime(CLOCK_REALTIME, &starttime);
+    printf("Rendering stars to image composition buffer...");
+    fflush(stdout);
+  }
+
+  //
+  // worker threads:  wait for main thread to say go
+  // main thread: tell worker threads to go
   //
   if (bsr_state->perthread->my_pid != bsr_state->master_pid) {
+    waitForMainThread(bsr_state, THREAD_STATUS_PROCESS_STARS_BEGIN);
+  } else {
+    // main thread
+    for (i=1; i <= bsr_state->num_worker_threads; i++) {
+      bsr_state->status_array[i].status=THREAD_STATUS_PROCESS_STARS_BEGIN;
+    }
+  } // end if not main thread
 
+  //
+  // worker threads: process stars from binary data files
+  //
+  if (bsr_state->perthread->my_pid != bsr_state->master_pid) {
     //
-    // rendering thread: set our thread buffer postion to the beginning of this threads block
+    // worker threads: set our thread buffer postion to the beginning of this threads block
     //
     bsr_state->perthread->thread_buf_p=bsr_state->thread_buf + ((bsr_state->perthread->my_thread_id - 1) * bsr_state->per_thread_buffers);
     bsr_state->perthread->thread_buffer_index=0; // index within this threads block
 
     //
-    // worker thread: set input file and send to rendering function
+    // worker threads: set input file and send to rendering function
     //
     if (bsr_config.enable_external == 1) {
       processStars(&bsr_config, bsr_state, input_file_external);
@@ -645,10 +448,9 @@ int main(int argc, char **argv) {
     //
     // let main thread know we are done, then wait until main thread says ok to continue
     //
-    bsr_state->status_array[bsr_state->perthread->my_thread_id].status=1;
-    waitForMainThread(bsr_state, 2);
+    bsr_state->status_array[bsr_state->perthread->my_thread_id].status=THREAD_STATUS_PROCESS_STARS_COMPLETE;
+    waitForMainThread(bsr_state, THREAD_STATUS_PROCESS_STARS_CONTINUE);
   } else {
-
     //
     // main thread: scan rendering thread buffers for pixels to integrate into image until all rendering threads are done
     //
@@ -660,7 +462,7 @@ int main(int argc, char **argv) {
       // scan buffer for new pixel data
       main_thread_buf_p=bsr_state->thread_buf;
       buffer_is_empty=1;
-      for (main_thread_buffer_index=0; main_thread_buffer_index < thread_buffer_count; main_thread_buffer_index++) {
+      for (main_thread_buffer_index=0; main_thread_buffer_index < bsr_state->thread_buffer_count; main_thread_buffer_index++) {
         if ((main_thread_buf_p->status_left == 1) && (main_thread_buf_p->status_right == 1)) {
           // buffer location has new pixel data, add to image composition buffer
           if (buffer_is_empty == 1) {
@@ -680,7 +482,7 @@ int main(int argc, char **argv) {
       if (buffer_is_empty == 1) {
         all_workers_done=1;
         for (i=1; i <= bsr_state->num_worker_threads; i++) {
-          if (bsr_state->status_array[i].status < 1) {
+          if (bsr_state->status_array[i].status < THREAD_STATUS_PROCESS_STARS_COMPLETE) {
             all_workers_done=0;
           }
         }
@@ -695,7 +497,7 @@ int main(int argc, char **argv) {
     // main thread: tell worker threads it's ok to continue
     //
     for (i=1; i <= bsr_state->num_worker_threads; i++) {
-      bsr_state->status_array[i].status=2;
+      bsr_state->status_array[i].status=THREAD_STATUS_PROCESS_STARS_CONTINUE;
     }
 
     //
@@ -714,14 +516,22 @@ int main(int argc, char **argv) {
   //
   postProcess(&bsr_config, bsr_state);
 
+  //
+  // all threads: convert image to 8 or 16 bits per pixel
+  //
+  quantize(&bsr_config, bsr_state);  
+
+  //
+  // main thread: output png image and cleanup
+  //
   if (bsr_state->perthread->my_pid == bsr_state->master_pid) {
     //
     // main thread: output png file
     //
-    writePNGFile(&bsr_config, bsr_state);
+    outputPNG(&bsr_config, bsr_state);
 
     //
-    // main thread: clean up
+    // main thread: clean up file pointers
     //
     if (input_file_external != NULL) {
       fclose(input_file_external);
@@ -756,20 +566,11 @@ int main(int argc, char **argv) {
     if (input_file_pq000 != NULL) {
       fclose(input_file_pq000);
     }
-    if (bsr_state->image_composition_buf != NULL) {
-      munmap(bsr_state->image_composition_buf, composition_buffer_size);
-    }
-    if (bsr_state->image_blur_buf != NULL) {
-      munmap(bsr_state->image_blur_buf, blur_buffer_size);
-    }
-    if (bsr_state->image_resize_buf != NULL) {
-      munmap(bsr_state->image_resize_buf, resize_buffer_size);
-    }
-    munmap(bsr_state->thread_buf, thread_buffer_size);
-    munmap(bsr_state->status_array, status_array_size);
-    munmap(bsr_state->Airymap_red, Airymap_size);
-    munmap(bsr_state->Airymap_green, Airymap_size);
-    munmap(bsr_state->Airymap_blue, Airymap_size);
+
+    //
+    // main thread: clean up memory allocations
+    //
+    freeMemory(bsr_state);
 
     //
     // main thread: output total runtime
@@ -780,11 +581,6 @@ int main(int argc, char **argv) {
       printf("Total execution time: %.3fs\n", elapsed_time);
       fflush(stdout);
     }
-
-    //
-    // clean up bsr_state
-    //
-    munmap(bsr_state, bsr_state_size);
   } // end if main thread
 
   return(0);

@@ -36,9 +36,9 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef BSR_INIT_STATE_H
-#define BSR_INIT_STATE_H
+#ifndef BSR_IMAGE_COMPOSITION_H
+#define BSR_IMAGE_COMPOSITION_H
 
-bsr_state_t *initState(bsr_config_t *bsr_config);
+int initImageCompositionBuffer(bsr_config_t *bsr_config, bsr_state_t *bsr_state);
 
-#endif // BSR_INIT_STATE_H
+#endif // BSR_IMAGE_COMPOSITION_H

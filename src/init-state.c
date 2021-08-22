@@ -37,15 +37,44 @@
  */
 
 #include "bsrender.h" // needs to be first to get GNU_SOURCE define for strcasestr
+#include <stdio.h>
+#include <sys/mman.h>
 #include <math.h>
 
-int initState(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
+bsr_state_t *initState(bsr_config_t *bsr_config) {
+  bsr_state_t *bsr_state;
   double pi_over_360=M_PI / 360.0;
   double pi_over_180=M_PI / 180.0;
   double camera_icrs_ra_rad;
   double camera_icrs_dec_rad;
   double target_icrs_ra_rad;
   double target_icrs_dec_rad;
+
+  int mmap_protection;
+  int mmap_visibility;
+  size_t bsr_state_size=0;
+
+  //
+  // allocate shared memory for bsr_state
+  //
+  mmap_protection=PROT_READ | PROT_WRITE;
+  mmap_visibility=MAP_SHARED | MAP_ANONYMOUS;
+  bsr_state_size=sizeof(bsr_state_t);
+  bsr_state=(bsr_state_t *)mmap(NULL, bsr_state_size, mmap_protection, mmap_visibility, -1, 0);
+  if (bsr_state == NULL) {
+    if (bsr_config->cgi_mode != 1) {
+      printf("Error: could not allocate shared memory for bsr_state\n");
+    }
+    return(NULL);
+  }
+
+  //
+  // calculate number of rendering threads to be forked
+  //
+  bsr_state->num_worker_threads=bsr_config->num_threads-1;
+  if (bsr_state->num_worker_threads < 1) {
+    bsr_state->num_worker_threads=1;
+  }
 
   //
   // process user-supplied arguments
@@ -106,5 +135,5 @@ int initState(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   bsr_state->target_x=bsr_state->target_3az_xy_r; // xy=0
   bsr_state->target_3az_xz=atan2(bsr_state->target_z, bsr_state->target_x);
 
-  return(0);
+  return(bsr_state);
 }

@@ -44,171 +44,20 @@
 #include "util.h"
 #include "cgi.h"
 
-int writePNGFile(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
-  pixel_composition_t *current_image_p;
-  png_byte *image_output_buf;
-  png_byte *image_output_p;
-  double pixel_r;
-  double pixel_g;
-  double pixel_b;
-  int output_x;
-  int output_y;
+int outputPNG(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   FILE *output_file=NULL;
   png_structp png_ptr;
   png_infop info_ptr;
   png_byte color_type=PNG_COLOR_TYPE_RGB;
   png_byte bit_depth=8;
-  png_bytep *row_pointers;
   struct timespec starttime;
   struct timespec endtime;
   double elapsed_time;
-  double one_over_2dot4;
-  int output_res_x;
-  int output_res_y;
-  long long image_offset;
-
-  //
-  // display status message if not in cgi mode
-  //
-  if (bsr_config->cgi_mode != 1) {
-    clock_gettime(CLOCK_REALTIME, &starttime);
-    if (bsr_config->bits_per_color == 8) {
-      printf("Converting to 8 bits per color...");
-    } else if (bsr_config->bits_per_color == 16) {
-      printf("Converting to 16 bits per color...");
-    }
-    fflush(stdout);
-  }
-
-  //
-  // get current image pointer and resolution
-  //
-  current_image_p=bsr_state->current_image_buf;
-  output_res_x=bsr_state->current_image_res_x;
-  output_res_y=bsr_state->current_image_res_y;
-
-
-  //
-  // allocate memory for image output buffer (8 or 16 bits per color rgb)
-  //
-  image_output_buf=NULL;
-  if (bsr_config->bits_per_color == 8) {
-    image_output_buf=(png_byte *)malloc((long long)output_res_x * (long long)output_res_y * (long long)3 * sizeof(png_byte));
-    bit_depth=8;
-  } else if (bsr_config->bits_per_color == 16) {
-    image_output_buf=(png_byte *)malloc((long long)output_res_x * (long long)output_res_y * (long long)6 * sizeof(png_byte));
-    bit_depth=16;
-  }
-  if (image_output_buf == NULL) {
-    if (bsr_config->cgi_mode != 1) {
-      printf("Error: could not allocate memory for image output buffer\n");
-      fflush(stdout);
-    }
-    return(1);
-  }
-  image_output_p=image_output_buf;
-
-  //
-  // allocate memory for row_pointers
-  //
-  row_pointers=(png_bytep *)malloc(output_res_y * sizeof(png_bytep));
-  if (row_pointers == NULL) {
-    if (bsr_config->cgi_mode != 1) {
-      printf("Error: could not allocate memory for libpng row_pointers\n");
-      fflush(stdout);
-    }
-    return(1);
-  }
-
-  //
-  // convert double precision image buffer to 8 or 16 bits per color
-  //
-  image_output_p=image_output_buf;
-  output_x=0;
-  output_y=0;
-  row_pointers[0]=image_output_p;
-  one_over_2dot4=1.0 / 2.4;
-  for (image_offset=0; image_offset < ((long long)output_res_x * (long long)output_res_y); image_offset++) {
-
-    //
-    // set new row pointer if we have reached end of row
-    //
-    if (output_x == output_res_x) {
-      output_x=0;
-      output_y++;
-      row_pointers[output_y]=image_output_p;
-    }
-
-    //
-    // copy pixel data from current_image_buf
-    //
-    pixel_r=current_image_p->r;
-    pixel_g=current_image_p->g;
-    pixel_b=current_image_p->b;
-
-    //
-    // limit pixel intensity to range [0..1]
-    //
-    if (bsr_config->camera_pixel_limit_mode == 0) {
-      limitIntensity(&pixel_r, &pixel_g, &pixel_b);
-    } else if (bsr_config->camera_pixel_limit_mode == 1) {
-      limitIntensityPreserveColor(&pixel_r, &pixel_g, &pixel_b);
-    }
-
-    //
-    // optionally apply sRGB gamma
-    //
-    if (bsr_config->sRGB_gamma == 1) {
-      // apply sRGB gamma
-      if (pixel_r <= 0.0031308) {
-        pixel_r=pixel_r * 12.92;
-      } else {
-        pixel_r=(1.055 * pow(pixel_r, one_over_2dot4) - 0.055);
-      }
-      if (pixel_g <= 0.0031308) {
-        pixel_g=pixel_g * 12.92;
-      } else {
-        pixel_g=(1.055 * pow(pixel_g, one_over_2dot4) - 0.055);
-      }
-      if (pixel_b <= 0.0031308) {
-        pixel_b=pixel_b * 12.92;
-      } else {
-        pixel_b=(1.055 * pow(pixel_b, one_over_2dot4) - 0.055);
-      }
-    }    
-
-    //
-    // convert r,g,b to 8 or 16 bit values and copy to output buffer
-    //
-    if (bsr_config->bits_per_color == 8) {
-      *image_output_p=(unsigned char)((pixel_r * 255.0) + 0.5);
-      image_output_p++;
-      *image_output_p=(unsigned char)((pixel_g * 255.0) + 0.5);
-      image_output_p++;
-      *image_output_p=(unsigned char)((pixel_b * 255.0) + 0.5);
-      image_output_p++;
-    } else if (bsr_config->bits_per_color == 16) {
-      png_save_uint_16(image_output_p, (uint16_t)((pixel_r * 65535.0) + 0.5));
-      image_output_p+=2;
-      png_save_uint_16(image_output_p, (uint16_t)((pixel_g * 65535.0) + 0.5));
-      image_output_p+=2;
-      png_save_uint_16(image_output_p, (uint16_t)((pixel_b * 65535.0) + 0.5));
-      image_output_p+=2;
-    }
-
-    output_x++;
-    current_image_p++;
-  }
 
   //
   // display status update if not in cgi mode
   //
   if (bsr_config->cgi_mode != 1) {
-    clock_gettime(CLOCK_REALTIME, &endtime);
-    elapsed_time=((double)(endtime.tv_sec - 1500000000) + ((double)endtime.tv_nsec / 1.0E9)) - ((double)(starttime.tv_sec - 1500000000) + ((double)starttime.tv_nsec) / 1.0E9);
-    printf(" (%.4fs)\n", elapsed_time);
-    fflush(stdout);
-
     clock_gettime(CLOCK_REALTIME, &starttime);
     printf("Writing galaxy.png...");
     fflush(stdout);
@@ -247,10 +96,15 @@ int writePNGFile(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   //
   // write PNG header
   //
-  png_set_IHDR(png_ptr, info_ptr, output_res_x, output_res_y, bit_depth, color_type, PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE);
+  if (bsr_config->bits_per_color == 8) {
+    bit_depth=8;
+  } else {
+    bit_depth=16;
+  }
+  png_set_IHDR(png_ptr, info_ptr, bsr_state->current_image_res_x, bsr_state->current_image_res_y, bit_depth, color_type, PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE);
   png_write_info(png_ptr, info_ptr);
   // wringe PNG image data
-  png_write_image(png_ptr, row_pointers);
+  png_write_image(png_ptr, bsr_state->row_pointers);
   // end write
   png_write_end(png_ptr, NULL);
 
@@ -266,12 +120,6 @@ int writePNGFile(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
     // clean up
     fclose(output_file);
   }
-
-  //
-  // clean up
-  //
-  free(image_output_buf);
-  free(row_pointers);
 
   return(0);
 }

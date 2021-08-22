@@ -51,7 +51,6 @@ int sendPixelToMainThread(bsr_state_t *bsr_state, long long image_offset, double
   // If the current slot of the main thread buffer is occupied it will wait until it is free, periodically checking if
   // the main thread is still alive.
   //
-
   volatile int success; // gcc optimization breaks algorithm without volatile keyword
   int idle_count;
 
@@ -100,7 +99,6 @@ int sendDedupBufferToMainThread(bsr_state_t *bsr_state) {
   // This function sends pixels from the dedup buffer to the main thread.
   // As pixels are sent it clears them from the dedup buffer and dedup buffer index.
   //
-
   dedup_buffer_t *dedup_buf_p;
   dedup_index_t *dedup_index_p;
   int dedup_buf_i;
@@ -156,7 +154,6 @@ int sendPixelToDedupBuffer(bsr_state_t *bsr_state, long long image_offset, doubl
   // pixel is sent directly to the main thread instead.  Finally, it checks if dedup buffer is full and if so
   // sends dedup buffer contents to main thread.
   //
-
   dedup_buffer_t *dedup_buf_p;
   dedup_index_t *dedup_index_p;
   long long dedup_index_offset;
@@ -217,7 +214,6 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
   // - deduplicates pixels to reduce load on memory bandwidth, which is typically the limiting performance factor on large servers with many cpus
   // - sends pixels to main thread for integration into the image composition buffer
   //
-
   int i;
   star_record_t star_record;
   int star_record_size=sizeof(star_record_t);
