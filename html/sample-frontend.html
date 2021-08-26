@@ -185,6 +185,10 @@
         if (tmpvalue != null) {
           settings_form.Airy_disk_max_extent.value = tmpvalue;
         }
+        tmpvalue = search.get("Airy_disk_min_extent");
+        if (tmpvalue != null) {
+          settings_form.Airy_disk_min_extent.value = tmpvalue;
+        }
         tmpvalue = search.get("red_filter_preset");
         if (tmpvalue != null) {
           settings_form.red_filter_preset.value = tmpvalue;
@@ -308,6 +312,7 @@ spherical_orientation=${settings_form.spherical_orientation.value}&\
 Airy_disk=${settings_form.Airy_disk.value}&\
 Airy_disk_first_null=${settings_form.Airy_disk_first_null.value}&\
 Airy_disk_max_extent=${settings_form.Airy_disk_max_extent.value}&\
+Airy_disk_min_extent=${settings_form.Airy_disk_min_extent.value}&\
 red_filter_long_limit=${settings_form.red_filter_long_limit.value}&\
 red_filter_short_limit=${settings_form.red_filter_short_limit.value}&\
 green_filter_long_limit=${settings_form.green_filter_long_limit.value}&\
@@ -365,6 +370,7 @@ spherical_orientation=${settings_form.spherical_orientation.value}&\
 Airy_disk=${settings_form.Airy_disk.value}&\
 Airy_disk_first_null=${settings_form.Airy_disk_first_null.value}&\
 Airy_disk_max_extent=${settings_form.Airy_disk_max_extent.value}&\
+Airy_disk_min_extent=${settings_form.Airy_disk_min_extent.value}&\
 red_filter_preset=${settings_form.red_filter_preset.value}&\
 red_filter_long_limit=${settings_form.red_filter_long_limit.value}&\
 red_filter_short_limit=${settings_form.red_filter_short_limit.value}&\
@@ -677,7 +683,7 @@ camera_tilt=${navigation_form.camera_tilt.value}`;
             <legend>About</legend>
             <div id="centered">
               Sample web interface for
-              <h2><a href="https://github.com/kevinloch/bsrender">bsrender</a> 0.9-dev-61</h2>
+              <h2><a href="https://github.com/kevinloch/bsrender">bsrender</a> 0.9-dev-62</h2>
               using data from <a href="https://www.cosmos.esa.int/web/gaia/earlydr3">Gaia EDR3</a>
               <br>and supplemental <a href="https://bsrender.io/sample_data/0.9/external.csv">bright stars</a>
             </div>
@@ -727,7 +733,8 @@ s_url" size=30 value=""></td></tr>
               <option value="no" selected>no</option>
               <option value="yes">yes</option>
             </select>
-            <br><br><label for="render_distance_min">Min render distance (parsec)</label>
+            <br><center><em>124 bright stars not included in the Gaia dataset</em></center>
+            <br><label for="render_distance_min">Min render distance (parsec)</label>
             <input type="text" name="render_distance_min" id="render_distance_min" size="12" value="0.0">
             <br><label for="render_distance_max">Max render distance (parsec)</label>
             <input type="text" name="render_distance_max" id="render_distance_max" size="12" value="1.0E99">
@@ -868,7 +875,8 @@ s_url" size=30 value=""></td></tr>
           <fieldset>
             <legend>Diffraction</legend>
             <div id="centered">
-              <em>Caution: Airy disks render slowly</em>
+              <em>Caution: A large number of overexposed stars or a large minimum
+              <br>extent can drastically affect rendering time</em>
             </div>
             <br><label for "Airy_disk">Enable Airy disks</label>
             <select name="Airy_disk" id="Airy_disk">
@@ -876,9 +884,11 @@ s_url" size=30 value=""></td></tr>
               <option value="yes">yes</option>
             </select>
             <br><label for "Airy_disk_first_null">Airy disk first null (pixels)</label>
-            <input type="text" id="Airy_disk_first_null" name="Airy_disk_first_null" size="12" value="0.75">
+            <input type="text" id="Airy_disk_first_null" name="Airy_disk_first_null" size="12" value="0.75"> <em>min 0.3</em>
             <br><label for "Airy_disk_max_extent">Airy disk max extent (pixels)</label>
-            <input type="text" id="Airy_disk_max_extent" name="Airy_disk_max_extent" size="12" value="10">
+            <input type="text" id="Airy_disk_max_extent" name="Airy_disk_max_extent" size="12" value="100"> <em>max 1000</em>
+            <br><label for "Airy_disk_min_extent">Airy disk min extent (pixels)</label>
+            <input type="text" id="Airy_disk_min_extent" name="Airy_disk_min_extent" size="12" value="1"> <em>max 1000</em>
           </fieldset>
           <fieldset>
             <legend>Post-processing</legend>
@@ -1000,4 +1010,12 @@ s_url" size=30 value=""></td></tr>
       </div>
     </main>
   </body>
+  <footer>
+    <p>
+    <center>Data credit:
+    <p>
+    This work has made use of data from the European Space Agency (ESA) mission Gaia (<a href="https://www.cosmos.esa.int/gaia">https://www.cosmos.esa.int/gaia</a>),
+    <br>processed by the Gaia Data Processing and Analysis Consortium (DPAC, <a href="https://www.cosmos.esa.int/web/gaia/dpac/consortium">https://www.cosmos.esa.int/web/gaia/dpac/consortium</a>).
+    </center>
+  </footer>
 </html>

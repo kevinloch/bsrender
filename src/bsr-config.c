@@ -53,9 +53,8 @@ void initConfig(bsr_config_t *bsr_config) {
   bsr_config->cgi_max_res_y=999999;
   bsr_config->cgi_Gaia_min_parallax_quality=0;
   bsr_config->cgi_allow_Airy_disk=1;
-  bsr_config->cgi_max_Airy_disk_camera_fov=500.0;
   bsr_config->cgi_min_Airy_disk_first_null=0.3;
-  bsr_config->cgi_max_Airy_disk_max_extent=500;
+  bsr_config->cgi_max_Airy_disk_max_extent=1000;
   bsr_config->enable_Gaia=1;
   bsr_config->Gaia_min_parallax_quality=0;
   bsr_config->enable_external=0;
@@ -87,7 +86,9 @@ void initConfig(bsr_config_t *bsr_config) {
   bsr_config->blue_filter_short_limit=395.0;
   bsr_config->Airy_disk=0;
   bsr_config->Airy_disk_first_null=0.75;
-  bsr_config->Airy_disk_max_extent=10;
+  bsr_config->Airy_disk_max_extent=100;
+  bsr_config->Airy_disk_min_extent=1;
+  bsr_config->Airy_disk_obstruction=0.127;
   bsr_config->Gaussian_blur_radius=0.0;
   bsr_config->output_scaling_factor=1.0;
   bsr_config->draw_crosshairs=0;
@@ -214,7 +215,6 @@ void setOptionValue(bsr_config_t *bsr_config, char *option, char *value, int fro
     checkOptionInt(&bsr_config->cgi_max_res_y, option, value, "cgi_max_res_y");
     checkOptionInt(&bsr_config->cgi_Gaia_min_parallax_quality, option, value, "cgi_Gaia_min_parallax_quality");
     checkOptionBool(&bsr_config->cgi_allow_Airy_disk, option, value, "cgi_allow_Airy_disk");
-    checkOptionDouble(&bsr_config->cgi_max_Airy_disk_camera_fov, option, value, "cgi_max_Airy_disk_camera_fov");
     checkOptionDouble(&bsr_config->cgi_min_Airy_disk_first_null, option, value, "cgi_min_Airy_disk_first_null");
     checkOptionInt(&bsr_config->cgi_max_Airy_disk_max_extent, option, value, "cgi_max_Airy_disk_max_extent");
   }
@@ -254,6 +254,8 @@ void setOptionValue(bsr_config_t *bsr_config, char *option, char *value, int fro
   checkOptionBool(&bsr_config->Airy_disk, option, value, "Airy_disk");
   checkOptionDouble(&bsr_config->Airy_disk_first_null, option, value, "Airy_disk_first_null");
   checkOptionInt(&bsr_config->Airy_disk_max_extent, option, value, "Airy_disk_max_extent");
+  checkOptionInt(&bsr_config->Airy_disk_min_extent, option, value, "Airy_disk_min_extent");
+  checkOptionDouble(&bsr_config->Airy_disk_obstruction, option, value, "Airy_disk_obstruction");
   checkOptionDouble(&bsr_config->Gaussian_blur_radius, option, value, "Gaussian_blur_radius");
   checkOptionDouble(&bsr_config->output_scaling_factor, option, value, "output_scaling_factor");
   checkOptionBool(&bsr_config->draw_crosshairs, option, value, "draw_crosshairs");
@@ -448,7 +450,7 @@ int validateCGIOptions(bsr_config_t *bsr_config) {
   if (bsr_config->Gaia_min_parallax_quality < bsr_config->cgi_Gaia_min_parallax_quality) {
     bsr_config->Gaia_min_parallax_quality=bsr_config->cgi_Gaia_min_parallax_quality;
   }
-  if ((bsr_config->cgi_allow_Airy_disk == 0) || (bsr_config->camera_fov > bsr_config->cgi_max_Airy_disk_camera_fov)) {
+  if (bsr_config->cgi_allow_Airy_disk == 0) {
     bsr_config->Airy_disk=0;
   }
   if (bsr_config->Airy_disk_first_null < bsr_config->cgi_min_Airy_disk_first_null) {
@@ -456,6 +458,9 @@ int validateCGIOptions(bsr_config_t *bsr_config) {
   }
   if (bsr_config->Airy_disk_max_extent > bsr_config->cgi_max_Airy_disk_max_extent) {
     bsr_config->Airy_disk_max_extent=bsr_config->cgi_max_Airy_disk_max_extent;
+  }
+  if (bsr_config->Airy_disk_min_extent > bsr_config->cgi_max_Airy_disk_max_extent) {
+    bsr_config->Airy_disk_min_extent=bsr_config->cgi_max_Airy_disk_max_extent;
   }
 
   return(0);

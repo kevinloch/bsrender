@@ -145,7 +145,7 @@ int GaussianBlur(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   current_image_res_y=bsr_state->current_image_res_y;
   blur_res_x=current_image_res_x;
   blur_res_y=current_image_res_y;
-  lines_per_thread=(int)ceil(((double)current_image_res_y / (double)(bsr_state->num_worker_threads + 1)));
+  lines_per_thread=(int)ceil(((float)current_image_res_y / (float)(bsr_state->num_worker_threads + 1)));
   if (lines_per_thread < 1) {
     lines_per_thread=1;
   }
@@ -157,7 +157,6 @@ int GaussianBlur(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   blur_y=(bsr_state->perthread->my_thread_id * lines_per_thread);
   image_blur_p=bsr_state->image_blur_buf + ((long long)blur_res_x * (long long)blur_y);
   for (blur_i=0; ((blur_i < ((long long)blur_res_x * (long long)lines_per_thread)) && (blur_y < blur_res_y)); blur_i++) {
-
     //
     // apply Gaussian kernel to this pixel horizontally
     //
@@ -217,7 +216,6 @@ int GaussianBlur(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   blur_y=(bsr_state->perthread->my_thread_id * lines_per_thread);
   image_blur_p=bsr_state->current_image_buf + ((long long)blur_res_x * (long long)blur_y);
   for (blur_i=0; ((blur_i < ((long long)blur_res_x * (long long)lines_per_thread)) && (blur_y < blur_res_y)); blur_i++) {
-
     //
     // apply Gaussian kernel to this pixel vertically
     //

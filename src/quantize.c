@@ -92,7 +92,7 @@ int quantize(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   //
   output_res_x=bsr_state->current_image_res_x;
   output_res_y=bsr_state->current_image_res_y;
-  lines_per_thread=(int)ceil(((double)bsr_state->current_image_res_y / (double)(bsr_state->num_worker_threads + 1)));
+  lines_per_thread=(int)ceil(((float)bsr_state->current_image_res_y / (float)(bsr_state->num_worker_threads + 1)));
   if (lines_per_thread < 1) {
     lines_per_thread=1;
   }

@@ -63,7 +63,7 @@ int initImageCompositionBuffer(bsr_config_t *bsr_config, bsr_state_t *bsr_state)
   //
   current_image_res_x=bsr_state->current_image_res_x;
   current_image_res_y=bsr_state->current_image_res_y;
-  lines_per_thread=(int)ceil(((double)current_image_res_y / (double)(bsr_state->num_worker_threads + 1)));
+  lines_per_thread=(int)ceil(((float)current_image_res_y / (float)(bsr_state->num_worker_threads + 1)));
   if (lines_per_thread < 1) {
     lines_per_thread=1;
   }
@@ -82,11 +82,11 @@ int initImageCompositionBuffer(bsr_config_t *bsr_config, bsr_state_t *bsr_state)
   // main thread: tell worker threads to go
   //
   if (bsr_state->perthread->my_pid != bsr_state->master_pid) {
-    waitForMainThread(bsr_state, THREAD_STATUS_INIT_BEGIN);
+    waitForMainThread(bsr_state, THREAD_STATUS_INIT_IMAGECOMP_BEGIN);
   } else {
     // main thread
     for (i=1; i <= bsr_state->num_worker_threads; i++) {
-      bsr_state->status_array[i].status=THREAD_STATUS_INIT_BEGIN;
+      bsr_state->status_array[i].status=THREAD_STATUS_INIT_IMAGECOMP_BEGIN;
     }
   } // end if not main thread
 
@@ -117,15 +117,15 @@ int initImageCompositionBuffer(bsr_config_t *bsr_config, bsr_state_t *bsr_state)
   // main thread: wait until all other threads are done and then signal that they can continue to next step.
   //
   if (bsr_state->perthread->my_pid != bsr_state->master_pid) {
-    bsr_state->status_array[bsr_state->perthread->my_thread_id].status=THREAD_STATUS_INIT_COMPLETE;
-    waitForMainThread(bsr_state, THREAD_STATUS_INIT_CONTINUE);
+    bsr_state->status_array[bsr_state->perthread->my_thread_id].status=THREAD_STATUS_INIT_IMAGECOMP_COMPLETE;
+    waitForMainThread(bsr_state, THREAD_STATUS_INIT_IMAGECOMP_CONTINUE);
   } else {
-    waitForWorkerThreads(bsr_state, THREAD_STATUS_INIT_COMPLETE);
+    waitForWorkerThreads(bsr_state, THREAD_STATUS_INIT_IMAGECOMP_COMPLETE);
     //
     // ready to continue, set all worker thread status to continue
     //
     for (i=1; i <= bsr_state->num_worker_threads; i++) {
-      bsr_state->status_array[i].status=THREAD_STATUS_INIT_CONTINUE;
+      bsr_state->status_array[i].status=THREAD_STATUS_INIT_IMAGECOMP_CONTINUE;
     }
   } // end if not main thread
 

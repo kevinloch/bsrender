@@ -100,7 +100,7 @@ int resizeLanczos(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   resize_res_y=bsr_state->resize_res_y;
   source_w=1.0 / bsr_config->output_scaling_factor;
   half_source_w=source_w / 2.0;
-  lines_per_thread=(int)ceil(((double)resize_res_y / (double)(bsr_state->num_worker_threads + 1)));
+  lines_per_thread=(int)ceil(((float)resize_res_y / (float)(bsr_state->num_worker_threads + 1)));
   if (lines_per_thread < 1) {
     lines_per_thread=1;
   }

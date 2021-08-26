@@ -243,7 +243,6 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
   const double pi_over_2=M_PI / 2.0;
   int Airymap_x;
   int Airymap_y;
-  int Airymap_half_xy;
   int Airymap_xy;
   int Airymap_output_x;
   int Airymap_output_y;
@@ -257,17 +256,14 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
   double r;
   double g;
   double b;
+  int Airymap_autoscale;
+  int Airymap_full_xy;
+  int Airymap_row_offset;
 
   //
   // init shortcut variables
   //
-  Airymap_half_xy=bsr_config->Airy_disk_max_extent;
-  Airymap_xy=(Airymap_half_xy * 2) + 1;
-
-  //
-  // reset dedup buffer (probably not needed as it is cleared each time dedup buffer is emptied)
-  //
-  //bsr_state->perthread->dedup_count=0;
+  Airymap_full_xy=bsr_config->Airy_disk_max_extent + 1;
 
   //
   // read and process each line of input file
@@ -447,27 +443,75 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
           //
           // Airy disk mode, use Airy disk maps to find all pixel values for this star and send to dedup buffer
           //
-          Airymap_red_p=bsr_state->Airymap_red;
-          Airymap_green_p=bsr_state->Airymap_green;
-          Airymap_blue_p=bsr_state->Airymap_blue;
+          Airymap_autoscale=(int)(sqrt(star_linear_intensity * 10.0 / bsr_config->camera_pixel_limit) * 2.0 * bsr_config->Airy_disk_first_null);
+          if (Airymap_autoscale < bsr_config->Airy_disk_min_extent) {
+            Airymap_autoscale=bsr_config->Airy_disk_min_extent;
+          } else if (Airymap_autoscale > bsr_config->Airy_disk_max_extent) {
+            Airymap_autoscale=bsr_config->Airy_disk_max_extent;
+          }
+          Airymap_xy=Airymap_autoscale + 1;
           star_rgb_red=bsr_state->rgb_red[color_temperature];
           star_rgb_green=bsr_state->rgb_green[color_temperature];
           star_rgb_blue=bsr_state->rgb_blue[color_temperature];
           for (Airymap_y=0; Airymap_y < Airymap_xy; Airymap_y++) {
+            Airymap_row_offset=Airymap_full_xy * Airymap_y;
+            Airymap_red_p=bsr_state->Airymap_red + Airymap_row_offset;
+            Airymap_green_p=bsr_state->Airymap_green + Airymap_row_offset;
+            Airymap_blue_p=bsr_state->Airymap_blue + Airymap_row_offset;
             for (Airymap_x=0; Airymap_x < Airymap_xy; Airymap_x++) {
-              Airymap_output_x=output_x - Airymap_half_xy + Airymap_x;
-              Airymap_output_y=output_y - Airymap_half_xy + Airymap_y;
+              r=(star_linear_intensity * *Airymap_red_p * star_rgb_red);
+              g=(star_linear_intensity * *Airymap_green_p * star_rgb_green);
+              b=(star_linear_intensity * *Airymap_green_p * star_rgb_blue);
+              // quadrant +x,+y
+              Airymap_output_x=output_x + Airymap_x;
+              Airymap_output_y=output_y + Airymap_y;
               if ((Airymap_output_x >= 0) && (Airymap_output_x < bsr_config->camera_res_x) && (Airymap_output_y >= 0) && (Airymap_output_y < bsr_config->camera_res_y)
                 && (*Airymap_red_p > 0.0) && (*Airymap_green_p > 0.0) && (*Airymap_blue_p > 0.0)) {
                 //
                 // Airymap pixel is within image raster, send to dedup buffer
                 //
                 image_offset=((long long)bsr_config->camera_res_x * (long long)Airymap_output_y) + (long long)Airymap_output_x;
-                r=(star_linear_intensity * *Airymap_red_p * star_rgb_red);
-                g=(star_linear_intensity * *Airymap_green_p * star_rgb_green);
-                b=(star_linear_intensity * *Airymap_green_p * star_rgb_blue);
                 sendPixelToDedupBuffer(bsr_state, image_offset, r, g, b);
               } // end if Airymap pixel is within image raster
+              // quadrant -x,+y
+              if (Airymap_x > 0) {
+                Airymap_output_x=output_x - Airymap_x;
+                Airymap_output_y=output_y + Airymap_y;
+                if ((Airymap_output_x >= 0) && (Airymap_output_x < bsr_config->camera_res_x) && (Airymap_output_y >= 0) && (Airymap_output_y < bsr_config->camera_res_y)
+                  && (*Airymap_red_p > 0.0) && (*Airymap_green_p > 0.0) && (*Airymap_blue_p > 0.0)) {
+                  //
+                  // Airymap pixel is within image raster, send to dedup buffer
+                  //
+                  image_offset=((long long)bsr_config->camera_res_x * (long long)Airymap_output_y) + (long long)Airymap_output_x;
+                  sendPixelToDedupBuffer(bsr_state, image_offset, r, g, b);
+                } // end if Airymap pixel is within image raster
+              } // end quadrant -x,+y
+              // quadrant +x,-y
+              if (Airymap_y > 0) {
+                Airymap_output_x=output_x + Airymap_x;
+                Airymap_output_y=output_y - Airymap_y;
+                if ((Airymap_output_x >= 0) && (Airymap_output_x < bsr_config->camera_res_x) && (Airymap_output_y >= 0) && (Airymap_output_y < bsr_config->camera_res_y)
+                  && (*Airymap_red_p > 0.0) && (*Airymap_green_p > 0.0) && (*Airymap_blue_p > 0.0)) {
+                  //
+                  // Airymap pixel is within image raster, send to dedup buffer
+                  //
+                  image_offset=((long long)bsr_config->camera_res_x * (long long)Airymap_output_y) + (long long)Airymap_output_x;
+                  sendPixelToDedupBuffer(bsr_state, image_offset, r, g, b);
+                } // end if Airymap pixel is within image raster
+              } // end quadrant +x,-y
+              // quadrant -x,-y
+              if ((Airymap_x > 0) && (Airymap_y > 0)) {
+                Airymap_output_x=output_x - Airymap_x;
+                Airymap_output_y=output_y - Airymap_y;
+                if ((Airymap_output_x >= 0) && (Airymap_output_x < bsr_config->camera_res_x) && (Airymap_output_y >= 0) && (Airymap_output_y < bsr_config->camera_res_y)
+                  && (*Airymap_red_p > 0.0) && (*Airymap_green_p > 0.0) && (*Airymap_blue_p > 0.0)) {
+                  //
+                  // Airymap pixel is within image raster, send to dedup buffer
+                  //
+                  image_offset=((long long)bsr_config->camera_res_x * (long long)Airymap_output_y) + (long long)Airymap_output_x;
+                  sendPixelToDedupBuffer(bsr_state, image_offset, r, g, b);
+                } // end if Airymap pixel is within image raster
+              } // end quadrant -x,-y
               Airymap_red_p++;
               Airymap_green_p++;
               Airymap_blue_p++;

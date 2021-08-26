@@ -57,6 +57,7 @@
 #include "image-composition.h"
 #include "memory.h"
 #include "quantize.h"
+#include "diffraction.h"
 
 int processCmdArgs(bsr_config_t *bsr_config, int argc, char **argv) {
   int i;
@@ -180,7 +181,7 @@ int main(int argc, char **argv) {
   }
 
   //
-  // initialize total execution timer and display major performance affecting options
+  // initialize total run timer and display major performance affecting options
   //
   if (bsr_config.cgi_mode != 1) {
     clock_gettime(CLOCK_REALTIME, &overall_starttime);
@@ -370,6 +371,13 @@ int main(int argc, char **argv) {
 // 
 // begin thread specific processing.
 //
+
+  //
+  // all threads: initialize Airy disk maps if Airy disk mode enabled
+  //
+  if (bsr_config.Airy_disk == 1) {
+    initAiryMaps(&bsr_config, bsr_state);
+  }
 
   //
   // all threads: initialize (clear) image composition buffer
@@ -578,7 +586,7 @@ int main(int argc, char **argv) {
     if (bsr_config.cgi_mode != 1) {
       clock_gettime(CLOCK_REALTIME, &overall_endtime);
       elapsed_time=((double)(overall_endtime.tv_sec - 1500000000) + ((double)overall_endtime.tv_nsec / 1.0E9)) - ((double)(overall_starttime.tv_sec - 1500000000) + ((double)overall_starttime.tv_nsec) / 1.0E9);
-      printf("Total execution time: %.3fs\n", elapsed_time);
+      printf("Total run time: %.3fs\n", elapsed_time);
       fflush(stdout);
     }
   } // end if main thread

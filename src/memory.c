@@ -41,7 +41,6 @@
 #include <stdlib.h>
 #include <sys/mman.h>
 #include <time.h>
-#include "diffraction.h"
 
 int freeMemory(bsr_state_t *bsr_state) {
   munmap(bsr_state->image_composition_buf, bsr_state->composition_buffer_size);
@@ -81,28 +80,16 @@ int allocateMemory(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   int output_res_y;
 
   //
-  // allocate shared memory for Airy disk maps and initialize
+  // allocate shared memory for Airy disk maps if Airy disk mode enabled
   //
   if (bsr_config->Airy_disk == 1) {
-    if (bsr_config->cgi_mode != 1) {
-      clock_gettime(CLOCK_REALTIME, &starttime);
-      printf("Initializing Airy disk maps...");
-      fflush(stdout);
-    }
     mmap_protection=PROT_READ | PROT_WRITE;
     mmap_visibility=MAP_SHARED | MAP_ANONYMOUS;
-    Airymap_xy=(bsr_config->Airy_disk_max_extent * 2) + 1;
+    Airymap_xy=bsr_config->Airy_disk_max_extent + 1;
     bsr_state->Airymap_size=Airymap_xy * Airymap_xy * sizeof(double);
     bsr_state->Airymap_red=(double *)mmap(NULL, bsr_state->Airymap_size, mmap_protection, mmap_visibility, -1, 0);
     bsr_state->Airymap_green=(double *)mmap(NULL, bsr_state->Airymap_size, mmap_protection, mmap_visibility, -1, 0);
     bsr_state->Airymap_blue=(double *)mmap(NULL, bsr_state->Airymap_size, mmap_protection, mmap_visibility, -1, 0);
-    initAiryMaps(bsr_config, bsr_state);
-    if (bsr_config->cgi_mode != 1) {
-      clock_gettime(CLOCK_REALTIME, &endtime);
-      elapsed_time=((double)(endtime.tv_sec - 1500000000) + ((double)endtime.tv_nsec / 1.0E9)) - ((double)(starttime.tv_sec - 1500000000) + ((double)starttime.tv_nsec) / 1.0E9);
-      printf(" (%.3fs)\n", elapsed_time);
-      fflush(stdout);
-    }
   }
 
   //
@@ -163,7 +150,7 @@ int allocateMemory(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   //
   if (bsr_config->cgi_mode != 1) {
     clock_gettime(CLOCK_REALTIME, &starttime);
-    printf("Initializing dedup buffer and index...");
+    printf("Initializing dedup buffers and indexes...");
     fflush(stdout);
   }
   bsr_state->dedup_buffer_size=bsr_state->per_thread_buffers * sizeof(dedup_buffer_t);
@@ -218,11 +205,11 @@ int allocateMemory(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   }
 
   //
-  // allocate shared memory for thread buffer and status array
+  // allocate shared memory for main thread buffer and status array
   //
   if (bsr_config->cgi_mode != 1) {
     clock_gettime(CLOCK_REALTIME, &starttime);
-    printf("Initializing rendering thread buffers...");
+    printf("Initializing main thread buffer...");
     fflush(stdout);
   }
   if (bsr_state->per_thread_buffers < 1) {
@@ -233,7 +220,7 @@ int allocateMemory(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   bsr_state->thread_buf=(thread_buffer_t *)mmap(NULL, bsr_state->thread_buffer_size, mmap_protection, mmap_visibility, -1, 0);
   if (bsr_state->thread_buf == NULL) {
     if (bsr_config->cgi_mode != 1) {
-      printf("Error: could not allocate shared memory for thread buffer\n");
+      printf("Error: could not allocate shared memory for main thread buffer\n");
     }
     exit(1);
   }
