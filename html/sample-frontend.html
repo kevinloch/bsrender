@@ -189,6 +189,10 @@
         if (tmpvalue != null) {
           settings_form.Airy_disk_min_extent.value = tmpvalue;
         }
+        tmpvalue = search.get("Airy_disk_obstruction");
+        if (tmpvalue != null) {
+          settings_form.Airy_disk_obstruction.value = tmpvalue;
+        }
         tmpvalue = search.get("red_filter_preset");
         if (tmpvalue != null) {
           settings_form.red_filter_preset.value = tmpvalue;
@@ -313,6 +317,7 @@ Airy_disk=${settings_form.Airy_disk.value}&\
 Airy_disk_first_null=${settings_form.Airy_disk_first_null.value}&\
 Airy_disk_max_extent=${settings_form.Airy_disk_max_extent.value}&\
 Airy_disk_min_extent=${settings_form.Airy_disk_min_extent.value}&\
+Airy_disk_obstruction=${settings_form.Airy_disk_obstruction.value}&\
 red_filter_long_limit=${settings_form.red_filter_long_limit.value}&\
 red_filter_short_limit=${settings_form.red_filter_short_limit.value}&\
 green_filter_long_limit=${settings_form.green_filter_long_limit.value}&\
@@ -371,6 +376,7 @@ Airy_disk=${settings_form.Airy_disk.value}&\
 Airy_disk_first_null=${settings_form.Airy_disk_first_null.value}&\
 Airy_disk_max_extent=${settings_form.Airy_disk_max_extent.value}&\
 Airy_disk_min_extent=${settings_form.Airy_disk_min_extent.value}&\
+Airy_disk_obstruction=${settings_form.Airy_disk_obstruction.value}&\
 red_filter_preset=${settings_form.red_filter_preset.value}&\
 red_filter_long_limit=${settings_form.red_filter_long_limit.value}&\
 red_filter_short_limit=${settings_form.red_filter_short_limit.value}&\
@@ -889,6 +895,8 @@ s_url" size=30 value=""></td></tr>
             <input type="text" id="Airy_disk_max_extent" name="Airy_disk_max_extent" size="12" value="100"> <em>max 1000</em>
             <br><label for "Airy_disk_min_extent">Airy disk min extent (pixels)</label>
             <input type="text" id="Airy_disk_min_extent" name="Airy_disk_min_extent" size="12" value="1"> <em>max 1000</em>
+            <br><label for "Airy_disk_obstruction">Aperture obstruction (ratio)</label>
+            <input type="text" id="Airy_disk_obstruction" name="Airy_disk_obstruction" size="12" value="0.127"> <em>0.0 - 0.99</em>
           </fieldset>
           <fieldset>
             <legend>Post-processing</legend>
