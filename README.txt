@@ -15,7 +15,7 @@ Key features:
   - Customizable camera resolution, field of view, sensitivity, white balance, color saturation, and gamma
   - Camera color is accurately modeled with Planck spectrum and customizable bandpass filters for each color channel
   - Several raster projection modes are supported: lat/lon (equirectangular), Spherical (forward hemisphere centered), Spherical (front/rear hemispheres), Hammer, Mollewide
-  - Accurately modeled Airy disks provide photorealistic renderings of individual stars and clusters when enabled
+  - Accurately modeled Airy disks provide photorealistic renderings of individual stars and clusters when enabled.  This includes an optional aperture obstruction ratio.
   - Stars can be filtered by parallax quality (parallax over error), distance from camera or target, and effective color temperature
   - Optional Gaussian blur and/or Lanczos2 output scaling.  This allows very high resolution renderings to be smoothed and downsampled on a server before downloading
   - Good performance when the data files can be cached in ram.  On an AWS m6gd.12xlarge instance (48vcpu/192GBram) the full pq000 dataset (1.4B stars) can be rendered in 14 seconds at 2k resolution.  The default pq010 data set (98M stars) renders in just 2 seconds
