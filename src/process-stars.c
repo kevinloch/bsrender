@@ -461,7 +461,7 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
             for (Airymap_x=0; Airymap_x < Airymap_xy; Airymap_x++) {
               r=(star_linear_intensity * *Airymap_red_p * star_rgb_red);
               g=(star_linear_intensity * *Airymap_green_p * star_rgb_green);
-              b=(star_linear_intensity * *Airymap_green_p * star_rgb_blue);
+              b=(star_linear_intensity * *Airymap_blue_p * star_rgb_blue);
               // quadrant +x,+y
               Airymap_output_x=output_x + Airymap_x;
               Airymap_output_y=output_y + Airymap_y;

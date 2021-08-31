@@ -42,39 +42,42 @@
 #include "Bessel.h"
 #include "util.h"
 
-int makeAiryMap(bsr_state_t *bsr_state, double *Airymap, int max_r, int half_oversampling, float pixel_scaling_factor, float I0, float obs_ratio) {
+int makeAiryMap(bsr_state_t *bsr_state, double *Airymap, int max_r, int half_oversampling, double pixel_scaling_factor, double I0, double obs_ratio) {
   double *Airymap_p;
   int max_xy;
   int map_offset;
   int map_index_x;
   int map_index_y;
-  float pixel_x;
-  float pixel_y;
-  float pixel_r;
+  double pixel_x;
+  double pixel_y;
+  double pixel_r;
   int oversampling;
   int oversample_x_index;
   int oversample_y_index;
-  float oversample_x;
-  float oversample_y;
-  float oversample_r;
-  float Bessel_x;
+  double oversample_x;
+  double oversample_y;
+  double oversample_r;
+  double Bessel_x;
   int Bessel_x_index;
   int lines_per_thread;
-  float obs_I0_factor=0.0f;
+  double obs_I0_factor=0.0;
   int obs_x_index=0;
+  double oversampling_factor;
+  double oversample;
 
   //
   // set shorthand variables
   //
   max_xy=max_r + 1;
   oversampling=(half_oversampling * 2) +1;
-  lines_per_thread=(int)ceilf(((float)max_xy / ((float)bsr_state->num_worker_threads + 1)));
+  lines_per_thread=(int)ceil(((double)max_xy / ((double)bsr_state->num_worker_threads + 1)));
   if (lines_per_thread < 1) {
     lines_per_thread=1;
   }
   if (obs_ratio > 0.0) {
-    obs_I0_factor=1.0f / powf((1.0f - (obs_ratio * obs_ratio)), 2.0f);
+    obs_I0_factor=1.0 / pow((1.0 - (obs_ratio * obs_ratio)), 2.0);
   }
+  oversampling_factor=1.0 / oversampling;
 
   //
   // generate Airy disk map
@@ -83,31 +86,33 @@ int makeAiryMap(bsr_state_t *bsr_state, double *Airymap, int max_r, int half_ove
   map_index_y=(bsr_state->perthread->my_thread_id * lines_per_thread);
   Airymap_p=Airymap + (max_xy * map_index_y);
   for (map_offset=0; ((map_offset < (max_xy * lines_per_thread)) && (map_index_y < max_xy)); map_offset++) {
-    pixel_x=(float)map_index_x;
-    pixel_y=(float)map_index_y;
-    pixel_r=sqrtf((pixel_x * pixel_x) + (pixel_y * pixel_y));
-    if ((pixel_r <= (float)max_r) && ((pixel_r * pixel_scaling_factor) < 12800)) {
+    pixel_x=(double)map_index_x;
+    pixel_y=(double)map_index_y;
+    pixel_r=sqrt((pixel_x * pixel_x) + (pixel_y * pixel_y));
+    if ((pixel_r <= (double)max_r) && ((pixel_r * pixel_scaling_factor) < 12800)) {
       *Airymap_p=0.0;
+      oversample=0.0;
       for (oversample_y_index=0; oversample_y_index < oversampling; oversample_y_index++) {
         for (oversample_x_index=0; oversample_x_index < oversampling; oversample_x_index++) {
-          oversample_x=(pixel_x + (((float)oversample_x_index - (float)half_oversampling) / (float)oversampling));
-          oversample_y=(pixel_y + (((float)oversample_y_index - (float)half_oversampling) / (float)oversampling));
-          oversample_r=sqrtf((oversample_x * oversample_x) + (oversample_y * oversample_y));
+          oversample_x=(pixel_x + (((double)oversample_x_index - (double)half_oversampling) * oversampling_factor));
+          oversample_y=(pixel_y + (((double)oversample_y_index - (double)half_oversampling) * oversampling_factor));
+          oversample_r=sqrt((oversample_x * oversample_x) + (oversample_y * oversample_y));
           Bessel_x=oversample_r * pixel_scaling_factor;
-          Bessel_x_index=(int)((Bessel_x * 10.0f) + 0.5);
-          if ((oversample_r == 0.0f) || (Bessel_x_index == 0)) {
-            *Airymap_p+=(double)I0;
+          Bessel_x_index=(int)((Bessel_x * 10.0) + 0.5);
+          if ((oversample_r == 0.0) || (Bessel_x_index == 0)) {
+            oversample=I0;
           } else if (Bessel_x_index >= 128000) {
-            *Airymap_p=0.0; // ignore if beyond range of Bessel.h (too many orders of diffraction)
+            oversample=0.0; // ignore if beyond range of Bessel.h (too many orders of diffraction)
             // skip to next map pixel
             oversample_x_index=(oversampling + 1);
             oversample_y_index=(oversampling + 1);
           } else if (obs_ratio > 0.0) {
-            obs_x_index=(int)((obs_ratio * Bessel_x * 10.0f) + 0.5);
-            *Airymap_p+=(double)(I0 * obs_I0_factor * powf((((2.0f * Bessel_J1[Bessel_x_index]) - (2.0f * obs_ratio * Bessel_J1[obs_x_index])) / Bessel_x), 2.0f));
+            obs_x_index=(int)((obs_ratio * Bessel_x * 10.0) + 0.5);
+            oversample=(I0 * obs_I0_factor * pow((((20.0 * Bessel_J1[Bessel_x_index]) - (20.0 * obs_ratio * Bessel_J1[obs_x_index])) / (double)Bessel_x_index), 2.0));
           } else {
-            *Airymap_p+=(double)(I0 * powf((2.0f * Bessel_J1[Bessel_x_index] / Bessel_x), 2.0f));
+            oversample=(I0 * pow((20.0 * Bessel_J1[Bessel_x_index] / (double)Bessel_x_index), 2.0));
           }
+          *Airymap_p+=oversample;
         } // end for oversample_x
       } // end for oversample_y
     } else {
@@ -129,23 +134,24 @@ int initAiryMaps(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   struct timespec starttime;
   struct timespec endtime;
   double elapsed_time;
-  float pixel_scaling_factor_red;
-  float pixel_scaling_factor_green;
-  float pixel_scaling_factor_blue;
+  double pixel_scaling_factor_red;
+  double pixel_scaling_factor_green;
+  double pixel_scaling_factor_blue;
   int half_oversampling_red;
   int half_oversampling_green;
   int half_oversampling_blue;
   int oversampling_red;
   int oversampling_green;
   int oversampling_blue;
-  float I0_red;
-  float I0_green;
-  float I0_blue;
-  float red_center;
-  float green_center;
-  float blue_center;
+  double I0_red;
+  double I0_green;
+  double I0_blue;
+  double red_center;
+  double green_center;
+  double blue_center;
   int i;
-  float obs_ratio;
+  double obs_ratio;
+  const double I0_calibration=1.1675;
 
   //
   // main thread: display status message if not in cgi mode
@@ -172,31 +178,31 @@ int initAiryMaps(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   //
   // all threads: calculate center wavelengths for each color channel
   //
-  red_center=(float)bsr_config->red_filter_short_limit + (((float)bsr_config->red_filter_long_limit - (float)bsr_config->red_filter_short_limit) / 2.0f);
-  green_center=(float)bsr_config->green_filter_short_limit + (((float)bsr_config->green_filter_long_limit - (float)bsr_config->green_filter_short_limit) / 2.0f);
-  blue_center=(float)bsr_config->blue_filter_short_limit + (((float)bsr_config->blue_filter_long_limit - (float)bsr_config->blue_filter_short_limit) / 2.0f);
+  red_center=(double)bsr_config->red_filter_short_limit + (((double)bsr_config->red_filter_long_limit - (double)bsr_config->red_filter_short_limit) / 2.0);
+  green_center=(double)bsr_config->green_filter_short_limit + (((double)bsr_config->green_filter_long_limit - (double)bsr_config->green_filter_short_limit) / 2.0);
+  blue_center=(double)bsr_config->blue_filter_short_limit + (((double)bsr_config->blue_filter_long_limit - (double)bsr_config->blue_filter_short_limit) / 2.0);
 
   //
   // all threads: calculate Airy disk scaling factors (pixels) for each color.  Green is defined in config with Airy_disk_first_null
   //
-  pixel_scaling_factor_green=3.8317f / (float)bsr_config->Airy_disk_first_null;
+  pixel_scaling_factor_green=3.8317 / bsr_config->Airy_disk_first_null;
   pixel_scaling_factor_red=pixel_scaling_factor_green * green_center / red_center;
   pixel_scaling_factor_blue=pixel_scaling_factor_green * green_center / blue_center;
 
   // all threads: calculate pixel oversampling for each color to make full use of 10x Bessel function resolution from Bessel.h
   // and minimum of 11x11
   //
-  half_oversampling_red=(int)((pixel_scaling_factor_red * 10.0f) + 0.5f);
+  half_oversampling_red=(int)((pixel_scaling_factor_red * 10.0) + 0.5);
   if (half_oversampling_red < 5) {
     half_oversampling_red=5;
   }
   oversampling_red=(half_oversampling_red * 2) + 1;
-  half_oversampling_green=(int)((pixel_scaling_factor_green * 10.0f) + 0.5f);
+  half_oversampling_green=(int)((pixel_scaling_factor_green * 10.0) + 0.5);
   if (half_oversampling_green < 5) {
     half_oversampling_green=5;
   }
   oversampling_green=(half_oversampling_green * 2) +1;
-  half_oversampling_blue=(int)((pixel_scaling_factor_blue * 10.0f) + 0.5f);
+  half_oversampling_blue=(int)((pixel_scaling_factor_blue * 10.0) + 0.5);
   if (half_oversampling_blue < 5) {
     half_oversampling_blue=5;
   }
@@ -218,9 +224,9 @@ int initAiryMaps(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   //
   // all threads: calculate center intensity calibration for each color
   //
-  I0_green=1.16823f / powf(((float)bsr_config->Airy_disk_first_null * oversampling_green), 2.0f);
-  I0_red=1.16823f * powf(green_center, 2.0f) / (powf(red_center, 2.0f) * powf(((float)bsr_config->Airy_disk_first_null * oversampling_red), 2.0f));
-  I0_blue=1.16823f * powf(green_center, 2.0f) / (powf(blue_center, 2.0f)  * powf(((float)bsr_config->Airy_disk_first_null * oversampling_blue), 2.0f));
+  I0_green=I0_calibration / pow((bsr_config->Airy_disk_first_null * oversampling_green), 2.0);
+  I0_red=I0_calibration * pow(green_center, 2.0) / (pow(red_center, 2.0) * pow((bsr_config->Airy_disk_first_null * oversampling_red), 2.0));
+  I0_blue=I0_calibration * pow(green_center, 2.0) / (pow(blue_center, 2.0)  * pow((bsr_config->Airy_disk_first_null * oversampling_blue), 2.0));
 
   //
   // all threads: generate Airy disk map for each color

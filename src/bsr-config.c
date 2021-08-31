@@ -88,7 +88,7 @@ void initConfig(bsr_config_t *bsr_config) {
   bsr_config->Airy_disk_first_null=0.75;
   bsr_config->Airy_disk_max_extent=100;
   bsr_config->Airy_disk_min_extent=1;
-  bsr_config->Airy_disk_obstruction=0.127;
+  bsr_config->Airy_disk_obstruction=0.0;
   bsr_config->Gaussian_blur_radius=0.0;
   bsr_config->output_scaling_factor=1.0;
   bsr_config->draw_crosshairs=0;
