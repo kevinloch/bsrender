@@ -406,7 +406,7 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
         output_y=(int)((-bsr_state->pixels_per_radian * output_el) + bsr_state->camera_half_res_y);
       } else if (bsr_config->camera_projection == 1) {
         // spherical
-        star_yz_r=sqrt(star_r2 - (star_x * star_x));
+        star_yz_r=sqrt((star_y * star_y) + (star_z * star_z));
         spherical_angle=atan2(star_z, star_y); // star_yz
         spherical_distance=atan2(star_yz_r, fabs(star_x));
         output_az=spherical_distance * cos(spherical_angle);
@@ -430,7 +430,7 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
         output_y=(int)((-bsr_state->pixels_per_radian * output_el) + bsr_state->camera_half_res_y);
       } else if (bsr_config->camera_projection == 2) {
         // Hammer
-        star_xy_r=sqrt(star_r2 - (star_z * star_z));
+        star_xy_r=sqrt((star_x * star_x) + (star_y * star_y));
         star_xy=atan2(star_y, star_x);
         output_az_by2=star_xy / 2.0;
         output_el=atan2(star_z, star_xy_r);
@@ -438,7 +438,7 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
         output_y=(int)((-bsr_state->pixels_per_radian * pi_over_2 * sin(output_el) / (sqrt(1.0 + (cos(output_el) * cos(output_az_by2))))) + bsr_state->camera_half_res_y);
       } else if (bsr_config->camera_projection == 3) {
         // Mollewide
-        star_xy_r=sqrt(star_r2 - (star_z * star_z));
+        star_xy_r=sqrt((star_x * star_x) + (star_y * star_y));
         output_az=atan2(star_y, star_x); // star_xy
         output_el=atan2(star_z, star_xy_r);
         two_mollewide_angle=2.0 * asin(2.0 * output_el / M_PI);

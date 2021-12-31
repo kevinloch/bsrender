@@ -194,35 +194,11 @@ bsr_state_t *initState(bsr_config_t *bsr_config) {
     rotation2.k=0.0;
     result=quaternion_product(rotation1, rotation2);
   }
-
+  // copy composite rotation quaternion to state
   bsr_state->target_rotation.r=result.r;
   bsr_state->target_rotation.i=result.i;
   bsr_state->target_rotation.j=result.j;
   bsr_state->target_rotation.k=result.k;
-
-/*
-  // camera rotate
-  bsr_state->target_rotation.r=cos(camera_yz / 2.0);
-  bsr_state->target_rotation.i=sin(camera_yz / 2.0);
-  bsr_state->target_rotation.j=0.0;
-  bsr_state->target_rotation.k=0.0;
-*/
-
-/*
-  // camera pan
-  bsr_state->target_rotation.r=cos(camera_xy / 2.0);
-  bsr_state->target_rotation.i=0.0;
-  bsr_state->target_rotation.j=0.0;
-  bsr_state->target_rotation.k=sin(camera_xy / 2.0);
-*/
-
-/*
-  // camera tilt
-  bsr_state->target_rotation.r=cos(camera_xz / 2.0);
-  bsr_state->target_rotation.i=0.0;
-  bsr_state->target_rotation.j=sin(camera_xz / 2.0);
-  bsr_state->target_rotation.k=0.0;
-*/
 
   return(bsr_state);
 }
