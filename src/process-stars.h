@@ -39,6 +39,8 @@
 #ifndef BSR_PROCESS_STARS_H
 #define BSR_PROCESS_STARS_H
 
+quaternion_t quaternion_product(quaternion_t left, quaternion_t right);
+quaternion_t quaternion_rotate(quaternion_t rotation, quaternion_t vector);
 int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_file);
 
 #endif // BSR_PROCESS_STARS_H

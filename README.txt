@@ -10,7 +10,7 @@
 
 Key features:
 
-  - 3D translations/rotations of camera position/aiming using ICRS spherical or Euclidian coordinates
+  - 3D translations/rotations of camera position/aiming using ICRS equitorial or Euclidian coordinates. 3D rotations use fast and accurate quaternion algebra.
   - Support for extremely large resolutions.  8.2 gigapixel (128000x64000) downscaled to 32000x16000 has been successfully rendered with 512GB ram
   - Customizable camera resolution, field of view, sensitivity, white balance, color saturation, and gamma
   - Camera color is accurately modeled with Planck spectrum and customizable bandpass filters for each color channel
@@ -77,7 +77,7 @@ Methodology:
 
   Stars can be filtered by parallax quality, distance from either camera or target, and effective color temperature.
 
-  3D rotations for the camera, target, and stars are done with a 'triple-azimuth' (3az) method. Three full 360 degree orthogonal angles (x->y), (x->z), and (y->z) provide redundancy for constant precision and eliminates gimbal lock. All angles range from -pi to +pi.  From the camera's perspective +x=forward, +y=left, and +z=up. Thus the camera is aimed at the target when the target is at 3az_xy=0, 3az_xz=0. Camera rotation (about the x axis) is controlled by the 3az_yz angle. Optional after-aim pan and tilt is done by rotating the 3az_xy and 3az_xz angles respectively away from the target.
+  The coordinate system used internally by bsrender is Euclidian x,y,z with equitorial orientation. From the camera's perspective +x=forward, +y=left, and +z=up. Quaternion algebra is used for 3D rotations of stars which provides maximum speed, consistent precision, and avoids gimbal lock.  Stars are first rotated by the (xy and xz) angles required to bring the target to the center of camera view.  Optional camera rotation (yz), pan (xy) and tilt (xz) can then be applied in that order. All rotations are combined during initialization into a single rotation quaternion which is used to rotate each selected star in a single rotation operation during processing.  
 
   After translation and rotation stars are filtered by field of view and mapped to an image composition buffer pixel by the selected raster projection.  A star's linear intensity (adjusted for distance) is multiplied by the r,g,b lookup table for the star's effective color temperature.   If Airy disks are enabled then the pre-computed Airy disk map is used to generate additional pixels up to 'Airy_disk_max_radius' around the central pixel and the star's intensity*(r,g,b) values are multiplied by the Airy map factor for each Airy disk pixel.  These pixel(s) are added to any existing values for those pixel(s) and stored in the image composition buffer. The image composition buffer uses double precision floating point format so it can accurately handle many stars (or Airy map pixels) at the same location and to provide maximum flexibility for the post-processing steps.
 

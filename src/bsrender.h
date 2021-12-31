@@ -39,7 +39,7 @@
 #ifndef BSRENDER_H
 #define BSRENDER_H
 
-#define BSR_VERSION "0.9-dev-63"
+#define BSR_VERSION "0.9-dev-64"
 
 //
 // these checkpoints are used to monitor and control worker thread progress
@@ -75,6 +75,13 @@
 #include <stdint.h> // needed for uint64_t
 #include <unistd.h>
 #include <png.h>
+
+typedef struct {
+  double r;
+  double i;
+  double j;
+  double k;
+} quaternion_t;
 
 typedef struct {
   double icrs_x;
@@ -157,15 +164,7 @@ typedef struct {
   double camera_half_res_x;
   double camera_half_res_y;
   double pixels_per_radian;
-  double camera_3az_xy;
-  double camera_3az_xz;
-  double camera_3az_yz;
-  double target_x;
-  double target_y;
-  double target_z;
-  double target_3az_xy_r;
-  double target_3az_xy;
-  double target_3az_xz;
+  quaternion_t target_rotation;
   size_t composition_buffer_size;
   size_t output_buffer_size;
   size_t row_pointers_size;

@@ -40,6 +40,7 @@
 #include <stdio.h>
 #include <sys/mman.h>
 #include <math.h>
+#include "process-stars.h"
 
 bsr_state_t *initState(bsr_config_t *bsr_config) {
   bsr_state_t *bsr_state;
@@ -49,10 +50,21 @@ bsr_state_t *initState(bsr_config_t *bsr_config) {
   double camera_icrs_dec_rad;
   double target_icrs_ra_rad;
   double target_icrs_dec_rad;
-
   int mmap_protection;
   int mmap_visibility;
   size_t bsr_state_size=0;
+  double target_xy;
+  double target_xy_r;
+  double target_x;
+  double target_y;
+  double target_z;
+  double target_xz;
+  double camera_xy;
+  double camera_xz;
+  double camera_yz;
+  quaternion_t rotation1;
+  quaternion_t rotation2;
+  quaternion_t result;
 
   //
   // allocate shared memory for bsr_state
@@ -83,9 +95,9 @@ bsr_state_t *initState(bsr_config_t *bsr_config) {
   bsr_state->camera_half_res_x=(double)bsr_config->camera_res_x / 2.0;
   bsr_state->camera_half_res_y=(double)bsr_config->camera_res_y / 2.0;
   bsr_state->pixels_per_radian=bsr_state->camera_half_res_x / bsr_state->camera_hfov;
-  bsr_state->camera_3az_yz=bsr_config->camera_rotation * pi_over_180;
-  bsr_state->camera_3az_xy=bsr_config->camera_pan * pi_over_180;
-  bsr_state->camera_3az_xz=bsr_config->camera_tilt * -pi_over_180;
+  camera_yz=bsr_config->camera_rotation * pi_over_180;
+  camera_xy=bsr_config->camera_pan * pi_over_180;
+  camera_xz=bsr_config->camera_tilt * -pi_over_180;
 
   //
   // select per thread buffer size
@@ -119,21 +131,98 @@ bsr_state_t *initState(bsr_config_t *bsr_config) {
   //
   // translate original target x,y,z to new coordinates as seen by camera position
   //
-  bsr_state->target_x=bsr_config->target_icrs_x - bsr_config->camera_icrs_x;
-  bsr_state->target_y=bsr_config->target_icrs_y - bsr_config->camera_icrs_y;
-  bsr_state->target_z=bsr_config->target_icrs_z - bsr_config->camera_icrs_z;
+  target_x=bsr_config->target_icrs_x - bsr_config->camera_icrs_x;
+  target_y=bsr_config->target_icrs_y - bsr_config->camera_icrs_y;
+  target_z=bsr_config->target_icrs_z - bsr_config->camera_icrs_z;
 
   //
   // initialize target xy angle used in star rotations
   //
-  bsr_state->target_3az_xy=atan2(bsr_state->target_y, bsr_state->target_x);
+  target_xy=atan2(target_y, target_x);
 
   //
   // initialize target xz angle used in star rotations by setting target xy angle to 0
   //
-  bsr_state->target_3az_xy_r=sqrt((bsr_state->target_x * bsr_state->target_x) + (bsr_state->target_y * bsr_state->target_y)); 
-  bsr_state->target_x=bsr_state->target_3az_xy_r; // xy=0
-  bsr_state->target_3az_xz=atan2(bsr_state->target_z, bsr_state->target_x);
+  target_xy_r=sqrt((target_x * target_x) + (target_y * target_y)); 
+  target_x=target_xy_r; // xy=0
+  target_xz=atan2(target_z, target_x);
+
+  //
+  //  initialize rotation quaternion by sequentially combining all rotations in correct order
+  //
+  // target_xy and target_xz
+  rotation1.r=cos(-target_xy / 2.0);
+  rotation1.i=0.0;
+  rotation1.j=0.0;
+  rotation1.k=sin(-target_xy / 2.0);
+  rotation2.r=cos(-target_xz / 2.0);
+  rotation2.i=0.0;
+  rotation2.j=sin(-target_xz / 2.0);
+  rotation2.k=0.0;
+  result=quaternion_product(rotation1, rotation2);
+  // add camera rotation yz angle
+  rotation1.r=result.r;
+  rotation1.i=result.i;
+  rotation1.j=result.j;
+  rotation1.k=result.k;
+  rotation2.r=cos(camera_yz / 2.0);
+  rotation2.i=sin(camera_yz / 2.0);
+  rotation2.j=0.0;
+  rotation2.k=0.0;
+  result=quaternion_product(rotation1, rotation2);
+  // optionally add camera pan
+  if (bsr_config->camera_pan != 0.0) {
+    rotation1.r=result.r;
+    rotation1.i=result.i;
+    rotation1.j=result.j;
+    rotation1.k=result.k;
+    rotation2.r=cos(camera_xy / 2.0);
+    rotation2.i=0.0;
+    rotation2.j=0.0;
+    rotation2.k=sin(camera_xy / 2.0);
+    result=quaternion_product(rotation1, rotation2);
+  }
+  // optionally add camera tilt
+  if (bsr_config->camera_tilt != 0.0) {
+    rotation1.r=result.r;
+    rotation1.i=result.i;
+    rotation1.j=result.j;
+    rotation1.k=result.k;
+    rotation2.r=cos(camera_xz / 2.0);
+    rotation2.i=0.0;
+    rotation2.j=sin(camera_xz / 2.0);
+    rotation2.k=0.0;
+    result=quaternion_product(rotation1, rotation2);
+  }
+
+  bsr_state->target_rotation.r=result.r;
+  bsr_state->target_rotation.i=result.i;
+  bsr_state->target_rotation.j=result.j;
+  bsr_state->target_rotation.k=result.k;
+
+/*
+  // camera rotate
+  bsr_state->target_rotation.r=cos(camera_yz / 2.0);
+  bsr_state->target_rotation.i=sin(camera_yz / 2.0);
+  bsr_state->target_rotation.j=0.0;
+  bsr_state->target_rotation.k=0.0;
+*/
+
+/*
+  // camera pan
+  bsr_state->target_rotation.r=cos(camera_xy / 2.0);
+  bsr_state->target_rotation.i=0.0;
+  bsr_state->target_rotation.j=0.0;
+  bsr_state->target_rotation.k=sin(camera_xy / 2.0);
+*/
+
+/*
+  // camera tilt
+  bsr_state->target_rotation.r=cos(camera_xz / 2.0);
+  bsr_state->target_rotation.i=0.0;
+  bsr_state->target_rotation.j=sin(camera_xz / 2.0);
+  bsr_state->target_rotation.k=0.0;
+*/
 
   return(bsr_state);
 }

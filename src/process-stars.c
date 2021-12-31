@@ -43,7 +43,81 @@
 
 //
 // note: all functions in this file should remain in this file for compiler optimization
+// exception: quaternion_product() is only used by init-state.c but is grouped here
+// for clarity.
 //
+
+quaternion_t quaternion_product(quaternion_t left, quaternion_t right) {
+  //
+  // This function returns the product of two quaternions 'left' and 'right'.  This can be used to sequentially
+  // combine multiple rotations into one rotation quaternion.
+  // Quaternion math from https://danceswithcode.net/engineeringnotes/quaternions/quaternions.html
+  //
+
+  quaternion_t result;
+
+  // invert y polarity since we use a non-standard coordinate orientation with +y to the left instead of right
+  left.j=-left.j;
+  right.j=-right.j;
+
+  result.r=(left.r * right.r) - (left.i * right.i) - (left.j * right.j) - (left.k * right.k);
+  result.i=(left.r * right.i) + (left.i * right.r) - (left.j * right.k) + (left.k * right.j);
+  result.j=(left.r * right.j) + (left.i * right.k) + (left.j * right.r) - (left.k * right.i);
+  result.k=(left.r * right.k) - (left.i * right.j) + (left.j * right.i) + (left.k * right.r);
+
+  // revert y polarity
+  result.j=-result.j;
+
+  return(result);
+}
+
+quaternion_t quaternion_rotate(quaternion_t rotation, quaternion_t vector) {
+  //
+  // This function performs a 3d rotation on 'vector' by conjugating it with 'rotation'. this is done in two
+  // discrete steps: take the product of 'rotation' and 'vector' to give an intermediate result 'im'.
+  // Then take the product of 'im' and 'r_1' which is the inverse of 'rotation'.
+  // Quaternion math from https://danceswithcode.net/engineeringnotes/quaternions/quaternions.html
+  //
+
+  quaternion_t r_1;    // inverse of 'rotation'
+  quaternion_t im;     // intermediate result
+  quaternion_t result; // final result
+  
+  // invert vector y polarity since we use a non-standard coordinate orientation with +y to the left instead of right
+  // not sure why rotation.j does not get inverted
+  vector.j=-vector.j;
+
+  //
+  // init 'r_1', the inverse of 'rotation'
+  //
+  r_1.r=rotation.r;
+  r_1.i=-rotation.i;
+  r_1.j=-rotation.j;
+  r_1.k=-rotation.k;
+
+  //
+  // step 1, take product of 'rotation' and 'vector' but skip terms with vector->r as it is zero by definition
+  //
+  im.r=                        - (rotation.i * vector.i) - (rotation.j * vector.j) - (rotation.k * vector.k);
+  im.i=(rotation.r * vector.i)                           - (rotation.j * vector.k) + (rotation.k * vector.j);
+  im.j=(rotation.r * vector.j) + (rotation.i * vector.k)                           - (rotation.k * vector.i);
+  im.k=(rotation.r * vector.k) - (rotation.i * vector.j) + (rotation.j * vector.i)                            ;
+
+  //
+  // step 2, take product of intermediate result 'im' and 'r_1'
+  //
+  result.r=(im.r * r_1.r) - (im.i * r_1.i) - (im.j * r_1.j) - (im.k * r_1.k);
+  result.i=(im.r * r_1.i) + (im.i * r_1.r) - (im.j * r_1.k) + (im.k * r_1.j);
+  result.j=(im.r * r_1.j) + (im.i * r_1.k) + (im.j * r_1.r) - (im.k * r_1.i);
+  result.k=(im.r * r_1.k) - (im.i * r_1.j) + (im.j * r_1.i) + (im.k * r_1.r);
+
+  //
+  // revert y polarity
+  //
+  result.j=-result.j;
+
+  return(result);
+}
 
 int sendPixelToMainThread(bsr_state_t *bsr_state, long long image_offset, double r, double g, double b) {
   //
@@ -221,13 +295,12 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
   double star_y;
   double star_z;
   double star_r2; // squared
-  double star_3az_xy_r;
-  double star_3az_xz_r;
-  double star_3az_yz_r;
+  double star_xy_r;
+  double star_yz_r;
   double render_distance2; // distance from selected point to star (squared)
-  double star_3az_xy;
-  double star_3az_xz;
-  double star_3az_yz;
+  double star_xy;
+  quaternion_t star_q;
+  quaternion_t rotated_star_q;
   uint64_t color_temperature;
   float star_linear_1pc_intensity;
   double star_linear_intensity; // star linear intensity as viewed from camera
@@ -308,75 +381,17 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
       star_linear_intensity=star_linear_1pc_intensity / star_r2;
 
       //
-      // Note: 3D rotations for the camera, target, and stars are done with a 'triple-azimuth' (3az) method.  
-      // Three full 360 degree orthogonal angles (x->y), (x->z), and (y->z) provide redundancy for constant precision and eliminates gimbal lock.
-      // All angles range from -pi to +pi.  From the camera's perspective +x=forward, +y=left, and +z=up.  Thus the camera is
-      // aimed at the target when the target is at 3az_xy=0, 3az_xz=0. Camera rotation (about the x axis) is controlled by the 3az_yz angle.
-      // Optional after-aim pan and tilt is done by rotating the 3az_xy and 3az_xz angles respectively away from the target.
+      // rotate star with quaternion multiplication.
+      // target_rotation includes rotation to aim at target as well as optional pan and tilt away from target
       //
-
-      //
-      // rotate star xy angle by target xy angle
-      //
-      // initialize 3az_xy and 3az_xy_r
-      star_3az_xy=atan2(star_y, star_x);
-      star_3az_xy_r=sqrt((star_x * star_x) + (star_y * star_y));
-      // rotate
-      star_3az_xy-=bsr_state->target_3az_xy;
-      // update x and y
-      star_x=star_3az_xy_r * cos(star_3az_xy);
-      star_y=star_3az_xy_r * sin(star_3az_xy);
-
-      //
-      // rotate star xz angle by (rotated) target xz angle
-      //
-      // initialize 3az_xz and 3az_xz_r
-      star_3az_xz=atan2(star_z, star_x);
-      star_3az_xz_r=sqrt((star_x * star_x) + (star_z * star_z));
-      // rotate
-      star_3az_xz-=bsr_state->target_3az_xz;
-      // update x and z
-      star_x=star_3az_xz_r * cos(star_3az_xz);
-      star_z=star_3az_xz_r * sin(star_3az_xz);
-
-      //
-      // rotate star yz angle by camera rotation angle
-      //
-      // initialize 3az_xy and 3az_xy_r
-      star_3az_yz=atan2(star_z, star_y);
-      star_3az_yz_r=sqrt((star_y * star_y) + (star_z * star_z));
-      // rotate
-      star_3az_yz+=bsr_state->camera_3az_yz;
-      // update y and z
-      star_y=star_3az_yz_r * cos(star_3az_yz);
-      star_z=star_3az_yz_r * sin(star_3az_yz);
-
-      //
-      // optionally pan camera left/right (xy angle)
-      //
-      if (bsr_config->camera_pan != 0.0) {
-        // initialize 3az_xy and 3az_xy_r
-        star_3az_xy=atan2(star_y, star_x);
-        star_3az_xy_r=sqrt((star_x * star_x) + (star_y * star_y));
-        // rotate
-        star_3az_xy+=bsr_state->camera_3az_xy;
-        // update x and y
-        star_x=star_3az_xy_r * cos(star_3az_xy);
-        star_y=star_3az_xy_r * sin(star_3az_xy);
-      }
-
-      //
-      // optionally tilt camera up/down (xz_angle)
-      //
-      if (bsr_config->camera_tilt != 0.0) {
-        // initialize 3az_xz and 3az_xz_r
-        star_3az_xz=atan2(star_z, star_x);
-        star_3az_xz_r=sqrt((star_x * star_x) + (star_z * star_z));
-        // rotate
-        star_3az_xz+=bsr_state->camera_3az_xz;
-        // update x and z
-        star_x=star_3az_xz_r * cos(star_3az_xz);
-        star_z=star_3az_xz_r * sin(star_3az_xz);
+      if (bsr_state->target_rotation.r != 0.0) {
+        star_q.i=star_x;
+        star_q.j=star_y;
+        star_q.k=star_z;
+        rotated_star_q=quaternion_rotate(bsr_state->target_rotation, star_q);
+        star_x=rotated_star_q.i;
+        star_y=rotated_star_q.j;
+        star_z=rotated_star_q.k;
       }
 
       //
@@ -384,16 +399,16 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
       //
       if (bsr_config->camera_projection == 0) {
         // lat/lon 
-        star_3az_xy_r=sqrt((star_x * star_x) + (star_y * star_y));
-        output_az=atan2(star_y, star_x); // star_3az_xy
-        output_el=atan2(star_z, star_3az_xy_r);
+        star_xy_r=sqrt((star_x * star_x) + (star_y * star_y));
+        output_az=atan2(star_y, star_x); // star_xy
+        output_el=atan2(star_z, star_xy_r);
         output_x=(int)((-bsr_state->pixels_per_radian * output_az) + bsr_state->camera_half_res_x);
         output_y=(int)((-bsr_state->pixels_per_radian * output_el) + bsr_state->camera_half_res_y);
       } else if (bsr_config->camera_projection == 1) {
         // spherical
-        star_3az_yz_r=sqrt((star_y * star_y) + (star_z * star_z));
-        spherical_angle=atan2(star_z, star_y); // star_3az_yz
-        spherical_distance=atan2(star_3az_yz_r, fabs(star_x));
+        star_yz_r=sqrt(star_r2 - (star_x * star_x));
+        spherical_angle=atan2(star_z, star_y); // star_yz
+        spherical_distance=atan2(star_yz_r, fabs(star_x));
         output_az=spherical_distance * cos(spherical_angle);
         output_el=spherical_distance * sin(spherical_angle);
         if (bsr_config->spherical_orientation == 1) { // side by side orientation
@@ -415,17 +430,17 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
         output_y=(int)((-bsr_state->pixels_per_radian * output_el) + bsr_state->camera_half_res_y);
       } else if (bsr_config->camera_projection == 2) {
         // Hammer
-        star_3az_xy_r=sqrt((star_x * star_x) + (star_y * star_y));
-        star_3az_xy=atan2(star_y, star_x);
-        output_az_by2=star_3az_xy / 2.0;
-        output_el=atan2(star_z, star_3az_xy_r);
+        star_xy_r=sqrt(star_r2 - (star_z * star_z));
+        star_xy=atan2(star_y, star_x);
+        output_az_by2=star_xy / 2.0;
+        output_el=atan2(star_z, star_xy_r);
         output_x=(int)((-bsr_state->pixels_per_radian * M_PI * cos(output_el) * sin(output_az_by2) / (sqrt(1.0 + (cos(output_el) * cos(output_az_by2))))) + bsr_state->camera_half_res_x);
         output_y=(int)((-bsr_state->pixels_per_radian * pi_over_2 * sin(output_el) / (sqrt(1.0 + (cos(output_el) * cos(output_az_by2))))) + bsr_state->camera_half_res_y);
       } else if (bsr_config->camera_projection == 3) {
         // Mollewide
-        star_3az_xy_r=sqrt((star_x * star_x) + (star_y * star_y));
-        output_az=atan2(star_y, star_x); // star_3az_xy
-        output_el=atan2(star_z, star_3az_xy_r);
+        star_xy_r=sqrt(star_r2 - (star_z * star_z));
+        output_az=atan2(star_y, star_x); // star_xy
+        output_el=atan2(star_z, star_xy_r);
         two_mollewide_angle=2.0 * asin(2.0 * output_el / M_PI);
         for (i=0; i < bsr_config->Mollewide_iterations; i++) {
           two_mollewide_angle-=(two_mollewide_angle + sin(two_mollewide_angle) - (M_PI * sin(output_el))) / (1.0 + cos(two_mollewide_angle));
