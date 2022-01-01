@@ -141,10 +141,7 @@ int initRGBTables(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   //
   for (i=0; i < 32768; i++) {
     temp=(double)i;
-
-    //
     // scan over wavelength range and assign intensity chunks to appropriate channels
-    //
     Gband_intensity=0.0;
     red_intensity=0.0;
     green_intensity=0.0;
@@ -165,10 +162,7 @@ int initRGBTables(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
         blue_intensity+=specific_intensity;
       }
     }
-      
-    //
-    // normalize intensity values by comparing to G-band intensity since rgb values are mltiplied by G-band flux during rendering
-    //
+    // calibrate with wb factor and normalize intensity values by comparing to G-band intensity since rgb values are mltiplied by G-band flux during rendering
     if (Gband_intensity != 0.0) {
       red_intensity=red_wb_factor * red_intensity / Gband_intensity;
       green_intensity=green_wb_factor * green_intensity / Gband_intensity;
