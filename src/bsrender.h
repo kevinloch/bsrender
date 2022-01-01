@@ -39,7 +39,7 @@
 #ifndef BSRENDER_H
 #define BSRENDER_H
 
-#define BSR_VERSION "0.9-dev-65"
+#define BSR_VERSION "0.9-dev-66"
 
 //
 // these checkpoints are used to monitor and control worker thread progress

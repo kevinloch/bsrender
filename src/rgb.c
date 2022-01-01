@@ -92,57 +92,48 @@ int initRGBTables(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   }
   wavelength_increment = (wavelength_start - wavelength_end) / (double)wavelength_increments;
 
-  if (bsr_config->cgi_mode == 0) {
-    printf(" wavelength_start: %.3e, wavelength_end: %.3e, wavelength_increment: %.3e ", wavelength_start, wavelength_end, wavelength_increment);
-    fflush(stdout);
-  }
-
   //
   // calculate white balance factors
   //
   if (bsr_config->camera_wb_enable == 1) {
     temp=bsr_config->camera_wb_temp;
-
-    //
-    // scan over wavelength range and assign intensity chunks to appropriate channels
-    //
-    Gband_intensity=0.0;
-    red_intensity=0.0;
-    green_intensity=0.0;
-    blue_intensity=0.0;
-    for (wavelength=wavelength_start; wavelength >= wavelength_end; wavelength-=wavelength_increment) {
-      // omit unnecessary constants since we normalize relative to Gband after integrating
-      specific_intensity=1.0 / (pow((wavelength * 1.0E-9), 5.0) * (exp(h * c  / (wavelength * 1.0E-9 * kb * temp)) - 1));
-      if ((wavelength <= Gaia_Gband_long_limit) && (wavelength >= Gaia_Gband_short_limit)) {
-        Gband_intensity+=(specific_intensity * getGaiaTransmissivityG((int)(wavelength + 0.5)));
-      }
-      if ((wavelength <= bsr_config->red_filter_long_limit) && (wavelength >= bsr_config->red_filter_short_limit)) {
-        red_intensity+=specific_intensity;
-      }
-      if ((wavelength <= bsr_config->green_filter_long_limit) && (wavelength >= bsr_config->green_filter_short_limit)) {
-        green_intensity+=specific_intensity;
-      }
-      if ((wavelength <= bsr_config->blue_filter_long_limit) && (wavelength >= bsr_config->blue_filter_short_limit)) {
-        blue_intensity+=specific_intensity;
-      }
-    }
-
-    //
-    // normalize intensity values by comparing to G-band intensity because rgb values are mltiplied by G-band flux during rendering
-    //
-    if (Gband_intensity != 0.0) {
-      red_intensity = Gaia_Gband_scalar * red_intensity / Gband_intensity;
-      green_intensity = Gaia_Gband_scalar * green_intensity / Gband_intensity;
-      blue_intensity = Gaia_Gband_scalar * blue_intensity / Gband_intensity;
-    }
-    red_wb_factor=green_intensity / red_intensity;
-    green_wb_factor=1.0;
-    blue_wb_factor=green_intensity / blue_intensity;
   } else {
-    // wb disabled
-    red_wb_factor=1.0;
-    green_wb_factor=1.0;
-    blue_wb_factor=1.0;
+    // set default temp
+    temp=4300;
+  }	 
+  // scan over wavelength range and assign intensity chunks to appropriate channels
+  Gband_intensity=0.0;
+  red_intensity=0.0;
+  green_intensity=0.0;
+  blue_intensity=0.0;
+  for (wavelength=wavelength_start; wavelength >= wavelength_end; wavelength-=wavelength_increment) {
+    // omit unnecessary constants since we normalize relative to Gband after integrating
+    specific_intensity=1.0 / (pow((wavelength * 1.0E-9), 5.0) * (exp(h * c  / (wavelength * 1.0E-9 * kb * temp)) - 1));
+    if ((wavelength <= Gaia_Gband_long_limit) && (wavelength >= Gaia_Gband_short_limit)) {
+      Gband_intensity+=(specific_intensity * getGaiaTransmissivityG((int)(wavelength + 0.5)));
+    }
+    if ((wavelength <= bsr_config->red_filter_long_limit) && (wavelength >= bsr_config->red_filter_short_limit)) {
+      red_intensity+=specific_intensity;
+    }
+    if ((wavelength <= bsr_config->green_filter_long_limit) && (wavelength >= bsr_config->green_filter_short_limit)) {
+      green_intensity+=specific_intensity;
+    }
+    if ((wavelength <= bsr_config->blue_filter_long_limit) && (wavelength >= bsr_config->blue_filter_short_limit)) {
+      blue_intensity+=specific_intensity;
+    }
+  }
+  // set wb factors
+  if (bsr_config->camera_wb_enable == 1) {
+    // normalize intensity values by comparing to G-band intensity.  This sets white balance (r=g=b at wb temp), and corrects for
+    // differences in transmissivity and bandwidth between filters (including Gaia_Gband)
+    red_wb_factor=Gband_intensity / red_intensity;
+    green_wb_factor=Gband_intensity / green_intensity;
+    blue_wb_factor=Gband_intensity / blue_intensity;
+  } else {
+    // wb disabled, correct only for green/Gband transmissivity and bandwidth
+    red_wb_factor=Gband_intensity / green_intensity;
+    green_wb_factor=Gband_intensity / green_intensity;
+    blue_wb_factor=Gband_intensity / green_intensity;
   } // end if wb enabled
 
   //
@@ -176,12 +167,12 @@ int initRGBTables(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
     }
       
     //
-    // normalize intensity values by comparing to G-band intensity because rgb values are mltiplied by G-band flux during rendering
+    // normalize intensity values by comparing to G-band intensity since rgb values are mltiplied by G-band flux during rendering
     //
     if (Gband_intensity != 0.0) {
-      red_intensity=(red_wb_factor * Gaia_Gband_scalar * red_intensity / Gband_intensity);
-      green_intensity=(green_wb_factor * Gaia_Gband_scalar * green_intensity / Gband_intensity);
-      blue_intensity=( blue_wb_factor * Gaia_Gband_scalar * blue_intensity / Gband_intensity);
+      red_intensity=red_wb_factor * red_intensity / Gband_intensity;
+      green_intensity=green_wb_factor * green_intensity / Gband_intensity;
+      blue_intensity=blue_wb_factor * blue_intensity / Gband_intensity;
     }
 
     //

@@ -68,7 +68,7 @@ void initConfig(bsr_config_t *bsr_config) {
   bsr_config->camera_res_x=2000;
   bsr_config->camera_res_y=1000;
   bsr_config->camera_fov=360.0;
-  bsr_config->camera_pixel_limit_mag=7.75;
+  bsr_config->camera_pixel_limit_mag=6.5;
   bsr_config->camera_pixel_limit=pow(100.0, (-bsr_config->camera_pixel_limit_mag / 5.0));
   bsr_config->camera_pixel_limit_mode=0;
   bsr_config->camera_wb_enable=1;
