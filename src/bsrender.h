@@ -39,7 +39,7 @@
 #ifndef BSRENDER_H
 #define BSRENDER_H
 
-#define BSR_VERSION "0.9-dev-66"
+#define BSR_VERSION "0.9-dev-67"
 
 //
 // these checkpoints are used to monitor and control worker thread progress
@@ -232,6 +232,9 @@ typedef struct {
   int Airy_disk_max_extent;
   int Airy_disk_min_extent;
   double Airy_disk_obstruction;
+  int skyglow_enable;
+  double skyglow_temp;
+  double skyglow_per_pixel_mag;
   double Gaussian_blur_radius;
   double output_scaling_factor;
   int draw_crosshairs;

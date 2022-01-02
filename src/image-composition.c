@@ -44,6 +44,7 @@
 #include "Lanczos.h"
 #include "Gaussian-blur.h"
 #include "overlay.h"
+#include "Gaia-passbands.h"
 
 int initImageCompositionBuffer(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   struct timespec starttime;
@@ -57,6 +58,11 @@ int initImageCompositionBuffer(bsr_config_t *bsr_config, bsr_state_t *bsr_state)
   int current_image_res_y;
   int lines_per_thread;
   int i;
+  int skyglow_temp;
+  double skyglow_intensity;
+  double background_red;
+  double background_green;
+  double background_blue;
 
   //
   // all threads: get current image resolution and lines per thread
@@ -91,6 +97,24 @@ int initImageCompositionBuffer(bsr_config_t *bsr_config, bsr_state_t *bsr_state)
   } // end if not main thread
 
   //
+  // all threads: set background value
+  //
+  if (bsr_config->skyglow_enable == 1) {
+    // set skyglow rgb values
+    // note: rgb lookup table values are already adjusted for Gaia Gband transmissivity, so we must uncorrect for that
+    skyglow_temp=(int)(bsr_config->skyglow_temp + 0.5);
+    skyglow_intensity=Gaia_Gband_scalar * pow(100.0, (-bsr_config->skyglow_per_pixel_mag / 5.0));
+    background_red=skyglow_intensity * bsr_state->rgb_red[skyglow_temp];
+    background_green=skyglow_intensity * bsr_state->rgb_green[skyglow_temp];
+    background_blue=skyglow_intensity * bsr_state->rgb_blue[skyglow_temp];
+  } else {
+    // no skyglow set to zero
+    background_red=0.0;
+    background_green=0.0;
+    background_blue=0.0;
+  }
+
+  //
   // all threads: initialize image composition buffer
   //
   current_image_x=0;
@@ -98,12 +122,11 @@ int initImageCompositionBuffer(bsr_config_t *bsr_config, bsr_state_t *bsr_state)
   current_image_p=bsr_state->current_image_buf + ((long long)current_image_res_x * (long long)current_image_y);
   for (image_offset=0; ((image_offset < ((long long)bsr_state->current_image_res_x * (long long)lines_per_thread)) && (current_image_y < current_image_res_y)); image_offset++) {
     //
-    // set pixel rgb to zero
+    // set pixel rgb to background value (0.0 if now skyglow)
     //
-    current_image_p->r=0.0;
-    current_image_p->g=0.0;
-    current_image_p->b=0.0;
-
+    current_image_p->r=background_red;
+    current_image_p->g=background_green;
+    current_image_p->b=background_blue;
     current_image_x++;
     if (current_image_x == bsr_state->current_image_res_x) {
       current_image_x=0;

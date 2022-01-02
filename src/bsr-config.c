@@ -89,6 +89,9 @@ void initConfig(bsr_config_t *bsr_config) {
   bsr_config->Airy_disk_max_extent=100;
   bsr_config->Airy_disk_min_extent=1;
   bsr_config->Airy_disk_obstruction=0.0;
+  bsr_config->skyglow_enable=0;
+  bsr_config->skyglow_temp=3500.0;
+  bsr_config->skyglow_per_pixel_mag=10.0;
   bsr_config->Gaussian_blur_radius=0.0;
   bsr_config->output_scaling_factor=1.0;
   bsr_config->draw_crosshairs=0;
@@ -256,6 +259,9 @@ void setOptionValue(bsr_config_t *bsr_config, char *option, char *value, int fro
   checkOptionInt(&bsr_config->Airy_disk_max_extent, option, value, "Airy_disk_max_extent");
   checkOptionInt(&bsr_config->Airy_disk_min_extent, option, value, "Airy_disk_min_extent");
   checkOptionDouble(&bsr_config->Airy_disk_obstruction, option, value, "Airy_disk_obstruction");
+  checkOptionBool(&bsr_config->skyglow_enable, option, value, "skyglow_enable");
+  checkOptionDouble(&bsr_config->skyglow_temp, option, value, "skyglow_temp");
+  checkOptionDouble(&bsr_config->skyglow_per_pixel_mag, option, value, "skyglow_per_pixel_mag");
   checkOptionDouble(&bsr_config->Gaussian_blur_radius, option, value, "Gaussian_blur_radius");
   checkOptionDouble(&bsr_config->output_scaling_factor, option, value, "output_scaling_factor");
   checkOptionBool(&bsr_config->draw_crosshairs, option, value, "draw_crosshairs");

@@ -113,6 +113,18 @@
         if (tmpvalue != null) {
           settings_form.draw_grid_lines.value = tmpvalue;
         }
+        tmpvalue = search.get("skyglow_enable");
+        if (tmpvalue != null) {
+          settings_form.skyglow_enable.value = tmpvalue;
+        }
+        tmpvalue = search.get("skyglow_temp");
+        if (tmpvalue != null) {
+          settings_form.skyglow_temp.value = tmpvalue;
+        }
+        tmpvalue = search.get("skyglow_per_pixel_mag");
+        if (tmpvalue != null) {
+          settings_form.skyglow_per_pixel_mag.value = tmpvalue;
+        }
         tmpvalue = search.get("Gaussian_blur_radius");
         if (tmpvalue != null) {
           settings_form.Gaussian_blur_radius.value = tmpvalue;
@@ -298,6 +310,9 @@ star_color_min=${settings_form.star_color_min.value}&\
 star_color_max=${settings_form.star_color_max.value}&\
 draw_crosshairs=${settings_form.draw_crosshairs.value}&\
 draw_grid_lines=${settings_form.draw_grid_lines.value}&\
+skyglow_enable=${settings_form.skyglow_enable.value}&\
+skyglow_temp=${settings_form.skyglow_temp.value}&\
+skyglow_per_pixel_mag=${settings_form.skyglow_per_pixel_mag.value}&\
 Gaussian_blur_radius=${settings_form.Gaussian_blur_radius.value}&\
 output_scaling_factor=${settings_form.output_scaling_factor.value}&\
 sRGB_gamma=${settings_form.sRGB_gamma.value}&\
@@ -357,6 +372,9 @@ star_color_min=${settings_form.star_color_min.value}&\
 star_color_max=${settings_form.star_color_max.value}&\
 draw_crosshairs=${settings_form.draw_crosshairs.value}&\
 draw_grid_lines=${settings_form.draw_grid_lines.value}&\
+skyglow_enable=${settings_form.skyglow_enable.value}&\
+skyglow_temp=${settings_form.skyglow_temp.value}&\
+skyglow_per_pixel_mag=${settings_form.skyglow_per_pixel_mag.value}&\
 Gaussian_blur_radius=${settings_form.Gaussian_blur_radius.value}&\
 output_scaling_factor=${settings_form.output_scaling_factor.value}&\
 sRGB_gamma=${settings_form.sRGB_gamma.value}&\
@@ -689,7 +707,7 @@ camera_tilt=${navigation_form.camera_tilt.value}`;
             <legend>About</legend>
             <div id="centered">
               Sample web interface for
-              <h2><a href="https://github.com/kevinloch/bsrender">bsrender</a> 0.9-dev-66</h2>
+              <h2><a href="https://github.com/kevinloch/bsrender">bsrender</a> 0.9-dev-67</h2>
               using data from <a href="https://www.cosmos.esa.int/web/gaia/earlydr3">Gaia EDR3</a>
               <br>and supplemental <a href="https://bsrender.io/sample_data/0.9/external.csv">bright stars</a>
             </div>
@@ -897,6 +915,18 @@ s_url" size=30 value=""></td></tr>
             <input type="text" id="Airy_disk_min_extent" name="Airy_disk_min_extent" size="12" value="1"> <em>max 1000</em>
             <br><label for "Airy_disk_obstruction">Aperture obstruction (ratio)</label>
             <input type="text" id="Airy_disk_obstruction" name="Airy_disk_obstruction" size="12" value="0.0"> <em>0.0 - 0.99</em>
+          </fieldset>
+          <fieldset>
+            <legend>Skyglow</legend>
+            <label for="skyglow_enable">Enable skyglow</label>
+            <select name="skyglow_enable" id="skyglow_enable">
+              <option value="no" selected>no</option>
+              <option value="yes">yes</option>
+            </select>
+            <label for="skyglow_temp">Color temp (K)</label>
+            <input type="text" name="skyglow_temp" id="skyglow_temp" size="12" value="3500.0">
+            <label for="skyglow_per_pixel_mag">Per pixel intensity (mag)</label>
+            <input type="text" name="skyglow_per_pixel_mag" id="skyglow_per_pixel_mag" size="12" value="10.0">
           </fieldset>
           <fieldset>
             <legend>Post-processing</legend>
