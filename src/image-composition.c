@@ -60,9 +60,19 @@ int initImageCompositionBuffer(bsr_config_t *bsr_config, bsr_state_t *bsr_state)
   int i;
   int skyglow_temp;
   double skyglow_intensity;
-  double background_red;
-  double background_green;
-  double background_blue;
+  double skyglow_red=0.0;
+  double skyglow_green=0.0;
+  double skyglow_blue=0.0;
+  int pixel_has_skyglow=0;
+  double pixel_x_distance;
+  double pixel_y_distance;
+  const double pi_over_2=0.5 * M_PI;
+  double semimajor2=0.0;
+  double semiminor2=0.0;
+  double elipse;
+  double circle_r2=0.0;
+  double circle;
+  double aesthetic_edge=0.4999999; // for rectangular edges, this instead of 0.5 eliminates an extra skyglow pixel on "even" pixel raster sizes without being too small for reasonable arbitrary raster sizes
 
   //
   // all threads: get current image resolution and lines per thread
@@ -97,21 +107,19 @@ int initImageCompositionBuffer(bsr_config_t *bsr_config, bsr_state_t *bsr_state)
   } // end if not main thread
 
   //
-  // all threads: set background value
+  // all threads: set skyglow value
   //
   if (bsr_config->skyglow_enable == 1) {
     // set skyglow rgb values
     // note: rgb lookup table values are already adjusted for Gaia Gband transmissivity, so we must uncorrect for that
     skyglow_temp=(int)(bsr_config->skyglow_temp + 0.5);
     skyglow_intensity=Gaia_Gband_scalar * pow(100.0, (-bsr_config->skyglow_per_pixel_mag / 5.0));
-    background_red=skyglow_intensity * bsr_state->rgb_red[skyglow_temp];
-    background_green=skyglow_intensity * bsr_state->rgb_green[skyglow_temp];
-    background_blue=skyglow_intensity * bsr_state->rgb_blue[skyglow_temp];
-  } else {
-    // no skyglow set to zero
-    background_red=0.0;
-    background_green=0.0;
-    background_blue=0.0;
+    skyglow_red=skyglow_intensity * bsr_state->rgb_red[skyglow_temp];
+    skyglow_green=skyglow_intensity * bsr_state->rgb_green[skyglow_temp];
+    skyglow_blue=skyglow_intensity * bsr_state->rgb_blue[skyglow_temp];
+    circle_r2=((pi_over_2 * bsr_state->pixels_per_radian) + 0.5) * ((pi_over_2 * bsr_state->pixels_per_radian) + 0.5);
+    semimajor2=((M_PI * bsr_state->pixels_per_radian) + 0.5) * ((M_PI * bsr_state->pixels_per_radian) + 0.5);
+    semiminor2=((pi_over_2 * bsr_state->pixels_per_radian) + 0.5) * ((pi_over_2 * bsr_state->pixels_per_radian) + 0.5);
   }
 
   //
@@ -122,11 +130,81 @@ int initImageCompositionBuffer(bsr_config_t *bsr_config, bsr_state_t *bsr_state)
   current_image_p=bsr_state->current_image_buf + ((long long)current_image_res_x * (long long)current_image_y);
   for (image_offset=0; ((image_offset < ((long long)bsr_state->current_image_res_x * (long long)lines_per_thread)) && (current_image_y < current_image_res_y)); image_offset++) {
     //
+    // check if pixel is inside a valid rendering area for the selected raster projection
+    //
+    if (bsr_config->skyglow_enable == 1) {
+      if (bsr_config->camera_projection ==0) {
+        // equirectangular (lat/lon)
+        pixel_has_skyglow=0;
+        pixel_y_distance=fabs((double)current_image_y - bsr_state->camera_half_res_y + 0.5);
+        pixel_x_distance=fabs((double)current_image_x - bsr_state->camera_half_res_x + 0.5);
+        if ((pixel_x_distance <= ((M_PI * bsr_state->pixels_per_radian) + aesthetic_edge)) && (pixel_y_distance <= ((pi_over_2 * bsr_state->pixels_per_radian) + aesthetic_edge))) {
+           pixel_has_skyglow=1;
+        }
+      } else if ((bsr_config->camera_projection == 1) && (bsr_config->spherical_orientation == 0)) {
+        // forward centered spherical
+        pixel_has_skyglow=0;
+        pixel_y_distance=(double)current_image_y - bsr_state->camera_half_res_y + 0.5;
+        // center zone
+        pixel_x_distance=(double)current_image_x - bsr_state->camera_half_res_x + 0.5;
+        circle=((pixel_x_distance * pixel_x_distance) + (pixel_y_distance * pixel_y_distance)) / circle_r2;
+        if (circle <= 1.0) {
+          pixel_has_skyglow=1;
+        }
+        // left zone
+        pixel_x_distance=(double)current_image_x - bsr_state->camera_half_res_x + (M_PI * bsr_state->pixels_per_radian) + 0.5;
+        circle=((pixel_x_distance * pixel_x_distance) + (pixel_y_distance * pixel_y_distance)) / circle_r2;
+        if ((circle <= 1.0) && (pixel_x_distance >= -aesthetic_edge)) {
+          pixel_has_skyglow=1;
+        }
+        // right zone
+        pixel_x_distance=(double)current_image_x - bsr_state->camera_half_res_x - (M_PI * bsr_state->pixels_per_radian) + 0.5;
+        circle=((pixel_x_distance * pixel_x_distance) + (pixel_y_distance * pixel_y_distance)) / circle_r2;
+        if ((circle <= 1.0) && (pixel_x_distance <= aesthetic_edge)) {
+          pixel_has_skyglow=1;
+        }
+      } else if ((bsr_config->camera_projection == 1) && (bsr_config->spherical_orientation == 1)) {
+        // side-by-side spherical
+        pixel_has_skyglow=0;
+        pixel_y_distance=(double)current_image_y - bsr_state->camera_half_res_y + 0.5;
+        // left zone
+        pixel_x_distance=(double)current_image_x - bsr_state->camera_half_res_x + (pi_over_2 * bsr_state->pixels_per_radian) + 0.5;
+        circle=((pixel_x_distance * pixel_x_distance) + (pixel_y_distance * pixel_y_distance)) / circle_r2;
+        if (circle <= 1.0) {
+          pixel_has_skyglow=1;
+        }
+        // right zone
+        pixel_x_distance=(double)current_image_x - bsr_state->camera_half_res_x - (pi_over_2 * bsr_state->pixels_per_radian) + 0.5;
+        circle=((pixel_x_distance * pixel_x_distance) + (pixel_y_distance * pixel_y_distance)) / circle_r2;
+        if (circle <= 1.0) {
+          pixel_has_skyglow=1;
+        }
+      } else if ((bsr_config->camera_projection == 2) || (bsr_config->camera_projection == 3)) {
+        // Hammer or Mollewide ellipse
+        pixel_has_skyglow=0;
+        pixel_y_distance=(double)current_image_y - bsr_state->camera_half_res_y + 0.5;
+        pixel_x_distance=(double)current_image_x - bsr_state->camera_half_res_x + 0.5;
+        elipse=(pixel_x_distance * pixel_x_distance / semimajor2) + (pixel_y_distance * pixel_y_distance / semiminor2);
+        if (elipse <= 1.0) {
+          pixel_has_skyglow=1;
+        }
+      } else {
+        pixel_has_skyglow=1;
+      }
+    }
+
+    //
     // set pixel rgb to background value (0.0 if now skyglow)
     //
-    current_image_p->r=background_red;
-    current_image_p->g=background_green;
-    current_image_p->b=background_blue;
+    if (pixel_has_skyglow == 1) {
+      current_image_p->r=skyglow_red;
+      current_image_p->g=skyglow_green;
+      current_image_p->b=skyglow_blue;
+    } else {
+      current_image_p->r=0.0;
+      current_image_p->g=0.0;
+      current_image_p->b=0.0;
+    }
     current_image_x++;
     if (current_image_x == bsr_state->current_image_res_x) {
       current_image_x=0;

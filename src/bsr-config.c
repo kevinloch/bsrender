@@ -57,7 +57,7 @@ void initConfig(bsr_config_t *bsr_config) {
   bsr_config->cgi_max_Airy_disk_max_extent=1000;
   bsr_config->enable_Gaia=1;
   bsr_config->Gaia_min_parallax_quality=0;
-  bsr_config->enable_external=0;
+  bsr_config->enable_external=1;
   bsr_config->render_distance_min=0.0;
   bsr_config->render_distance_min2=bsr_config->render_distance_min * bsr_config->render_distance_min;
   bsr_config->render_distance_max=1.0E99;
@@ -90,8 +90,8 @@ void initConfig(bsr_config_t *bsr_config) {
   bsr_config->Airy_disk_min_extent=1;
   bsr_config->Airy_disk_obstruction=0.0;
   bsr_config->skyglow_enable=0;
-  bsr_config->skyglow_temp=3500.0;
-  bsr_config->skyglow_per_pixel_mag=10.0;
+  bsr_config->skyglow_temp=4500.0;
+  bsr_config->skyglow_per_pixel_mag=11.0;
   bsr_config->Gaussian_blur_radius=0.0;
   bsr_config->output_scaling_factor=1.0;
   bsr_config->draw_crosshairs=0;
