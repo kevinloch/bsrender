@@ -107,16 +107,17 @@ int initImageCompositionBuffer(bsr_config_t *bsr_config, bsr_state_t *bsr_state)
   } // end if not main thread
 
   //
-  // all threads: set skyglow value if enabled
+  // all threads: set skyglow variables enabled
   //
   if (bsr_config->skyglow_enable == 1) {
-    // set skyglow rgb values
-    // note: rgb lookup table values are already adjusted for Gaia Gband transmissivity, so we must uncorrect for that
+    // skyglow rgb values
+    // note: rgb lookup table values are adjusted for Gaia Gband transmissivity, so we must uncorrect for that with Gaia_Gband_scalar
     skyglow_temp=(int)(bsr_config->skyglow_temp + 0.5);
     skyglow_intensity=Gaia_Gband_scalar * pow(100.0, (-bsr_config->skyglow_per_pixel_mag / 5.0));
     skyglow_red=skyglow_intensity * bsr_state->rgb_red[skyglow_temp];
     skyglow_green=skyglow_intensity * bsr_state->rgb_green[skyglow_temp];
     skyglow_blue=skyglow_intensity * bsr_state->rgb_blue[skyglow_temp];
+    // set shortcut variables we don't need to calculate for each pixel
     circle_r2=((pi_over_2 * bsr_state->pixels_per_radian) + 0.5) * ((pi_over_2 * bsr_state->pixels_per_radian) + 0.5);
     semimajor2=((M_PI * bsr_state->pixels_per_radian) + 0.5) * ((M_PI * bsr_state->pixels_per_radian) + 0.5);
     semiminor2=((pi_over_2 * bsr_state->pixels_per_radian) + 0.5) * ((pi_over_2 * bsr_state->pixels_per_radian) + 0.5);
@@ -133,16 +134,14 @@ int initImageCompositionBuffer(bsr_config_t *bsr_config, bsr_state_t *bsr_state)
     // check if pixel is inside a valid rendering area for the selected raster projection
     //
     if (bsr_config->skyglow_enable == 1) {
-      if (bsr_config->camera_projection ==0) {
-        // equirectangular (lat/lon)
+      if (bsr_config->camera_projection == 0) { // equirectangular (lat/lon)
         pixel_has_skyglow=0;
         pixel_y_distance=fabs((double)current_image_y - bsr_state->camera_half_res_y + 0.5);
         pixel_x_distance=fabs((double)current_image_x - bsr_state->camera_half_res_x + 0.5);
         if ((pixel_x_distance <= ((M_PI * bsr_state->pixels_per_radian) + aesthetic_edge)) && (pixel_y_distance <= ((pi_over_2 * bsr_state->pixels_per_radian) + aesthetic_edge))) {
            pixel_has_skyglow=1;
         }
-      } else if ((bsr_config->camera_projection == 1) && (bsr_config->spherical_orientation == 0)) {
-        // forward centered spherical
+      } else if ((bsr_config->camera_projection == 1) && (bsr_config->spherical_orientation == 0)) { // forward centered spherical
         pixel_has_skyglow=0;
         pixel_y_distance=(double)current_image_y - bsr_state->camera_half_res_y + 0.5;
         // center zone
@@ -163,8 +162,7 @@ int initImageCompositionBuffer(bsr_config_t *bsr_config, bsr_state_t *bsr_state)
         if ((circle <= 1.0) && (pixel_x_distance <= aesthetic_edge)) {
           pixel_has_skyglow=1;
         }
-      } else if ((bsr_config->camera_projection == 1) && (bsr_config->spherical_orientation == 1)) {
-        // side-by-side spherical
+      } else if ((bsr_config->camera_projection == 1) && (bsr_config->spherical_orientation == 1)) { // side-by-side spherical
         pixel_has_skyglow=0;
         pixel_y_distance=(double)current_image_y - bsr_state->camera_half_res_y + 0.5;
         // left zone
@@ -179,8 +177,7 @@ int initImageCompositionBuffer(bsr_config_t *bsr_config, bsr_state_t *bsr_state)
         if (circle <= 1.0) {
           pixel_has_skyglow=1;
         }
-      } else if ((bsr_config->camera_projection == 2) || (bsr_config->camera_projection == 3)) {
-        // Hammer or Mollewide ellipse
+      } else if ((bsr_config->camera_projection == 2) || (bsr_config->camera_projection == 3)) { // Hammer or Mollewide ellipse
         pixel_has_skyglow=0;
         pixel_y_distance=(double)current_image_y - bsr_state->camera_half_res_y + 0.5;
         pixel_x_distance=(double)current_image_x - bsr_state->camera_half_res_x + 0.5;
@@ -194,7 +191,7 @@ int initImageCompositionBuffer(bsr_config_t *bsr_config, bsr_state_t *bsr_state)
     }
 
     //
-    // set pixel rgb to background value (skyglow or 0.0)
+    // all threads: set pixel rgb background value (skyglow or 0.0)
     //
     if (pixel_has_skyglow == 1) {
       current_image_p->r=skyglow_red;
