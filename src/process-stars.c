@@ -56,16 +56,23 @@ quaternion_t quaternion_product(quaternion_t left, quaternion_t right) {
 
   quaternion_t result;
 
+  //
   // invert y polarity since we use a non-standard coordinate orientation with +y to the left instead of right
+  //
   left.j=-left.j;
   right.j=-right.j;
 
+  //
+  // calculate quaternion product of 'left' and 'right'
+  //
   result.r=(left.r * right.r) - (left.i * right.i) - (left.j * right.j) - (left.k * right.k);
   result.i=(left.r * right.i) + (left.i * right.r) - (left.j * right.k) + (left.k * right.j);
   result.j=(left.r * right.j) + (left.i * right.k) + (left.j * right.r) - (left.k * right.i);
   result.k=(left.r * right.k) - (left.i * right.j) + (left.j * right.i) + (left.k * right.r);
 
+  //
   // revert y polarity
+  //
   result.j=-result.j;
 
   return(result);
@@ -96,7 +103,7 @@ quaternion_t quaternion_rotate(quaternion_t rotation, quaternion_t vector) {
   r_1.k=-rotation.k;
 
   //
-  // step 1, take product of 'rotation' and 'vector' but skip terms with vector->r as it is zero by definition
+  // step 1, calculate product of 'rotation' and 'vector' but skip terms with vector->r as it is zero by definition
   //
   im.r=                        - (rotation.i * vector.i) - (rotation.j * vector.j) - (rotation.k * vector.k);
   im.i=(rotation.r * vector.i)                           - (rotation.j * vector.k) + (rotation.k * vector.j);
@@ -104,7 +111,7 @@ quaternion_t quaternion_rotate(quaternion_t rotation, quaternion_t vector) {
   im.k=(rotation.r * vector.k) - (rotation.i * vector.j) + (rotation.j * vector.i)                            ;
 
   //
-  // step 2, take product of intermediate result 'im' and 'r_1'
+  // step 2, calculate product of intermediate result 'im' and 'r_1'
   //
   result.r=(im.r * r_1.r) - (im.i * r_1.i) - (im.j * r_1.j) - (im.k * r_1.k);
   result.i=(im.r * r_1.i) + (im.i * r_1.r) - (im.j * r_1.k) + (im.k * r_1.j);

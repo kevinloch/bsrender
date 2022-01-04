@@ -107,7 +107,7 @@ int initImageCompositionBuffer(bsr_config_t *bsr_config, bsr_state_t *bsr_state)
   } // end if not main thread
 
   //
-  // all threads: set skyglow value
+  // all threads: set skyglow value if enabled
   //
   if (bsr_config->skyglow_enable == 1) {
     // set skyglow rgb values
@@ -194,7 +194,7 @@ int initImageCompositionBuffer(bsr_config_t *bsr_config, bsr_state_t *bsr_state)
     }
 
     //
-    // set pixel rgb to background value (0.0 if now skyglow)
+    // set pixel rgb to background value (skyglow or 0.0)
     //
     if (pixel_has_skyglow == 1) {
       current_image_p->r=skyglow_red;
