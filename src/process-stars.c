@@ -352,7 +352,6 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
   // 
   fread(&star_record, star_record_size, 1, input_file);
   while ((feof(input_file) == 0) && (ferror(input_file) == 0)) {
-
     //
     // translate original star x,y,z to new coordinates as seen by camera position
     //
@@ -377,7 +376,7 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
       render_distance2=((star_record.icrs_x - bsr_config->target_icrs_x) * (star_record.icrs_x - bsr_config->target_icrs_x))\
                      + ((star_record.icrs_y - bsr_config->target_icrs_y) * (star_record.icrs_y - bsr_config->target_icrs_y))\
                      + ((star_record.icrs_z - bsr_config->target_icrs_z) * (star_record.icrs_z - bsr_config->target_icrs_z)); // important, use un-translated/rotated coordinates
-    }
+    } // end if render_distance_selector
     if ((star_r2 > 0.0)\
      && (render_distance2 >= bsr_config->render_distance_min2) && (render_distance2 <= bsr_config->render_distance_max2)\
      && (color_temperature >= bsr_config->star_color_min) && (color_temperature <= bsr_config->star_color_max)) {
@@ -425,16 +424,16 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
             output_az+=pi_over_2;
           } else { // star is behind camera, draw on right
             output_az=-pi_over_2-output_az;
-          }
+          } // end if star_x
         } else { // front=center orientation
           if (star_x < 0.0) { // star is behind camera we need to move to sides of front spherical frame
             if (star_y > 0.0) { // left
               output_az=M_PI-output_az;
             } else { // right
               output_az=-M_PI-output_az;
-            } 
-          }
-        }
+            }  // end if star_y
+          } // end if star_x
+        } // end if spherical_orientation
         output_x=(int)((-bsr_state->pixels_per_radian * output_az) + bsr_state->camera_half_res_x);
         output_y=(int)((-bsr_state->pixels_per_radian * output_el) + bsr_state->camera_half_res_y);
       } else if (bsr_config->camera_projection == 2) {
@@ -457,7 +456,7 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
         mollewide_angle=two_mollewide_angle * 0.5;
         output_x=(int)((-bsr_state->pixels_per_radian * output_az * cos(mollewide_angle)) + bsr_state->camera_half_res_x);
         output_y=(int)((-bsr_state->pixels_per_radian * pi_over_2 * sin(mollewide_angle)) + bsr_state->camera_half_res_y);
-      }
+      } // end if camera_projection
 
       //
       // if star is within raster bounds, send star (or Airy disk pixels) to dedup buffer
