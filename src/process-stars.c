@@ -90,8 +90,10 @@ quaternion_t quaternion_rotate(quaternion_t rotation, quaternion_t vector) {
   quaternion_t im;     // intermediate result
   quaternion_t result; // final result
   
+  //
   // invert vector y polarity since we use a non-standard coordinate orientation with +y to the left instead of right
-  // not sure why rotation.j does not get inverted
+  // note: rotation.j does NOT get inverted here
+  //
   vector.j=-vector.j;
 
   //
