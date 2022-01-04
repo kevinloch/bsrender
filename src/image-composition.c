@@ -98,7 +98,7 @@ int initImageCompositionBuffer(bsr_config_t *bsr_config, bsr_state_t *bsr_state)
   // main thread: tell worker threads to go
   //
   if (bsr_state->perthread->my_pid != bsr_state->master_pid) {
-    // worder thread
+    // worker thread
     waitForMainThread(bsr_state, THREAD_STATUS_INIT_IMAGECOMP_BEGIN);
   } else {
     // main thread
