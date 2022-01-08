@@ -50,6 +50,7 @@ bsr_state_t *initState(bsr_config_t *bsr_config) {
   double camera_icrs_dec_rad;
   double target_icrs_ra_rad;
   double target_icrs_dec_rad;
+  double anti_alias_xy;
   int mmap_protection;
   int mmap_visibility;
   size_t bsr_state_size=0;
@@ -94,7 +95,17 @@ bsr_state_t *initState(bsr_config_t *bsr_config) {
   bsr_state->camera_hfov=bsr_config->camera_fov * pi_over_360; // includes divide by 2
   bsr_state->camera_half_res_x=(double)bsr_config->camera_res_x / 2.0;
   bsr_state->camera_half_res_y=(double)bsr_config->camera_res_y / 2.0;
+  bsr_state->camera_pixel_limit=pow(100.0, (-bsr_config->camera_pixel_limit_mag / 5.0));
+  bsr_state->render_distance_min2=bsr_config->render_distance_min * bsr_config->render_distance_min;
+  bsr_state->render_distance_max2=bsr_config->render_distance_max * bsr_config->render_distance_max;
   bsr_state->pixels_per_radian=bsr_state->camera_half_res_x / bsr_state->camera_hfov;
+  if (bsr_config->anti_alias_radius < 0.5) {
+    bsr_config->anti_alias_radius=0.5;
+  } else if (bsr_config->anti_alias_radius > 2.0) {
+    bsr_config->anti_alias_radius=2.0;
+  }
+  anti_alias_xy=bsr_config->anti_alias_radius * 2.0;
+  bsr_state->anti_alias_per_pixel=1.0 / (anti_alias_xy * anti_alias_xy);
   camera_yz=bsr_config->camera_rotation * pi_over_180;
   camera_xy=bsr_config->camera_pan * pi_over_180;
   camera_xz=bsr_config->camera_tilt * -pi_over_180;

@@ -93,7 +93,7 @@ int postProcess(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   if (lines_per_thread < 1) {
     lines_per_thread=1;
   }
-  inv_camera_pixel_limit = 1.0 / bsr_config->camera_pixel_limit;
+  inv_camera_pixel_limit = 1.0 / bsr_state->camera_pixel_limit;
 
   //
   // all threads: apply cmaera_gamma and intensity limiting

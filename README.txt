@@ -10,13 +10,14 @@
 
 Key features:
 
-  - 3D translations/rotations of camera position/aiming using ICRS equitorial or Euclidian coordinates. 3D rotations use fast and accurate quaternion algebra.
+  - 3D translations/rotations of camera position/aiming using ICRS equitorial or Euclidian coordinates.
   - Support for extremely large resolutions.  8.2 gigapixel (128000x64000) downscaled to 32000x16000 has been successfully rendered with 512GB ram
   - Customizable camera resolution, field of view, sensitivity, white balance, color saturation, and gamma
   - Camera color is accurately modeled with Planck spectrum and customizable bandpass filters for each color channel
   - Several raster projection modes are supported: lat/lon (equirectangular), Spherical (forward hemisphere centered), Spherical (front/rear hemispheres), Hammer, Mollewide
   - Accurately modeled Airy disks provide photorealistic renderings of individual stars and clusters when enabled.  This includes an optional aperture obstruction ratio.
   - Stars can be filtered by parallax quality (parallax over error), distance from camera or target, and effective color temperature
+  - Optional Anti-aliasing with configurable radius
   - Optional Gaussian blur and/or Lanczos2 output scaling.  This allows very high resolution renderings to be smoothed and downsampled on a server before downloading
   - Optional skyglow with configurable intensity and color temperature
   - Good performance when the data files can be cached in ram.  On an AWS m6gd.12xlarge instance (48vcpu/192GBram) the full pq000 dataset (1.4B stars) can be rendered in 14 seconds at 2k resolution.  The default pq010 data set (98M stars) renders in just 2 seconds
@@ -80,7 +81,7 @@ Methodology:
 
   The coordinate system used internally by bsrender is Euclidian x,y,z with equitorial orientation. From the camera's perspective +x=forward, +y=left, and +z=up. Quaternion algebra is used for 3D rotations of stars which provides maximum speed, consistent precision, and avoids gimbal lock.  Stars are first rotated by the (xy and xz) angles required to bring the target to the center of camera view.  Optional camera rotation (yz), pan (xy) and tilt (xz) can then be applied in that order. All rotations are combined during initialization into a single rotation quaternion which is used to rotate each selected star in a single rotation operation during processing.  
 
-  After translation and rotation stars are filtered by field of view and mapped to an image composition buffer pixel by the selected raster projection.  A star's linear intensity (adjusted for distance) is multiplied by the r,g,b lookup table for the star's effective color temperature.   If Airy disks are enabled then the pre-computed Airy disk map is used to generate additional pixels up to 'Airy_disk_max_radius' around the central pixel and the star's intensity*(r,g,b) values are multiplied by the Airy map factor for each Airy disk pixel.  These pixel(s) are added to any existing values for those pixel(s) and stored in the image composition buffer. The image composition buffer uses double precision floating point format so it can accurately handle many stars (or Airy map pixels) at the same location and to provide maximum flexibility for the post-processing steps.
+  After translation and rotation stars are filtered by field of view and mapped to an image composition buffer pixel by the selected raster projection.  A star's linear intensity (adjusted for distance) is multiplied by the r,g,b lookup table for the star's effective color temperature.   If Airy disks are enabled then the pre-computed Airy disk map is used to generate additional pixels up to 'Airy_disk_max_radius' around the central pixel and the star's intensity*(r,g,b) values are multiplied by the Airy map factor for each Airy disk pixel.  Output pixels can optionally be anti-aliased to simulate common consumer/DSLR sensors. Pixels are stored in a double-precision floating-point image composition buffer where they are added to any pixels from previous stars at the same location.
 
   After the image composition buffer is complete post-processing involves several steps all performed in double precision floating point format:
     - Normalizing pixel intensity where 'camera_pixel_limit_mag' = 1.0

@@ -284,6 +284,84 @@ int sendPixelToDedupBuffer(bsr_state_t *bsr_state, long long image_offset, doubl
   return(0);
 }
 
+int antiAliasPixel(bsr_config_t *bsr_config, bsr_state_t *bsr_state, double output_x_d, double output_y_d, double r, double g, double b) {
+  //
+  // This function takes an output pixel and spreads it across several pixels.  Pixels are spread in a square pattern similar to horizontal+vertical
+  // LPF's commonly found in DSLR's.  This spread uses floating-point position variables for accurate interpolation.
+  //
+  long long image_offset;
+  double left_edge;
+  double right_edge;
+  double top_edge;
+  double bottom_edge;
+  double x_overlap;
+  double y_overlap;
+  int spread_x;
+  int spread_y;
+  double output_r;
+  double output_g;
+  double output_b;
+
+  //
+  // locate edges of spread pattern
+  //
+  left_edge=output_x_d - bsr_config->anti_alias_radius;
+  right_edge=output_x_d + bsr_config->anti_alias_radius;
+  top_edge=output_y_d - bsr_config->anti_alias_radius;
+  bottom_edge=output_y_d + bsr_config->anti_alias_radius;
+
+  //
+  // scan spread grid, and for each spread pixel detemine intensity and send to dedup buffer
+  //
+  for (spread_y=(int)top_edge; spread_y <= (int)bottom_edge; spread_y++) {
+    for (spread_x=(int)left_edge; spread_x <= (int)right_edge; spread_x++) {
+      //
+      // determine how much of spread pattern overlaps this output pixel
+      //
+      x_overlap=0.0;
+      y_overlap=0.0;
+      if ((left_edge < (double)spread_x) && (right_edge > (double)(spread_x + 1)) && (top_edge < (double)spread_y) && (bottom_edge > (double)(spread_y + 1))) {
+        // complete overlap
+        x_overlap=1.0;
+        y_overlap=1.0;
+      } else {
+        // partial overlap
+        if ((left_edge >= (double)spread_x) && (left_edge < (double)(spread_x + 1))) {
+          x_overlap=(double)(spread_x + 1) - left_edge;
+        } else if ((right_edge >= (double)spread_x) && (right_edge < (double)(spread_x + 1))) {
+          x_overlap=right_edge - (double)spread_x;
+        } else {
+          x_overlap=1.0;
+        }
+        if ((top_edge >= (double)spread_y) && (top_edge < (double)(spread_y + 1))) {
+          y_overlap=(double)(spread_y + 1) - top_edge;
+        } else if ((bottom_edge >= (double)spread_y) & (bottom_edge < (double)(spread_y + 1))) {
+          y_overlap=bottom_edge - (double)spread_y;
+        } else {
+          y_overlap=1.0;
+        }
+      }
+ 
+      //
+      // calculate output r,g,b using overlap factor and intensity per pixel
+      //
+      output_r=bsr_state->anti_alias_per_pixel * x_overlap * y_overlap * r;
+      output_g=bsr_state->anti_alias_per_pixel * x_overlap * y_overlap * g;
+      output_b=bsr_state->anti_alias_per_pixel * x_overlap * y_overlap * b;
+
+      //
+      // send to dedup buffer if within raster bounds
+      //
+      if ((spread_x >= 0) && (spread_x < bsr_config->camera_res_x) && (spread_y >= 0) && (spread_y < bsr_config->camera_res_y)) {
+        image_offset=((long long)bsr_config->camera_res_x * (long long)spread_y) + (long long)spread_x;
+        sendPixelToDedupBuffer(bsr_state, image_offset, output_r, output_g, output_b);
+      }
+    } // end for spread_x
+  } // end for spread_y
+
+  return(0);
+}
+
 int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_file) {
   //
   // This function handles the most expensive operations in bsrender.  It performs the following:
@@ -316,7 +394,9 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
   double output_az;
   double output_az_by2;
   double output_el;
+  double output_x_d=0.0;
   int output_x=0;
+  double output_y_d=0.0;
   int output_y=0;
   double spherical_distance;
   double spherical_angle;
@@ -378,7 +458,7 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
                      + ((star_record.icrs_z - bsr_config->target_icrs_z) * (star_record.icrs_z - bsr_config->target_icrs_z)); // important, use un-translated/rotated coordinates
     } // end if render_distance_selector
     if ((star_r2 > 0.0)\
-     && (render_distance2 >= bsr_config->render_distance_min2) && (render_distance2 <= bsr_config->render_distance_max2)\
+     && (render_distance2 >= bsr_state->render_distance_min2) && (render_distance2 <= bsr_state->render_distance_max2)\
      && (color_temperature >= bsr_config->star_color_min) && (color_temperature <= bsr_config->star_color_max)) {
 
       //
@@ -410,8 +490,10 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
         star_xy_r=sqrt((star_x * star_x) + (star_y * star_y));
         output_az=atan2(star_y, star_x); // star_xy
         output_el=atan2(star_z, star_xy_r);
-        output_x=(int)((-bsr_state->pixels_per_radian * output_az) + bsr_state->camera_half_res_x);
-        output_y=(int)((-bsr_state->pixels_per_radian * output_el) + bsr_state->camera_half_res_y);
+        output_x_d=(-bsr_state->pixels_per_radian * output_az) + bsr_state->camera_half_res_x;
+        output_y_d=(-bsr_state->pixels_per_radian * output_el) + bsr_state->camera_half_res_y;
+        output_x=(int)output_x_d;
+        output_y=(int)output_y_d;
       } else if (bsr_config->camera_projection == 1) {
         // spherical
         star_yz_r=sqrt((star_y * star_y) + (star_z * star_z));
@@ -434,16 +516,20 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
             }  // end if star_y
           } // end if star_x
         } // end if spherical_orientation
-        output_x=(int)((-bsr_state->pixels_per_radian * output_az) + bsr_state->camera_half_res_x);
-        output_y=(int)((-bsr_state->pixels_per_radian * output_el) + bsr_state->camera_half_res_y);
+        output_x_d=(-bsr_state->pixels_per_radian * output_az) + bsr_state->camera_half_res_x;
+        output_y_d=(-bsr_state->pixels_per_radian * output_el) + bsr_state->camera_half_res_y;
+        output_x=(int)output_x_d;
+        output_y=(int)output_y_d;
       } else if (bsr_config->camera_projection == 2) {
         // Hammer
         star_xy_r=sqrt((star_x * star_x) + (star_y * star_y));
         star_xy=atan2(star_y, star_x);
         output_az_by2=star_xy / 2.0;
         output_el=atan2(star_z, star_xy_r);
-        output_x=(int)((-bsr_state->pixels_per_radian * M_PI * cos(output_el) * sin(output_az_by2) / (sqrt(1.0 + (cos(output_el) * cos(output_az_by2))))) + bsr_state->camera_half_res_x);
-        output_y=(int)((-bsr_state->pixels_per_radian * pi_over_2 * sin(output_el) / (sqrt(1.0 + (cos(output_el) * cos(output_az_by2))))) + bsr_state->camera_half_res_y);
+        output_x_d=(-bsr_state->pixels_per_radian * M_PI * cos(output_el) * sin(output_az_by2) / (sqrt(1.0 + (cos(output_el) * cos(output_az_by2))))) + bsr_state->camera_half_res_x;
+        output_y_d=(-bsr_state->pixels_per_radian * pi_over_2 * sin(output_el) / (sqrt(1.0 + (cos(output_el) * cos(output_az_by2))))) + bsr_state->camera_half_res_y;
+        output_x=(int)output_x_d;
+        output_y=(int)output_y_d;
       } else if (bsr_config->camera_projection == 3) {
         // Mollewide
         star_xy_r=sqrt((star_x * star_x) + (star_y * star_y));
@@ -454,8 +540,10 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
           two_mollewide_angle-=(two_mollewide_angle + sin(two_mollewide_angle) - (M_PI * sin(output_el))) / (1.0 + cos(two_mollewide_angle));
         }
         mollewide_angle=two_mollewide_angle * 0.5;
-        output_x=(int)((-bsr_state->pixels_per_radian * output_az * cos(mollewide_angle)) + bsr_state->camera_half_res_x);
-        output_y=(int)((-bsr_state->pixels_per_radian * pi_over_2 * sin(mollewide_angle)) + bsr_state->camera_half_res_y);
+        output_x_d=(-bsr_state->pixels_per_radian * output_az * cos(mollewide_angle)) + bsr_state->camera_half_res_x;
+        output_y_d=(-bsr_state->pixels_per_radian * pi_over_2 * sin(mollewide_angle)) + bsr_state->camera_half_res_y;
+        output_x=(int)output_x_d; 
+        output_y=(int)output_y_d;
       } // end if camera_projection
 
       //
@@ -466,7 +554,7 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
           //
           // Airy disk mode, use Airy disk maps to find all pixel values for this star and send to dedup buffer
           //
-          Airymap_autoscale=(int)(sqrt(star_linear_intensity * 10.0 / bsr_config->camera_pixel_limit) * 2.0 * bsr_config->Airy_disk_first_null);
+          Airymap_autoscale=(int)(sqrt(star_linear_intensity * 10.0 / bsr_state->camera_pixel_limit) * 2.0 * bsr_config->Airy_disk_first_null);
           if (Airymap_autoscale < bsr_config->Airy_disk_min_extent) {
             Airymap_autoscale=bsr_config->Airy_disk_min_extent;
           } else if (Airymap_autoscale > bsr_config->Airy_disk_max_extent) {
@@ -491,10 +579,14 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
               if ((Airymap_output_x >= 0) && (Airymap_output_x < bsr_config->camera_res_x) && (Airymap_output_y >= 0) && (Airymap_output_y < bsr_config->camera_res_y)
                 && (*Airymap_red_p > 0.0) && (*Airymap_green_p > 0.0) && (*Airymap_blue_p > 0.0)) {
                 //
-                // Airymap pixel is within image raster, send to dedup buffer
+                // Airymap pixel is within image raster, send to anti-alias function or direct to dedup buffer
                 //
-                image_offset=((long long)bsr_config->camera_res_x * (long long)Airymap_output_y) + (long long)Airymap_output_x;
-                sendPixelToDedupBuffer(bsr_state, image_offset, r, g, b);
+                if (bsr_config->anti_alias_enable == 1) {
+                  antiAliasPixel(bsr_config, bsr_state, (output_x_d + (double)Airymap_x), (output_y_d + (double)Airymap_y), r, g, b);
+                } else {
+                  image_offset=((long long)bsr_config->camera_res_x * (long long)Airymap_output_y) + (long long)Airymap_output_x;
+                  sendPixelToDedupBuffer(bsr_state, image_offset, r, g, b);
+                }
               } // end if Airymap pixel is within image raster
               // quadrant -x,+y
               if (Airymap_x > 0) {
@@ -503,10 +595,14 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
                 if ((Airymap_output_x >= 0) && (Airymap_output_x < bsr_config->camera_res_x) && (Airymap_output_y >= 0) && (Airymap_output_y < bsr_config->camera_res_y)
                   && (*Airymap_red_p > 0.0) && (*Airymap_green_p > 0.0) && (*Airymap_blue_p > 0.0)) {
                   //
-                  // Airymap pixel is within image raster, send to dedup buffer
+                  // Airymap pixel is within image raster, send to anti-alias function or direct to dedup buffer
                   //
-                  image_offset=((long long)bsr_config->camera_res_x * (long long)Airymap_output_y) + (long long)Airymap_output_x;
-                  sendPixelToDedupBuffer(bsr_state, image_offset, r, g, b);
+                  if (bsr_config->anti_alias_enable == 1) {
+                    antiAliasPixel(bsr_config, bsr_state, (output_x_d - (double)Airymap_x), (output_y_d + (double)Airymap_y), r, g, b);
+                  } else {
+                    image_offset=((long long)bsr_config->camera_res_x * (long long)Airymap_output_y) + (long long)Airymap_output_x;
+                    sendPixelToDedupBuffer(bsr_state, image_offset, r, g, b);
+                  }
                 } // end if Airymap pixel is within image raster
               } // end quadrant -x,+y
               // quadrant +x,-y
@@ -516,10 +612,14 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
                 if ((Airymap_output_x >= 0) && (Airymap_output_x < bsr_config->camera_res_x) && (Airymap_output_y >= 0) && (Airymap_output_y < bsr_config->camera_res_y)
                   && (*Airymap_red_p > 0.0) && (*Airymap_green_p > 0.0) && (*Airymap_blue_p > 0.0)) {
                   //
-                  // Airymap pixel is within image raster, send to dedup buffer
+                  // Airymap pixel is within image raster, send to anti-alias function or direct to dedup buffer
                   //
-                  image_offset=((long long)bsr_config->camera_res_x * (long long)Airymap_output_y) + (long long)Airymap_output_x;
-                  sendPixelToDedupBuffer(bsr_state, image_offset, r, g, b);
+                  if (bsr_config->anti_alias_enable == 1) {
+                    antiAliasPixel(bsr_config, bsr_state, (output_x_d + (double)Airymap_x), (output_y_d - (double)Airymap_y), r, g, b);
+                  } else {
+                    image_offset=((long long)bsr_config->camera_res_x * (long long)Airymap_output_y) + (long long)Airymap_output_x;
+                    sendPixelToDedupBuffer(bsr_state, image_offset, r, g, b);
+                  }
                 } // end if Airymap pixel is within image raster
               } // end quadrant +x,-y
               // quadrant -x,-y
@@ -529,10 +629,14 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
                 if ((Airymap_output_x >= 0) && (Airymap_output_x < bsr_config->camera_res_x) && (Airymap_output_y >= 0) && (Airymap_output_y < bsr_config->camera_res_y)
                   && (*Airymap_red_p > 0.0) && (*Airymap_green_p > 0.0) && (*Airymap_blue_p > 0.0)) {
                   //
-                  // Airymap pixel is within image raster, send to dedup buffer
+                  // Airymap pixel is within image raster, send to anti-alias function or direct to dedup buffer
                   //
-                  image_offset=((long long)bsr_config->camera_res_x * (long long)Airymap_output_y) + (long long)Airymap_output_x;
-                  sendPixelToDedupBuffer(bsr_state, image_offset, r, g, b);
+                  if (bsr_config->anti_alias_enable == 1) {
+                    antiAliasPixel(bsr_config, bsr_state, (output_x_d - (double)Airymap_x), (output_y_d - (double)Airymap_y), r, g, b);
+                  } else {
+                    image_offset=((long long)bsr_config->camera_res_x * (long long)Airymap_output_y) + (long long)Airymap_output_x;
+                    sendPixelToDedupBuffer(bsr_state, image_offset, r, g, b);
+                  }
                 } // end if Airymap pixel is within image raster
               } // end quadrant -x,-y
               Airymap_red_p++;
@@ -542,13 +646,17 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
           } // end for Airymap_y
         } else {
           //
-          // not Airy disk mode, send star pixel to dedup buffer
+          // not Airy disk mode, send star pixel to anti-alias function or direct to dedup buffer
           //
-          image_offset=((long long)bsr_config->camera_res_x * (long long)output_y) + (long long)output_x;
           r=(star_linear_intensity * bsr_state->rgb_red[color_temperature]);
           g=(star_linear_intensity * bsr_state->rgb_green[color_temperature]);
           b=(star_linear_intensity * bsr_state->rgb_blue[color_temperature]);
-          sendPixelToDedupBuffer(bsr_state, image_offset, r, g, b);
+          if (bsr_config->anti_alias_enable == 1) {
+            antiAliasPixel(bsr_config, bsr_state, output_x_d, output_y_d, r, g, b);
+          } else {
+            image_offset=((long long)bsr_config->camera_res_x * (long long)output_y) + (long long)output_x;
+            sendPixelToDedupBuffer(bsr_state, image_offset, r, g, b);
+          }
         } // end if Airy disk mode
       } // end if star is within image raster
     } // end if within distance ranges

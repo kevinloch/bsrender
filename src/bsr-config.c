@@ -59,9 +59,7 @@ void initConfig(bsr_config_t *bsr_config) {
   bsr_config->Gaia_min_parallax_quality=0;
   bsr_config->enable_external=1;
   bsr_config->render_distance_min=0.0;
-  bsr_config->render_distance_min2=bsr_config->render_distance_min * bsr_config->render_distance_min;
   bsr_config->render_distance_max=1.0E99;
-  bsr_config->render_distance_max2=bsr_config->render_distance_max * bsr_config->render_distance_max;
   bsr_config->render_distance_selector=0;
   bsr_config->star_color_min=0.0;
   bsr_config->star_color_max=1.0E99;
@@ -69,7 +67,6 @@ void initConfig(bsr_config_t *bsr_config) {
   bsr_config->camera_res_y=1000;
   bsr_config->camera_fov=360.0;
   bsr_config->camera_pixel_limit_mag=6.5;
-  bsr_config->camera_pixel_limit=pow(100.0, (-bsr_config->camera_pixel_limit_mag / 5.0));
   bsr_config->camera_pixel_limit_mode=0;
   bsr_config->camera_wb_enable=1;
   bsr_config->camera_wb_temp=4300.0;
@@ -89,6 +86,8 @@ void initConfig(bsr_config_t *bsr_config) {
   bsr_config->Airy_disk_max_extent=100;
   bsr_config->Airy_disk_min_extent=1;
   bsr_config->Airy_disk_obstruction=0.0;
+  bsr_config->anti_alias_enable=0;
+  bsr_config->anti_alias_radius=1.0;
   bsr_config->skyglow_enable=0;
   bsr_config->skyglow_temp=4500.0;
   bsr_config->skyglow_per_pixel_mag=11.0;
@@ -165,10 +164,7 @@ void cleanupValueStr(char *value) {
 }
 
 void checkOptionBool(int *config_int, char *option, char *value, char *matchstr) {
-  size_t matchstr_length;
-
-  matchstr_length=strlen(matchstr);
-  if ((strstr(option, matchstr) == option) && (option[matchstr_length] != '_')) {
+  if ((strstr(option, matchstr) == option) && (strlen(option) == strlen(matchstr))) {
     if (strcasestr(value, "yes") != NULL) {
       *config_int=1;
     } else {
@@ -178,28 +174,19 @@ void checkOptionBool(int *config_int, char *option, char *value, char *matchstr)
 }
 
 void checkOptionInt(int *config_int, char *option, char *value, char *matchstr) {
-  size_t matchstr_length;
-  
-  matchstr_length=strlen(matchstr);
-  if ((strstr(option, matchstr) == option) && (option[matchstr_length] != '_')) {
+  if ((strstr(option, matchstr) == option) && (strlen(option) == strlen(matchstr))) {
     *config_int=strtol(value, NULL, 10);
   }
 }
 
 void checkOptionDouble(double *config_double, char *option, char *value, char *matchstr) {
-  size_t matchstr_length;
-  
-  matchstr_length=strlen(matchstr);
-  if ((strstr(option, matchstr) == option) && (option[matchstr_length] != '_')) {
+  if ((strstr(option, matchstr) == option) && (strlen(option) == strlen(matchstr))) {
     *config_double=strtod(value, NULL);
   }
 }
 
 void checkOptionStr(char *config_str,  char *option, char *value, char *matchstr) {
-  size_t matchstr_length;
-  
-  matchstr_length=strlen(matchstr);
-  if ((strstr(option, matchstr) == option) && (option[matchstr_length] != '_')) {
+  if ((strstr(option, matchstr) == option) && (strlen(option) == strlen(matchstr))) {
     strcpy(config_str, value);
   }
 }
@@ -229,9 +216,7 @@ void setOptionValue(bsr_config_t *bsr_config, char *option, char *value, int fro
   checkOptionInt(&bsr_config->Gaia_min_parallax_quality, option, value, "Gaia_min_parallax_quality");
   checkOptionBool(&bsr_config->enable_external, option, value, "enable_external");
   checkOptionDouble(&bsr_config->render_distance_min, option, value, "render_distance_min");
-  bsr_config->render_distance_min2=bsr_config->render_distance_min * bsr_config->render_distance_min;
   checkOptionDouble(&bsr_config->render_distance_max, option, value, "render_distance_max");
-  bsr_config->render_distance_max2=bsr_config->render_distance_max * bsr_config->render_distance_max;
   checkOptionInt(&bsr_config->render_distance_selector, option, value, "render_distance_selector");
   checkOptionDouble(&bsr_config->star_color_min, option, value, "star_color_min");
   checkOptionDouble(&bsr_config->star_color_max, option, value, "star_color_max");
@@ -239,7 +224,6 @@ void setOptionValue(bsr_config_t *bsr_config, char *option, char *value, int fro
   checkOptionInt(&bsr_config->camera_res_y, option, value, "camera_res_y");
   checkOptionDouble(&bsr_config->camera_fov, option, value, "camera_fov");
   checkOptionDouble(&bsr_config->camera_pixel_limit_mag, option, value, "camera_pixel_limit_mag");
-  bsr_config->camera_pixel_limit=pow(100.0, (-bsr_config->camera_pixel_limit_mag / 5.0));
   checkOptionInt(&bsr_config->camera_pixel_limit_mode, option, value, "camera_pixel_limit_mode");
   checkOptionBool(&bsr_config->camera_wb_enable, option, value, "camera_wb_enable");
   checkOptionDouble(&bsr_config->camera_wb_temp, option, value, "camera_wb_temp");
@@ -259,6 +243,8 @@ void setOptionValue(bsr_config_t *bsr_config, char *option, char *value, int fro
   checkOptionInt(&bsr_config->Airy_disk_max_extent, option, value, "Airy_disk_max_extent");
   checkOptionInt(&bsr_config->Airy_disk_min_extent, option, value, "Airy_disk_min_extent");
   checkOptionDouble(&bsr_config->Airy_disk_obstruction, option, value, "Airy_disk_obstruction");
+  checkOptionBool(&bsr_config->anti_alias_enable, option, value, "anti_alias_enable");
+  checkOptionDouble(&bsr_config->anti_alias_radius, option, value, "anti_alias_radius");
   checkOptionBool(&bsr_config->skyglow_enable, option, value, "skyglow_enable");
   checkOptionDouble(&bsr_config->skyglow_temp, option, value, "skyglow_temp");
   checkOptionDouble(&bsr_config->skyglow_per_pixel_mag, option, value, "skyglow_per_pixel_mag");

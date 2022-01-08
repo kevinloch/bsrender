@@ -39,7 +39,7 @@
 #ifndef BSRENDER_H
 #define BSRENDER_H
 
-#define BSR_VERSION "0.9-dev-68"
+#define BSR_VERSION "0.9-dev-69"
 
 //
 // these checkpoints are used to monitor and control worker thread progress
@@ -164,6 +164,10 @@ typedef struct {
   double camera_half_res_x;
   double camera_half_res_y;
   double pixels_per_radian;
+  double render_distance_min2;
+  double render_distance_max2;
+  double camera_pixel_limit;
+  double anti_alias_per_pixel;
   quaternion_t target_rotation;
   size_t composition_buffer_size;
   size_t output_buffer_size;
@@ -202,9 +206,7 @@ typedef struct {
   int Gaia_min_parallax_quality;
   int enable_external;
   double render_distance_min;
-  double render_distance_min2;
   double render_distance_max;
-  double render_distance_max2;
   int render_distance_selector;
   double star_color_min;
   double star_color_max;
@@ -212,7 +214,6 @@ typedef struct {
   int camera_res_y;
   double camera_fov;
   double camera_pixel_limit_mag;
-  double camera_pixel_limit;
   int camera_pixel_limit_mode;
   int camera_wb_enable;
   double camera_wb_temp;
@@ -232,6 +233,8 @@ typedef struct {
   int Airy_disk_max_extent;
   int Airy_disk_min_extent;
   double Airy_disk_obstruction;
+  int anti_alias_enable;
+  double anti_alias_radius;
   int skyglow_enable;
   double skyglow_temp;
   double skyglow_per_pixel_mag;
