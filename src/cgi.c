@@ -43,7 +43,6 @@
 #include "bsr-config.h"
 
 int printCGIheader(){
-
   printf("Content-type: image/png\n");
 //  printf("Expires: 0\n");
 //  printf("Cache-control: no-cache\n");
@@ -62,14 +61,22 @@ int sanitizeQueryString(char *query_string) {
   int output_len;
   char hextmp[3];
 
+  //
+  // make a working copy of query_string
+  //
   strcpy(tmpstr, query_string);
   tmpstr[2047]=0;
   tmpstr_len=strlen(tmpstr);
-
   output_str=query_string;
+
+  //
+  // validate each character of query_string (tmpstr)
+  //
   output_len=0;
   for (i=0; i < tmpstr_len; i++) {
-    // check for and convert hex encoded characters
+    //
+    // check for and convert hex encoded characters (common in CGI QUERY_STRING)
+    //
     if ((tmpstr[i] == 37) && (i <= (tmpstr_len - 4))) {
       hextmp[0]=tmpstr[i+1];
       hextmp[1]=tmpstr[i+2];
@@ -80,7 +87,9 @@ int sanitizeQueryString(char *query_string) {
       tmpchar=tmpstr[i];
     }
 
-    // check if tmpchar is valid and copy to output_str
+    //
+    // check if tmpchar is a valid symbol and copy to output_str
+    //
     if (strchr("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.-+&=_", tmpchar) == NULL) {
       output_str[output_len]=32; // convert invalid character to space
     } else {

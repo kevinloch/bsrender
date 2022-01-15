@@ -97,7 +97,7 @@ int main(int argc, char **argv) {
   initConfig(&bsr_config);
 
   //
-  // process command line arguments - first pass to get config file location and -q
+  // process command line arguments - first pass to get config file location
   //
   processCmdArgs(&bsr_config, argc, argv);
 

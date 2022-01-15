@@ -164,7 +164,6 @@ void cleanupValueStr(char *value) {
     j++;
   }
   tmpvalue[j]=0;
-
   strcpy(value, tmpvalue);
 }
 
@@ -325,13 +324,11 @@ int processConfigSegment(bsr_config_t *bsr_config, char *segment, int from_cgi) 
       // send to option value processing fucntion
       //
       setOptionValue(bsr_config, option, value, 0); // 0 == not from cgi
-
     } // end option_length and value_length checks
   } // end symbol_p check
 
   return(0);
 }
-
 
 int loadConfigFromFile(bsr_config_t *bsr_config) {
   int from_cgi;
