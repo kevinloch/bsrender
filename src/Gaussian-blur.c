@@ -49,8 +49,8 @@ int GaussianBlur(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   int i;
   double radius;
   int lines_per_thread;
-  int sample_size;
-  int half_sample_size;
+  int sample_width;
+  int half_sample_width;
   int blur_res_x;
   int blur_res_y;
   long long blur_i;
@@ -76,11 +76,11 @@ int GaussianBlur(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   double G_b;
 
   //
-  // all threads: determine Gaussian kernel size
+  // all threads: determine Gaussian kernel width
   //
   radius=bsr_config->Gaussian_blur_radius;
-  sample_size=((int)ceil(radius) * 6) + 1;
-  half_sample_size=((int)ceil(radius) * 3) + 1;
+  sample_width=((int)ceil(radius) * 6) + 1;
+  half_sample_width=((int)ceil(radius) * 3) + 1;
 
   //
   // main thread: display status message if not in CGI mode
@@ -94,7 +94,7 @@ int GaussianBlur(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   //
   // all threads: allocate memory for 1D Gaussian kernel
   //
-  G_kernel_array=(double *)malloc(sample_size * sizeof(double));
+  G_kernel_array=(double *)malloc(sample_width * sizeof(double));
   if (G_kernel_array == NULL) {
     if (bsr_config->cgi_mode != 1) {
       printf("Error: could not allocate memory for Gaussian blur kernel\n");
@@ -108,7 +108,7 @@ int GaussianBlur(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   //
   G_kernel_sum=0.0;
   G_kernel_p=G_kernel_array;
-  for (kernel_i=-half_sample_size + 1; kernel_i < half_sample_size; kernel_i++) {
+  for (kernel_i=-half_sample_width + 1; kernel_i < half_sample_width; kernel_i++) {
     G=exp(-(double)kernel_i * (double)kernel_i / (2.0 * radius * radius)) / sqrt(2.0 * M_PI * radius * radius);
     G_kernel_sum+=G;
     *G_kernel_p=G;
@@ -119,7 +119,7 @@ int GaussianBlur(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   // all threads: normalize Gaussian kernel
   //
   G_kernel_p=G_kernel_array;
-  for (kernel_i=-half_sample_size + 1; kernel_i < half_sample_size; kernel_i++) {
+  for (kernel_i=-half_sample_width + 1; kernel_i < half_sample_width; kernel_i++) {
     *G_kernel_p/=G_kernel_sum;
     G_kernel_p++;
   } // end for kernel
@@ -164,7 +164,7 @@ int GaussianBlur(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
     G_g=0.0;
     G_b=0.0;
     G_kernel_p=G_kernel_array;
-    for (kernel_i=-half_sample_size + 1; kernel_i < half_sample_size; kernel_i++) {
+    for (kernel_i=-half_sample_width + 1; kernel_i < half_sample_width; kernel_i++) {
       source_x=blur_x + kernel_i;
       if ((source_x >= 0) && (source_x < current_image_res_x)) {
         current_image_offset=((long long)blur_y * (long long)blur_res_x) + (long long)source_x;
@@ -223,7 +223,7 @@ int GaussianBlur(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
     G_g=0.0;
     G_b=0.0;
     G_kernel_p=G_kernel_array;
-    for (kernel_i=-half_sample_size + 1; kernel_i < half_sample_size; kernel_i++) {
+    for (kernel_i=-half_sample_width + 1; kernel_i < half_sample_width; kernel_i++) {
       source_y=blur_y + kernel_i;
       if ((source_y >= 0) && (source_y < current_image_res_y)) {
         current_image_offset=((long long)source_y * (long long)blur_res_x) + (long long)blur_x;

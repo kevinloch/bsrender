@@ -405,9 +405,12 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
   double two_mollewide_angle;
   double mollewide_angle;
   const double pi_over_2=M_PI / 2.0;
+  int Airymap_autoscale;
+  int Airymap_max_width;
+  int Airymap_row_offset;
   int Airymap_x;
   int Airymap_y;
-  int Airymap_xy;
+  int Airymap_width;
   int Airymap_output_x;
   int Airymap_output_y;
   double *Airymap_red_p;
@@ -420,14 +423,11 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
   double r;
   double g;
   double b;
-  int Airymap_autoscale;
-  int Airymap_full_xy;
-  int Airymap_row_offset;
 
   //
   // init shortcut variables
   //
-  Airymap_full_xy=bsr_config->Airy_disk_max_extent + 1;
+  Airymap_max_width=bsr_config->Airy_disk_max_extent + 1;
 
   //
   // read and process each line of input file
@@ -462,7 +462,6 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
     if ((star_r2 > 0.0)\
      && (render_distance2 >= bsr_state->render_distance_min2) && (render_distance2 <= bsr_state->render_distance_max2)\
      && (color_temperature >= bsr_config->star_color_min) && (color_temperature <= bsr_config->star_color_max)) {
-
       //
       // extract star intensity from combined field and adjust for distance from camera
       //
@@ -490,7 +489,7 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
       if (bsr_config->camera_projection == 0) {
         // lat/lon 
         star_xy_r=sqrt((star_x * star_x) + (star_y * star_y));
-        output_az=atan2(star_y, star_x); // star_xy
+        output_az=atan2(star_y, star_x); // star_xy angle
         output_el=atan2(star_z, star_xy_r);
         output_x_d=(-bsr_state->pixels_per_radian * output_az) + bsr_state->camera_half_res_x;
         output_y_d=(-bsr_state->pixels_per_radian * output_el) + bsr_state->camera_half_res_y;
@@ -499,7 +498,7 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
       } else if (bsr_config->camera_projection == 1) {
         // spherical
         star_yz_r=sqrt((star_y * star_y) + (star_z * star_z));
-        spherical_angle=atan2(star_z, star_y); // star_yz
+        spherical_angle=atan2(star_z, star_y); // star_yz angle
         spherical_distance=atan2(star_yz_r, fabs(star_x));
         output_az=spherical_distance * cos(spherical_angle);
         output_el=spherical_distance * sin(spherical_angle);
@@ -535,7 +534,7 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
       } else if (bsr_config->camera_projection == 3) {
         // Mollewide
         star_xy_r=sqrt((star_x * star_x) + (star_y * star_y));
-        output_az=atan2(star_y, star_x); // star_xy
+        output_az=atan2(star_y, star_x); // star_xy angle
         output_el=atan2(star_z, star_xy_r);
         two_mollewide_angle=2.0 * asin(2.0 * output_el / M_PI);
         for (i=0; i < bsr_config->Mollewide_iterations; i++) {
@@ -562,16 +561,16 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
           } else if (Airymap_autoscale > bsr_config->Airy_disk_max_extent) {
             Airymap_autoscale=bsr_config->Airy_disk_max_extent;
           }
-          Airymap_xy=Airymap_autoscale + 1;
+          Airymap_width=Airymap_autoscale + 1;
           star_rgb_red=bsr_state->rgb_red[color_temperature];
           star_rgb_green=bsr_state->rgb_green[color_temperature];
           star_rgb_blue=bsr_state->rgb_blue[color_temperature];
-          for (Airymap_y=0; Airymap_y < Airymap_xy; Airymap_y++) {
-            Airymap_row_offset=Airymap_full_xy * Airymap_y;
+          for (Airymap_y=0; Airymap_y < Airymap_width; Airymap_y++) {
+            Airymap_row_offset=Airymap_max_width * Airymap_y;
             Airymap_red_p=bsr_state->Airymap_red + Airymap_row_offset;
             Airymap_green_p=bsr_state->Airymap_green + Airymap_row_offset;
             Airymap_blue_p=bsr_state->Airymap_blue + Airymap_row_offset;
-            for (Airymap_x=0; Airymap_x < Airymap_xy; Airymap_x++) {
+            for (Airymap_x=0; Airymap_x < Airymap_width; Airymap_x++) {
               r=(star_linear_intensity * *Airymap_red_p * star_rgb_red);
               g=(star_linear_intensity * *Airymap_green_p * star_rgb_green);
               b=(star_linear_intensity * *Airymap_blue_p * star_rgb_blue);

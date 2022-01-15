@@ -1,8 +1,8 @@
 #!/bin/sh
 #
 # This script can be used on Linux servers to detect httpd processes with tcp connections
-# in CLOSE_WAIT state.   This can happen when a user closes their browser/tab or hits this stop
-# button on the sample web interface.  This will not work with other non-Linux versions of netstat.
+# in CLOSE_WAIT state. This can happen when a user closes their browser/tab or hits this stop
+# button on the sample web interface. This will not work with other non-Linux versions of netstat.
 #
 
 while true

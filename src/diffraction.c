@@ -42,9 +42,9 @@
 #include "Bessel.h"
 #include "util.h"
 
-int makeAiryMap(bsr_state_t *bsr_state, double *Airymap, int max_r, int half_oversampling, double pixel_scaling_factor, double I0, double obs_ratio) {
+int makeAiryMap(bsr_state_t *bsr_state, double *Airymap, int max_extent, int half_oversampling, double pixel_scaling_factor, double I0, double obs_ratio) {
   double *Airymap_p;
-  int max_xy;
+  int Airymap_max_width;
   int map_offset;
   int map_index_x;
   int map_index_y;
@@ -68,9 +68,9 @@ int makeAiryMap(bsr_state_t *bsr_state, double *Airymap, int max_r, int half_ove
   //
   // set shorthand variables
   //
-  max_xy=max_r + 1;
+  Airymap_max_width=max_extent + 1;
   oversampling=(half_oversampling * 2) +1;
-  lines_per_thread=(int)ceil(((double)max_xy / ((double)bsr_state->num_worker_threads + 1)));
+  lines_per_thread=(int)ceil(((double)Airymap_max_width / ((double)bsr_state->num_worker_threads + 1)));
   if (lines_per_thread < 1) {
     lines_per_thread=1;
   }
@@ -84,12 +84,12 @@ int makeAiryMap(bsr_state_t *bsr_state, double *Airymap, int max_r, int half_ove
   //
   map_index_x=0;
   map_index_y=(bsr_state->perthread->my_thread_id * lines_per_thread);
-  Airymap_p=Airymap + (max_xy * map_index_y);
-  for (map_offset=0; ((map_offset < (max_xy * lines_per_thread)) && (map_index_y < max_xy)); map_offset++) {
+  Airymap_p=Airymap + (Airymap_max_width * map_index_y);
+  for (map_offset=0; ((map_offset < (Airymap_max_width * lines_per_thread)) && (map_index_y < Airymap_max_width)); map_offset++) {
     pixel_x=(double)map_index_x;
     pixel_y=(double)map_index_y;
     pixel_r=sqrt((pixel_x * pixel_x) + (pixel_y * pixel_y));
-    if ((pixel_r <= (double)max_r) && ((pixel_r * pixel_scaling_factor) < 12800)) {
+    if ((pixel_r <= (double)max_extent) && ((pixel_r * pixel_scaling_factor) < 12800)) {
       *Airymap_p=0.0;
       oversample=0.0;
       for (oversample_y_index=0; oversample_y_index < oversampling; oversample_y_index++) {
@@ -117,10 +117,10 @@ int makeAiryMap(bsr_state_t *bsr_state, double *Airymap, int max_r, int half_ove
       } // end for oversample_y
     } else {
       *Airymap_p=0.0; // ignore if outside max radius
-    } // end if pixel_r < max_r
+    } // end if pixel_r < max_extent
 
     map_index_x++;
-    if (map_index_x == max_xy) {
+    if (map_index_x == Airymap_max_width) {
       map_index_x=0;
       map_index_y++;
     }

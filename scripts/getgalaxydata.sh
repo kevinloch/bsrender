@@ -4,9 +4,9 @@
 # You do not have to use 'gaia-edr3-extract.sh' and 'mkgalaxy' if you have downloaded these
 # files.
 #
-# Note: the lower parallax quality files are very large.  Total size of all files is 43GB.
+# Note: the lower parallax quality files are very large. Total size of all files is 43GB.
 # You do not need all of these files, only down to the parallax quality level you intend
-# to use in bsrender.cfg.  pq100 through pq010 is a total of 3.2GB.
+# to use in bsrender.cfg. pq100 through pq010 is a total of 3.2GB.
 #
 datahost="https://bsrender.io"
 datadir="/sample_data/0.9"

@@ -50,7 +50,7 @@ bsr_state_t *initState(bsr_config_t *bsr_config) {
   double camera_icrs_dec_rad;
   double target_icrs_ra_rad;
   double target_icrs_dec_rad;
-  double anti_alias_xy;
+  double anti_alias_width;
   int mmap_protection;
   int mmap_visibility;
   size_t bsr_state_size=0;
@@ -104,8 +104,8 @@ bsr_state_t *initState(bsr_config_t *bsr_config) {
   } else if (bsr_config->anti_alias_radius > 2.0) {
     bsr_config->anti_alias_radius=2.0;
   }
-  anti_alias_xy=bsr_config->anti_alias_radius * 2.0;
-  bsr_state->anti_alias_per_pixel=1.0 / (anti_alias_xy * anti_alias_xy);
+  anti_alias_width=bsr_config->anti_alias_radius * 2.0;
+  bsr_state->anti_alias_per_pixel=1.0 / (anti_alias_width * anti_alias_width);
   camera_yz=bsr_config->camera_rotation * pi_over_180;
   camera_xy=bsr_config->camera_pan * pi_over_180;
   camera_xz=bsr_config->camera_tilt * -pi_over_180;

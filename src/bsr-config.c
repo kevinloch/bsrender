@@ -323,7 +323,7 @@ int processConfigSegment(bsr_config_t *bsr_config, char *segment, int from_cgi) 
       //
       // send to option value processing fucntion
       //
-      setOptionValue(bsr_config, option, value, 0); // 0 == not from cgi
+      setOptionValue(bsr_config, option, value, from_cgi);
     } // end option_length and value_length checks
   } // end symbol_p check
 
@@ -341,11 +341,6 @@ int loadConfigFromFile(bsr_config_t *bsr_config) {
   size_t segment_length;
   char *query_string;
   
-  //
-  // options from config file are not from remote CGI users
-  //
-  from_cgi=0;
-
   //
   // print status udpate if not in CGI mode. We use the existence of QUERY_STRING to guess CGI mode at this point
   //
@@ -409,11 +404,6 @@ int loadConfigFromQueryString(bsr_config_t *bsr_config, char *query_string) {
   char *symbol_p;
 
   //
-  // any config segments in this function are from cgi. Set to 1 to enforce privileged config options
-  //
-  from_cgi=1;
-
-  //
   // load first segment from query_string
   //
   done=0;
@@ -438,6 +428,7 @@ int loadConfigFromQueryString(bsr_config_t *bsr_config, char *query_string) {
     //
     strncpy(segment, query_p, segment_length);
     segment[segment_length]=0;
+    from_cgi=1;
     processConfigSegment(bsr_config, segment, from_cgi);
 
     //
