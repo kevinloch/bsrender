@@ -73,17 +73,17 @@
         if (tmpvalue != null) {
           settings_form.rendering_server.value = tmpvalue;
         }
-        tmpvalue = search.get("enable_Gaia");
+        tmpvalue = search.get("Gaia_db_enable");
         if (tmpvalue != null) {
-          settings_form.enable_Gaia.value = tmpvalue;
+          settings_form.Gaia_db_enable.value = tmpvalue;
         }
         tmpvalue = search.get("Gaia_min_parallax_quality");
         if (tmpvalue != null) {
           settings_form.Gaia_min_parallax_quality.value = tmpvalue;
         }
-        tmpvalue = search.get("enable_external");
+        tmpvalue = search.get("external_db_enable");
         if (tmpvalue != null) {
-          settings_form.enable_external.value = tmpvalue;
+          settings_form.external_db_enable.value = tmpvalue;
         }
         tmpvalue = search.get("render_distance_min");
         if (tmpvalue != null) {
@@ -193,9 +193,9 @@
         if (tmpvalue != null) {
           settings_form.spherical_orientation.value = tmpvalue;
         }
-        tmpvalue = search.get("Airy_disk");
+        tmpvalue = search.get("Airy_disk_enable");
         if (tmpvalue != null) {
-          settings_form.Airy_disk.value = tmpvalue;
+          settings_form.Airy_disk_enable.value = tmpvalue;
         }
         tmpvalue = search.get("Airy_disk_first_null");
         if (tmpvalue != null) {
@@ -308,9 +308,9 @@
         let blank = "";
         document.getElementById("render_image").src = blank;
         let src = `${settings_form.rendering_server.value}?\
-enable_Gaia=${settings_form.enable_Gaia.value}&\
+Gaia_db_enable=${settings_form.Gaia_db_enable.value}&\
 Gaia_min_parallax_quality=${settings_form.Gaia_min_parallax_quality.value}&\
-enable_external=${settings_form.enable_external.value}&\
+external_db_enable=${settings_form.external_db_enable.value}&\
 render_distance_min=${settings_form.render_distance_min.value}&\
 render_distance_max=${settings_form.render_distance_max.value}&\
 render_distance_selector=${settings_form.render_distance_selector.value}&\
@@ -336,7 +336,7 @@ camera_color_saturation=${settings_form.camera_color_saturation.value}&\
 camera_gamma=${settings_form.camera_gamma.value}&\
 camera_projection=${settings_form.camera_projection.value}&\
 spherical_orientation=${settings_form.spherical_orientation.value}&\
-Airy_disk=${settings_form.Airy_disk.value}&\
+Airy_disk_enable=${settings_form.Airy_disk_enable.value}&\
 Airy_disk_first_null=${settings_form.Airy_disk_first_null.value}&\
 Airy_disk_max_extent=${settings_form.Airy_disk_max_extent.value}&\
 Airy_disk_min_extent=${settings_form.Airy_disk_min_extent.value}&\
@@ -372,9 +372,9 @@ camera_tilt=${navigation_form.camera_tilt.value}`;
         current_href = window.location.href;
         let settings_url = `${current_href}?\
 rendering_server=${settings_form.rendering_server.value}&\
-enable_Gaia=${settings_form.enable_Gaia.value}&\
+Gaia_db_enable=${settings_form.Gaia_db_enable.value}&\
 Gaia_min_parallax_quality=${settings_form.Gaia_min_parallax_quality.value}&\
-enable_external=${settings_form.enable_external.value}&\
+external_db_enable=${settings_form.external_db_enable.value}&\
 render_distance_min=${settings_form.render_distance_min.value}&\
 render_distance_max=${settings_form.render_distance_max.value}&\
 render_distance_selector=${settings_form.render_distance_selector.value}&\
@@ -400,7 +400,7 @@ camera_color_saturation=${settings_form.camera_color_saturation.value}&\
 camera_gamma=${settings_form.camera_gamma.value}&\
 camera_projection=${settings_form.camera_projection.value}&\
 spherical_orientation=${settings_form.spherical_orientation.value}&\
-Airy_disk=${settings_form.Airy_disk.value}&\
+Airy_disk_enable=${settings_form.Airy_disk_enable.value}&\
 Airy_disk_first_null=${settings_form.Airy_disk_first_null.value}&\
 Airy_disk_max_extent=${settings_form.Airy_disk_max_extent.value}&\
 Airy_disk_min_extent=${settings_form.Airy_disk_min_extent.value}&\
@@ -849,7 +849,7 @@ camera_tilt=${navigation_form.camera_tilt.value}`;
             <legend>About</legend>
             <div id="centered">
               Sample web interface for
-              <h2><a href="https://github.com/kevinloch/bsrender">bsrender</a> 0.9-dev-69</h2>
+              <h2><a href="https://github.com/kevinloch/bsrender">bsrender</a> 0.9-dev-70</h2>
               using data from <a href="https://www.cosmos.esa.int/web/gaia/earlydr3">Gaia EDR3</a>
               <br>and supplemental <a href="https://bsrender.io/sample_data/0.9/external.csv">bright stars</a>
             </div>
@@ -876,8 +876,8 @@ s_url" size=30 value=""></td></tr>
           </fieldset>
           <fieldset>
             <legend>Star Filters</legend>
-            <label for "enable_Gaia">Show Gaia stars</label>
-            <select name="enable_Gaia" id="enable_Gaia">
+            <label for "Gaia_db_enable">Show Gaia stars</label>
+            <select name="Gaia_db_enable" id="Gaia_db_enable">
               <option value="yes" selected>yes</option>
               <option value="no">no</option>
             </select>
@@ -894,8 +894,8 @@ s_url" size=30 value=""></td></tr>
               <option value="50">50 [16M stars]</option>
               <option value="100">100 [5.8M] stars</option>
             </select>
-            <br><br><label for "enable_external">Show non-Gaia stars</label>
-            <select name="enable_external" id="enable_external">
+            <br><br><label for "external_db_enable">Show non-Gaia stars</label>
+            <select name="external_db_enable" id="external_db_enable">
               <option value="yes" selected>yes</option>
               <option value="no">no</option>
             </select>
@@ -917,13 +917,13 @@ s_url" size=30 value=""></td></tr>
           <fieldset>
             <legend>Camera Options</legend>
             <label for "camera_res_x">Horizontal resolution</label>
-            <input type="text" id="camera_res_x" name="camera_res_x" size="12" value="2000">
+            <input type="text" id="camera_res_x" name="camera_res_x" size="12" value="4000">
             <br><label for "camera_res_y">Vertical resolution</label>
-            <input type="text" id="camera_res_y" name="camera_res_y" size="12" value="1000">
+            <input type="text" id="camera_res_y" name="camera_res_y" size="12" value="2000">
             <br><label for "camera_fov">Field of view (deg)</label>
             <input type="text" id="camera_fov" name="camera_fov" size="12" value="360">
             <br><label for "camera_pixel_limit_mag">Pixel intensity limit (mag)</label>
-            <input type="text" id="camera_pixel_limit_mag" name="camera_pixel_limit_mag" size="12" value="6.5">
+            <input type="text" id="camera_pixel_limit_mag" name="camera_pixel_limit_mag" size="12" value="8.0">
             <br><label for "camera_pixel_limit_mode">Pixel intensity limit mode</label>
             <select name="camera_pixel_limit_mode" id="camera_pixel_limit_mode">
               <option value="0" selected>Saturate to white</option>
@@ -1041,11 +1041,12 @@ s_url" size=30 value=""></td></tr>
           <fieldset>
             <legend>Diffraction</legend>
             <div id="centered">
-              <em>Caution: A large number of overexposed stars or a large minimum
-              <br>extent can drastically affect rendering time</em>
+              <em>Caution: Airy disk extent (radius cutoff) is autoscaled
+              <br>for each star. A large number of overexposed stars can
+              <br>drastically increase rendering time</em>
             </div>
-            <br><label for "Airy_disk">Enable Airy disks</label>
-            <select name="Airy_disk" id="Airy_disk">
+            <br><label for "Airy_disk_enable">Enable Airy disks</label>
+            <select name="Airy_disk_enable" id="Airy_disk_enable">
               <option value="no" selected>no</option>
               <option value="yes">yes</option>
             </select>
@@ -1054,7 +1055,7 @@ s_url" size=30 value=""></td></tr>
             <br><label for "Airy_disk_max_extent">Airy disk max extent (pixels)</label>
             <input type="text" id="Airy_disk_max_extent" name="Airy_disk_max_extent" size="12" value="100"> <em>max 1000</em>
             <br><label for "Airy_disk_min_extent">Airy disk min extent (pixels)</label>
-            <input type="text" id="Airy_disk_min_extent" name="Airy_disk_min_extent" size="12" value="1"> <em>max 1000</em>
+            <input type="text" id="Airy_disk_min_extent" name="Airy_disk_min_extent" size="12" value="1"> <em>max 3</em>
             <br><label for "Airy_disk_obstruction">Aperture obstruction (ratio)</label>
             <input type="text" id="Airy_disk_obstruction" name="Airy_disk_obstruction" size="12" value="0.0"> <em>0.0 - 0.99</em>
           </fieldset>
@@ -1078,7 +1079,7 @@ s_url" size=30 value=""></td></tr>
             <br><label for="skyglow_temp">Color temp (K)</label>
             <input type="text" name="skyglow_temp" id="skyglow_temp" size="12" value="4500.0">
             <br><label for="skyglow_per_pixel_mag">Per pixel intensity (mag)</label>
-            <input type="text" name="skyglow_per_pixel_mag" id="skyglow_per_pixel_mag" size="12" value="11.0">
+            <input type="text" name="skyglow_per_pixel_mag" id="skyglow_per_pixel_mag" size="12" value="14.0">
           </fieldset>
           <fieldset>
             <legend>Post-processing</legend>

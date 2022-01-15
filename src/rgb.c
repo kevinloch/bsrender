@@ -124,7 +124,7 @@ int initRGBTables(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   }
   // set wb factors
   if (bsr_config->camera_wb_enable == 1) {
-    // normalize intensity values by comparing to G-band intensity.  This sets white balance (r=g=b at wb temp), and corrects for
+    // normalize intensity values by comparing to G-band intensity. This sets white balance (r=g=b at wb temp), and corrects for
     // differences in transmissivity and bandwidth between filters (including Gaia_Gband)
     red_wb_factor=Gband_intensity / red_intensity;
     green_wb_factor=Gband_intensity / green_intensity;

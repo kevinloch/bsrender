@@ -59,48 +59,6 @@
 #include "quantize.h"
 #include "diffraction.h"
 
-int processCmdArgs(bsr_config_t *bsr_config, int argc, char **argv) {
-  int i;
-  char *option_start;
-
-  if (argc == 1) {
-    return(0);
-  } else {
-    for (i=1; i <= (argc - 1); i++) {
-      if (argv[i][1] == 'c') {
-        // configuration file name
-        if (argv[i][2] != 0) {
-          // option concatenated onto switch
-          option_start=argv[i];
-          strcpy(bsr_config->config_file_name, (option_start + (size_t)2)); 
-        } else if ((argc >= (i + 1)) && (argv[i + 1][0] != '-')) {
-          // option is probably next argv
-          option_start=argv[i + 1];
-          strcpy(bsr_config->config_file_name, option_start);
-        } // end if no space
-
-      } else if (argv[i][1] == 'd') {
-        // data files directory
-        if (argv[i][2] != 0) {
-          // option concatenated onto switch
-          option_start=argv[i];
-          strcpy(bsr_config->data_file_directory, (option_start + (size_t)2));
-        } else if ((argc >= (i + 1)) && (argv[i + 1][0] != '-')) {
-          // option is probably next argv
-          option_start=argv[i + 1];
-          strcpy(bsr_config->data_file_directory, option_start);
-        } // end if no space
-
-      } else if (argv[i][1] == 'h') {
-        // print help
-        printUsage();
-        exit(0);
-      } // end which option
-    } // end for argc
-  } // end if any options
-  return(0);
-}
-
 int main(int argc, char **argv) {
   bsr_config_t bsr_config;
   bsr_state_t *bsr_state;
@@ -139,7 +97,7 @@ int main(int argc, char **argv) {
   initConfig(&bsr_config);
 
   //
-  // process command line arguments
+  // process command line arguments - first pass to get config file location and -q
   //
   processCmdArgs(&bsr_config, argc, argv);
 
@@ -149,14 +107,17 @@ int main(int argc, char **argv) {
   loadConfigFromFile(&bsr_config);
 
   //
-  // if cgi mode, print CGI output header and read query string, otherwise print version
+  // process command line arguments - second pass to override config file settings with command line flags
+  //
+  processCmdArgs(&bsr_config, argc, argv);
+
+  //
+  // if CGI mode, print CGI output header and read query string
   //
   if (bsr_config.cgi_mode == 1) {
     printCGIheader();
     getCGIOptions(&bsr_config);
-    validateCGIOptions(&bsr_config);
-  } else {
-    printf("bsrender version %s\n", BSR_VERSION);
+    enforceCGILimits(&bsr_config);
   }
 
   //
@@ -183,20 +144,16 @@ int main(int argc, char **argv) {
   //
   // initialize total run timer and display major performance affecting options
   //
-  if (bsr_config.cgi_mode != 1) {
+  if ((bsr_config.cgi_mode != 1) && (bsr_config.print_status == 1)) {
     clock_gettime(CLOCK_REALTIME, &overall_starttime);
-    if (bsr_config.enable_Gaia == 1) {
-      printf("Minimum Gaia parallax quality: %d, total threads: %d, buffers per rendering thread: %d pixels\n", bsr_config.Gaia_min_parallax_quality, (bsr_state->num_worker_threads + 1), bsr_state->per_thread_buffers);
-    } else {
-      printf("Total threads: %d, buffers per rendering thread: %d pixels\n", (bsr_state->num_worker_threads + 1), bsr_state->per_thread_buffers);
-    }
+    printf("Total threads: %d, buffers per rendering thread: %d pixels\n", (bsr_state->num_worker_threads + 1), bsr_state->per_thread_buffers);
     fflush(stdout);
   }
 
   //
   // initialize RGB color lookup tables
   //
-  if (bsr_config.cgi_mode != 1) {
+  if ((bsr_config.cgi_mode != 1) && (bsr_config.print_status == 1)) {
     clock_gettime(CLOCK_REALTIME, &starttime);
     printf("Initializing rgb color tables...");
     fflush(stdout);
@@ -205,7 +162,7 @@ int main(int argc, char **argv) {
   bsr_state->rgb_green=rgb_green;
   bsr_state->rgb_blue=rgb_blue;
   initRGBTables(&bsr_config, bsr_state);
-  if (bsr_config.cgi_mode != 1) {
+  if ((bsr_config.cgi_mode != 1) && (bsr_config.print_status == 1)) {
     clock_gettime(CLOCK_REALTIME, &endtime);
     elapsed_time=((double)(endtime.tv_sec - 1500000000) + ((double)endtime.tv_nsec / 1.0E9)) - ((double)(starttime.tv_sec - 1500000000) + ((double)starttime.tv_nsec) / 1.0E9);
     printf(" (%.3fs)\n", elapsed_time);
@@ -220,7 +177,7 @@ int main(int argc, char **argv) {
   //
   // attempt to open 'external' input file
   //
-  if (bsr_config.enable_external == 1) {
+  if (bsr_config.external_db_enable == 1) {
     sprintf(file_path, "%s/galaxy-external.dat", bsr_config.data_file_directory);
     input_file_external=fopen(file_path, "rb");
     if (input_file_external == NULL) {
@@ -235,7 +192,7 @@ int main(int argc, char **argv) {
   //
   // attempt to open Gaia input file(s)
   //
-  if (bsr_config.enable_Gaia == 1) {
+  if (bsr_config.Gaia_db_enable == 1) {
     sprintf(file_path, "%s/galaxy-pq100.dat", bsr_config.data_file_directory);
     input_file_pq100=fopen(file_path, "rb");
     if (input_file_pq100 == NULL) {
@@ -375,7 +332,7 @@ int main(int argc, char **argv) {
   //
   // all threads: initialize Airy disk maps if Airy disk mode enabled
   //
-  if (bsr_config.Airy_disk == 1) {
+  if (bsr_config.Airy_disk_enable == 1) {
     initAiryMaps(&bsr_config, bsr_state);
   }
 
@@ -385,9 +342,9 @@ int main(int argc, char **argv) {
   initImageCompositionBuffer(&bsr_config, bsr_state);
 
   //
-  // main thread: display begin rendering status if not in cgi mode
+  // main thread: display begin rendering status if not in CGI mode
   //
-  if ((bsr_state->perthread->my_pid == bsr_state->master_pid) && (bsr_config.cgi_mode != 1)) {
+  if ((bsr_state->perthread->my_pid == bsr_state->master_pid) && (bsr_config.cgi_mode != 1) && (bsr_config.print_status == 1)) {
     clock_gettime(CLOCK_REALTIME, &starttime);
     printf("Rendering stars to image composition buffer...");
     fflush(stdout);
@@ -411,7 +368,7 @@ int main(int argc, char **argv) {
   //
   if (bsr_state->perthread->my_pid != bsr_state->master_pid) {
     //
-    // worker threads: set our thread buffer postion to the beginning of this threads block
+    // worker threads: set main thread buffer postion to the beginning of this threads block
     //
     bsr_state->perthread->thread_buf_p=bsr_state->thread_buf + ((bsr_state->perthread->my_thread_id - 1) * bsr_state->per_thread_buffers);
     bsr_state->perthread->thread_buffer_index=0; // index within this threads block
@@ -419,10 +376,10 @@ int main(int argc, char **argv) {
     //
     // worker threads: set input file and send to rendering function
     //
-    if (bsr_config.enable_external == 1) {
+    if (bsr_config.external_db_enable == 1) {
       processStars(&bsr_config, bsr_state, input_file_external);
     } // end if enable external
-    if (bsr_config.enable_Gaia == 1) {
+    if (bsr_config.Gaia_db_enable == 1) {
       processStars(&bsr_config, bsr_state, input_file_pq100);
       if (bsr_config.Gaia_min_parallax_quality < 100) {
         processStars(&bsr_config, bsr_state, input_file_pq050);
@@ -460,7 +417,7 @@ int main(int argc, char **argv) {
     waitForMainThread(bsr_state, THREAD_STATUS_PROCESS_STARS_CONTINUE);
   } else {
     //
-    // main thread: scan worker thread buffers for pixels to integrate into image until all worker threads are done
+    // main thread: scan main thread buffer for pixels to integrate into image until all worker threads are done
     //
     empty_passes=0;
     while (empty_passes < 2) { // do second pass once empty
@@ -495,7 +452,7 @@ int main(int argc, char **argv) {
           }
         }
         if (all_workers_done == 1) {
-          // if buffer is empty and all worker threads are done, increment empty_passes
+          // if main thread buffer is empty and all worker threads are done, increment empty_passes
           empty_passes++;
         }
       } 
@@ -509,9 +466,9 @@ int main(int argc, char **argv) {
     }
 
     //
-    // main thread: report rendering time if not in cgi mode
+    // main thread: report rendering time if not in CGI mode
     //
-    if (bsr_config.cgi_mode != 1) {
+    if ((bsr_config.cgi_mode != 1) && (bsr_config.print_status == 1)) {
       clock_gettime(CLOCK_REALTIME, &endtime);
       elapsed_time=((double)(endtime.tv_sec - 1500000000) + ((double)endtime.tv_nsec / 1.0E9)) - ((double)(starttime.tv_sec - 1500000000) + ((double)starttime.tv_nsec) / 1.0E9);
       printf(" (%.3fs)\n", elapsed_time);
@@ -583,7 +540,7 @@ int main(int argc, char **argv) {
     //
     // main thread: output total runtime
     //
-    if (bsr_config.cgi_mode != 1) {
+    if ((bsr_config.cgi_mode != 1) && (bsr_config.print_status == 1)) {
       clock_gettime(CLOCK_REALTIME, &overall_endtime);
       elapsed_time=((double)(overall_endtime.tv_sec - 1500000000) + ((double)overall_endtime.tv_nsec / 1.0E9)) - ((double)(overall_starttime.tv_sec - 1500000000) + ((double)overall_starttime.tv_nsec) / 1.0E9);
       printf("Total run time: %.3fs\n", elapsed_time);

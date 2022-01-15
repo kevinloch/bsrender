@@ -82,7 +82,7 @@ int allocateMemory(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   //
   // allocate shared memory for Airy disk maps if Airy disk mode enabled
   //
-  if (bsr_config->Airy_disk == 1) {
+  if (bsr_config->Airy_disk_enable == 1) {
     mmap_protection=PROT_READ | PROT_WRITE;
     mmap_visibility=MAP_SHARED | MAP_ANONYMOUS;
     Airymap_xy=bsr_config->Airy_disk_max_extent + 1;
@@ -100,7 +100,7 @@ int allocateMemory(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   bsr_state->composition_buffer_size=(size_t)bsr_config->camera_res_x * (size_t)bsr_config->camera_res_y * sizeof(pixel_composition_t);
   bsr_state->image_composition_buf=(pixel_composition_t *)mmap(NULL, bsr_state->composition_buffer_size, mmap_protection, mmap_visibility, -1, 0);
   if (bsr_state->image_composition_buf == NULL) {
-    if (bsr_config->cgi_mode != 1) {
+    if ((bsr_config->cgi_mode != 1) && (bsr_config->print_status == 1)) {
       printf("Error: could not allocate shared memory for image composition buffer\n");
     }
     exit(1);
@@ -148,7 +148,7 @@ int allocateMemory(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   //
   // allocate non-shared memory for dedup buffer and initialize
   //
-  if (bsr_config->cgi_mode != 1) {
+  if ((bsr_config->cgi_mode != 1) && (bsr_config->print_status == 1)) {
     clock_gettime(CLOCK_REALTIME, &starttime);
     printf("Initializing dedup buffers and indexes...");
     fflush(stdout);
@@ -197,7 +197,7 @@ int allocateMemory(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
     dedup_index_p->dedup_record_p=NULL;
     dedup_index_p++;
   }
-  if (bsr_config->cgi_mode != 1) {
+  if ((bsr_config->cgi_mode != 1) && (bsr_config->print_status == 1)) {
     clock_gettime(CLOCK_REALTIME, &endtime);
     elapsed_time=((double)(endtime.tv_sec - 1500000000) + ((double)endtime.tv_nsec / 1.0E9)) - ((double)(starttime.tv_sec - 1500000000) + ((double)starttime.tv_nsec) / 1.0E9);
     printf(" (%.3fs)\n", elapsed_time);
@@ -207,7 +207,7 @@ int allocateMemory(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   //
   // allocate shared memory for main thread buffer and status array
   //
-  if (bsr_config->cgi_mode != 1) {
+  if ((bsr_config->cgi_mode != 1) && (bsr_config->print_status == 1)) {
     clock_gettime(CLOCK_REALTIME, &starttime);
     printf("Initializing main thread buffer...");
     fflush(stdout);
@@ -240,7 +240,7 @@ int allocateMemory(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
     }
     exit(1);
   }
-  if (bsr_config->cgi_mode != 1) {
+  if ((bsr_config->cgi_mode != 1) && (bsr_config->print_status == 1)) {
     clock_gettime(CLOCK_REALTIME, &endtime);
     elapsed_time=((double)(endtime.tv_sec - 1500000000) + ((double)endtime.tv_nsec / 1.0E9)) - ((double)(starttime.tv_sec - 1500000000) + ((double)starttime.tv_nsec) / 1.0E9);
     printf(" (%.3fs)\n", elapsed_time);

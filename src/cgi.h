@@ -41,5 +41,6 @@
 
 int printCGIheader();
 int getCGIOptions(bsr_config_t *bsr_config);
+int enforceCGILimits(bsr_config_t *bsr_config);
 
 #endif // BSR_CGI_H

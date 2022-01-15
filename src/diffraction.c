@@ -154,9 +154,9 @@ int initAiryMaps(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   const double I0_calibration=1.1675;
 
   //
-  // main thread: display status message if not in cgi mode
+  // main thread: display status message if not in CGI mode
   //
-  if ((bsr_state->perthread->my_pid == bsr_state->master_pid) && (bsr_config->cgi_mode != 1)) {
+  if ((bsr_state->perthread->my_pid == bsr_state->master_pid) && (bsr_config->cgi_mode != 1) && (bsr_config->print_status == 1)) {
     clock_gettime(CLOCK_REALTIME, &starttime);
     printf("Initializing Airy disk maps...");
     fflush(stdout);
@@ -183,7 +183,7 @@ int initAiryMaps(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   blue_center=(double)bsr_config->blue_filter_short_limit + (((double)bsr_config->blue_filter_long_limit - (double)bsr_config->blue_filter_short_limit) / 2.0);
 
   //
-  // all threads: calculate Airy disk scaling factors (pixels) for each color.  Green is defined in config with Airy_disk_first_null
+  // all threads: calculate Airy disk scaling factors (pixels) for each color. Green is defined in config with Airy_disk_first_null
   //
   pixel_scaling_factor_green=3.8317 / bsr_config->Airy_disk_first_null;
   pixel_scaling_factor_red=pixel_scaling_factor_green * green_center / red_center;
@@ -253,9 +253,9 @@ int initAiryMaps(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   } // end if not main thread
 
   //
-  // main thread: output execution time if not in cgi mode
+  // main thread: output execution time if not in CGI mode
   //
-  if ((bsr_state->perthread->my_pid == bsr_state->master_pid) && (bsr_config->cgi_mode != 1)) {
+  if ((bsr_state->perthread->my_pid == bsr_state->master_pid) && (bsr_config->cgi_mode != 1) && (bsr_config->print_status == 1)) {
     clock_gettime(CLOCK_REALTIME, &endtime);
     elapsed_time=((double)(endtime.tv_sec - 1500000000) + ((double)endtime.tv_nsec / 1.0E9)) - ((double)(starttime.tv_sec - 1500000000) + ((double)starttime.tv_nsec) / 1.0E9);
     printf(" (%.3fs)\n", elapsed_time);

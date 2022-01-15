@@ -85,9 +85,9 @@ int initImageCompositionBuffer(bsr_config_t *bsr_config, bsr_state_t *bsr_state)
   }
 
   //
-  // main thread: display status message if not in cgi mode
+  // main thread: display status message if not in CGI mode
   //
-  if ((bsr_state->perthread->my_pid == bsr_state->master_pid) && (bsr_config->cgi_mode != 1)) {
+  if ((bsr_state->perthread->my_pid == bsr_state->master_pid) && (bsr_config->cgi_mode != 1) && (bsr_config->print_status == 1)) {
     clock_gettime(CLOCK_REALTIME, &starttime);
     printf("Initializing image composition buffer %dx%d...", current_image_res_x, current_image_res_y);
     fflush(stdout);
@@ -229,12 +229,12 @@ int initImageCompositionBuffer(bsr_config_t *bsr_config, bsr_state_t *bsr_state)
   }
 
   //
-  // main thread: output execution time if not in cgi mode
+  // main thread: output execution time if not in CGI mode
   //
-  if ((bsr_state->perthread->my_pid == bsr_state->master_pid) && (bsr_config->cgi_mode != 1)) {
+  if ((bsr_state->perthread->my_pid == bsr_state->master_pid) && (bsr_config->cgi_mode != 1) && (bsr_config->print_status == 1)) {
     clock_gettime(CLOCK_REALTIME, &endtime);
     elapsed_time=((double)(endtime.tv_sec - 1500000000) + ((double)endtime.tv_nsec / 1.0E9)) - ((double)(starttime.tv_sec - 1500000000) + ((double)starttime.tv_nsec) / 1.0E9);
-    printf(" (%.4fs)\n", elapsed_time);
+    printf(" (%.3fs)\n", elapsed_time);
     fflush(stdout);
   }
 

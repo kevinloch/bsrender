@@ -83,9 +83,9 @@ int GaussianBlur(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   half_sample_size=((int)ceil(radius) * 3) + 1;
 
   //
-  // main thread: display status message if not in cgi mode
+  // main thread: display status message if not in CGI mode
   //
-  if ((bsr_state->perthread->my_pid == bsr_state->master_pid) && (bsr_config->cgi_mode != 1)) {
+  if ((bsr_state->perthread->my_pid == bsr_state->master_pid) && (bsr_config->cgi_mode != 1) && (bsr_config->print_status == 1)) {
     clock_gettime(CLOCK_REALTIME, &starttime);
     printf("Applying Gaussian blur with radius %.3e...", radius);
     fflush(stdout);
@@ -267,16 +267,14 @@ int GaussianBlur(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
     }
   } // end if not main thread
 
-  if (bsr_state->perthread->my_pid == bsr_state->master_pid) {
-    //
-    // main thread: display execution time if not in cgi mode
-    //
-    if (bsr_config->cgi_mode != 1) {
-      clock_gettime(CLOCK_REALTIME, &endtime);
-      elapsed_time=((double)(endtime.tv_sec - 1500000000) + ((double)endtime.tv_nsec / 1.0E9)) - ((double)(starttime.tv_sec - 1500000000) + ((double)starttime.tv_nsec) / 1.0E9);
-      printf(" (%.4fs)\n", elapsed_time);
-      fflush(stdout);
-    }
+  //
+  // main thread: display execution time if not in CGI mode
+  //
+  if ((bsr_state->perthread->my_pid == bsr_state->master_pid) && (bsr_config->cgi_mode != 1) && (bsr_config->print_status == 1)) {
+    clock_gettime(CLOCK_REALTIME, &endtime);
+    elapsed_time=((double)(endtime.tv_sec - 1500000000) + ((double)endtime.tv_nsec / 1.0E9)) - ((double)(starttime.tv_sec - 1500000000) + ((double)starttime.tv_nsec) / 1.0E9);
+    printf(" (%.3fs)\n", elapsed_time);
+    fflush(stdout);
   } // end if main thread
 
   return(0);

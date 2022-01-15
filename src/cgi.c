@@ -110,3 +110,38 @@ int getCGIOptions(bsr_config_t *bsr_config) {
 
   return(0);
 }
+
+int enforceCGILimits(bsr_config_t *bsr_config) {
+  if (bsr_config->camera_res_x < 1) {
+    bsr_config->camera_res_x=1;
+  }
+  if (bsr_config->camera_res_x > bsr_config->cgi_max_res_x) {
+    bsr_config->camera_res_x=bsr_config->cgi_max_res_x;
+  }
+  if (bsr_config->camera_res_y < 1) {
+    bsr_config->camera_res_y=1;
+  }
+  if (bsr_config->camera_res_y > bsr_config->cgi_max_res_y) {
+    bsr_config->camera_res_y=bsr_config->cgi_max_res_y;
+  }
+  if (bsr_config->Gaia_min_parallax_quality < bsr_config->cgi_Gaia_min_parallax_quality) {
+    bsr_config->Gaia_min_parallax_quality=bsr_config->cgi_Gaia_min_parallax_quality;
+  }
+  if (bsr_config->cgi_allow_Airy_disk == 0) {
+    bsr_config->Airy_disk_enable=0;
+  }
+  if (bsr_config->Airy_disk_first_null < bsr_config->cgi_min_Airy_disk_first_null) {
+    bsr_config->Airy_disk_first_null=bsr_config->cgi_min_Airy_disk_first_null;
+  }
+  if (bsr_config->Airy_disk_max_extent > bsr_config->cgi_max_Airy_disk_max_extent) {
+    bsr_config->Airy_disk_max_extent=bsr_config->cgi_max_Airy_disk_max_extent;
+  }
+  if (bsr_config->Airy_disk_min_extent > bsr_config->cgi_max_Airy_disk_min_extent) {
+    bsr_config->Airy_disk_min_extent=bsr_config->cgi_max_Airy_disk_min_extent;
+  }
+  if (bsr_config->cgi_allow_anti_alias == 0) {
+    bsr_config->anti_alias_enable=0;
+  }
+
+  return(0);
+}

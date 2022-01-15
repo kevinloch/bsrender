@@ -42,7 +42,7 @@
 
 int main(int argc, char **cargv) {
   //
-  // This program generates a table of the Bessel function of the first kind, order one J1(x), with 10 samples per 'x'.   This is used to make Airy disk pattern maps.
+  // This program generates a table of the Bessel function of the first kind, order one J1(x), with 10 samples per 'x'.
   // After the first null each Airy ring is approximately 3.2 'x' units wide for about 32 samples per ring. 
   // This is included for documentation purposes, the output is already included in Bessel.h
   //

@@ -49,7 +49,7 @@
 
 quaternion_t quaternion_product(quaternion_t left, quaternion_t right) {
   //
-  // This function returns the product of two quaternions 'left' and 'right'.  This can be used to sequentially
+  // This function returns the product of two quaternions 'left' and 'right'. This can be used to sequentially
   // combine multiple rotations into one rotation quaternion.
   // Quaternion math from https://danceswithcode.net/engineeringnotes/quaternions/quaternions.html
   //
@@ -147,8 +147,8 @@ int sendPixelToMainThread(bsr_state_t *bsr_state, long long image_offset, double
   }
 
   //
-  // Attempt to insert into main thread buffer.  If current slot has not been cleared by main thread, wait until it is
-  // clear.  Periodically check if main thread is still alive.
+  // Attempt to insert into main thread buffer. If current slot has not been cleared by main thread, wait until it is
+  // clear. Periodically check if main thread is still alive.
   //
   success=0;
   idle_count=0;
@@ -231,10 +231,10 @@ int sendDedupBufferToMainThread(bsr_state_t *bsr_state) {
 
 int sendPixelToDedupBuffer(bsr_state_t *bsr_state, long long image_offset, double r, double g, double b) {
   //
-  // This function attempts to insert a pixel into the dedup buffer.  If a record for this image_offset does not
-  // exist yet, then the insert is made.  If a record for this image_offset already exists then the record is
-  // updated with the new value added to the existing value.  If a dedup index collision is detected then the
-  // pixel is sent directly to the main thread instead.  Finally, it checks if dedup buffer is full and if so
+  // This function attempts to insert a pixel into the dedup buffer. If a record for this image_offset does not
+  // exist yet, then the insert is made. If a record for this image_offset already exists then the record is
+  // updated with the new value added to the existing value. If a dedup index collision is detected then the
+  // pixel is sent directly to the main thread instead. Finally, it checks if dedup buffer is full and if so
   // sends dedup buffer contents to main thread.
   //
   dedup_buffer_t *dedup_buf_p;
@@ -286,8 +286,8 @@ int sendPixelToDedupBuffer(bsr_state_t *bsr_state, long long image_offset, doubl
 
 int antiAliasPixel(bsr_config_t *bsr_config, bsr_state_t *bsr_state, double output_x_d, double output_y_d, double r, double g, double b) {
   //
-  // This function takes an output pixel and spreads it across several pixels.  Pixels are spread in a square pattern similar to horizontal+vertical
-  // LPF's commonly found in DSLR's.  This spread uses floating-point position variables for accurate interpolation.
+  // This function takes an output pixel and spreads it across several pixels. Pixels are spread in a square pattern similar to horizontal+vertical
+  // LPF's commonly found in DSLR's. This spread uses floating-point position variables for accurate interpolation.
   //
   long long image_offset;
   double left_edge;
@@ -298,6 +298,7 @@ int antiAliasPixel(bsr_config_t *bsr_config, bsr_state_t *bsr_state, double outp
   double y_overlap;
   int spread_x;
   int spread_y;
+  double aa_factor;
   double output_r;
   double output_g;
   double output_b;
@@ -343,11 +344,12 @@ int antiAliasPixel(bsr_config_t *bsr_config, bsr_state_t *bsr_state, double outp
       }
  
       //
-      // calculate output r,g,b using overlap factor and intensity per pixel
+      // calculate output r,g,b using overlap factors and intensity per pixel
       //
-      output_r=bsr_state->anti_alias_per_pixel * x_overlap * y_overlap * r;
-      output_g=bsr_state->anti_alias_per_pixel * x_overlap * y_overlap * g;
-      output_b=bsr_state->anti_alias_per_pixel * x_overlap * y_overlap * b;
+      aa_factor=bsr_state->anti_alias_per_pixel * x_overlap * y_overlap;
+      output_r=aa_factor * r;
+      output_g=aa_factor * g;
+      output_b=aa_factor * b;
 
       //
       // send to dedup buffer if within raster bounds
@@ -364,7 +366,7 @@ int antiAliasPixel(bsr_config_t *bsr_config, bsr_state_t *bsr_state, double outp
 
 int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_file) {
   //
-  // This function handles the most expensive operations in bsrender.  It performs the following:
+  // This function handles the most expensive operations in bsrender. It performs the following:
   //
   // - reads stars from the supplied input file
   // - filters stars by distance from target or camera, and color temperature
@@ -550,7 +552,7 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
       // if star is within raster bounds, send star (or Airy disk pixels) to dedup buffer
       //
       if ((output_x >= 0) && (output_x < bsr_config->camera_res_x) && (output_y >= 0) && (output_y < bsr_config->camera_res_y)) {
-        if (bsr_config->Airy_disk == 1) {
+        if (bsr_config->Airy_disk_enable == 1) {
           //
           // Airy disk mode, use Airy disk maps to find all pixel values for this star and send to dedup buffer
           //

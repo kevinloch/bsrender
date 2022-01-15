@@ -40,8 +40,9 @@
 #define BSR_CONFIG_H
 
 void initConfig(bsr_config_t *bsr_config);
+int processConfigSegment(bsr_config_t *bsr_config, char *segment, int from_cgi);
 int loadConfigFromFile(bsr_config_t *bsr_config);
 int loadConfigFromQueryString(bsr_config_t *bsr_config, char *query_string);
-int validateCGIOptions(bsr_config_t *bsr_config);
+int processCmdArgs(bsr_config_t *bsr_config, int argc, char **argv);
 
 #endif // BSR_CONFIG_H

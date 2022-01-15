@@ -113,7 +113,7 @@ bsr_state_t *initState(bsr_config_t *bsr_config) {
   //
   // select per thread buffer size
   //
-  if (bsr_config->Airy_disk == 1) {
+  if (bsr_config->Airy_disk_enable == 1) {
     bsr_state->per_thread_buffers = bsr_config->per_thread_buffer_Airy;
   } else {
     bsr_state->per_thread_buffers = bsr_config->per_thread_buffer;

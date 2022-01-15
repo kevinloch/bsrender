@@ -41,13 +41,16 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include "usage.h"
 
 void initConfig(bsr_config_t *bsr_config) {
-  strcpy(bsr_config->config_file_name, "./bsrender.cfg");
-  strcpy(bsr_config->data_file_directory, "./galaxydata");
+  strcpy(bsr_config->config_file_name, "bsrender.cfg");
+  strcpy(bsr_config->data_file_directory, "galaxydata");
+  strcpy(bsr_config->output_file_name, "galaxy.png");
+  bsr_config->print_status=1;
   bsr_config->num_threads=16;
-  bsr_config->per_thread_buffer=10000;
-  bsr_config->per_thread_buffer_Airy=200000;
+  bsr_config->per_thread_buffer=1000;
+  bsr_config->per_thread_buffer_Airy=100000;
   bsr_config->cgi_mode=0;
   bsr_config->cgi_max_res_x=999999;
   bsr_config->cgi_max_res_y=999999;
@@ -55,18 +58,20 @@ void initConfig(bsr_config_t *bsr_config) {
   bsr_config->cgi_allow_Airy_disk=1;
   bsr_config->cgi_min_Airy_disk_first_null=0.3;
   bsr_config->cgi_max_Airy_disk_max_extent=1000;
-  bsr_config->enable_Gaia=1;
+  bsr_config->cgi_max_Airy_disk_min_extent=3;
+  bsr_config->cgi_allow_anti_alias=1;
+  bsr_config->Gaia_db_enable=1;
   bsr_config->Gaia_min_parallax_quality=0;
-  bsr_config->enable_external=1;
+  bsr_config->external_db_enable=1;
   bsr_config->render_distance_min=0.0;
   bsr_config->render_distance_max=1.0E99;
   bsr_config->render_distance_selector=0;
   bsr_config->star_color_min=0.0;
   bsr_config->star_color_max=1.0E99;
-  bsr_config->camera_res_x=2000;
-  bsr_config->camera_res_y=1000;
+  bsr_config->camera_res_x=4000;
+  bsr_config->camera_res_y=2000;
   bsr_config->camera_fov=360.0;
-  bsr_config->camera_pixel_limit_mag=6.5;
+  bsr_config->camera_pixel_limit_mag=8.0;
   bsr_config->camera_pixel_limit_mode=0;
   bsr_config->camera_wb_enable=1;
   bsr_config->camera_wb_temp=4300.0;
@@ -81,7 +86,7 @@ void initConfig(bsr_config_t *bsr_config) {
   bsr_config->green_filter_short_limit=445.0;
   bsr_config->blue_filter_long_limit=465.0;
   bsr_config->blue_filter_short_limit=395.0;
-  bsr_config->Airy_disk=0;
+  bsr_config->Airy_disk_enable=0;
   bsr_config->Airy_disk_first_null=0.75;
   bsr_config->Airy_disk_max_extent=100;
   bsr_config->Airy_disk_min_extent=1;
@@ -90,7 +95,7 @@ void initConfig(bsr_config_t *bsr_config) {
   bsr_config->anti_alias_radius=1.0;
   bsr_config->skyglow_enable=0;
   bsr_config->skyglow_temp=4500.0;
-  bsr_config->skyglow_per_pixel_mag=11.0;
+  bsr_config->skyglow_per_pixel_mag=14.0;
   bsr_config->Gaussian_blur_radius=0.0;
   bsr_config->output_scaling_factor=1.0;
   bsr_config->draw_crosshairs=0;
@@ -164,7 +169,7 @@ void cleanupValueStr(char *value) {
 }
 
 void checkOptionBool(int *config_int, char *option, char *value, char *matchstr) {
-  if ((strstr(option, matchstr) == option) && (strlen(option) == strlen(matchstr))) {
+  if ((strcasestr(option, matchstr) == option) && (strlen(option) == strlen(matchstr))) {
     if (strcasestr(value, "yes") != NULL) {
       *config_int=1;
     } else {
@@ -174,29 +179,33 @@ void checkOptionBool(int *config_int, char *option, char *value, char *matchstr)
 }
 
 void checkOptionInt(int *config_int, char *option, char *value, char *matchstr) {
-  if ((strstr(option, matchstr) == option) && (strlen(option) == strlen(matchstr))) {
+  if ((strcasestr(option, matchstr) == option) && (strlen(option) == strlen(matchstr))) {
     *config_int=strtol(value, NULL, 10);
   }
 }
 
 void checkOptionDouble(double *config_double, char *option, char *value, char *matchstr) {
-  if ((strstr(option, matchstr) == option) && (strlen(option) == strlen(matchstr))) {
+  if ((strcasestr(option, matchstr) == option) && (strlen(option) == strlen(matchstr))) {
     *config_double=strtod(value, NULL);
   }
 }
 
 void checkOptionStr(char *config_str,  char *option, char *value, char *matchstr) {
-  if ((strstr(option, matchstr) == option) && (strlen(option) == strlen(matchstr))) {
+  if ((strcasestr(option, matchstr) == option) && (strlen(option) == strlen(matchstr))) {
     strcpy(config_str, value);
   }
 }
 
 void setOptionValue(bsr_config_t *bsr_config, char *option, char *value, int from_cgi) {
   //
-  // privileged values that can be set from config file or command line only (not cgi query_string)
+  // privileged values that can be set from config file or command line only (not CGI QUERY_STRING)
+  // note: config file name is additionally privileged in that it can only be set from command line
+  // so it is not even processed in this function.
   //
   if (from_cgi == 0) {
     checkOptionStr(bsr_config->data_file_directory, option, value, "data_file_directory");
+    checkOptionStr(bsr_config->output_file_name, option, value, "output_file_name");
+    checkOptionBool(&bsr_config->print_status, option, value, "print_status");
     checkOptionInt(&bsr_config->num_threads, option, value, "num_threads");
     checkOptionInt(&bsr_config->per_thread_buffer, option, value, "per_thread_buffer");
     checkOptionInt(&bsr_config->per_thread_buffer_Airy, option, value, "per_thread_buffer_Airy");
@@ -207,14 +216,16 @@ void setOptionValue(bsr_config_t *bsr_config, char *option, char *value, int fro
     checkOptionBool(&bsr_config->cgi_allow_Airy_disk, option, value, "cgi_allow_Airy_disk");
     checkOptionDouble(&bsr_config->cgi_min_Airy_disk_first_null, option, value, "cgi_min_Airy_disk_first_null");
     checkOptionInt(&bsr_config->cgi_max_Airy_disk_max_extent, option, value, "cgi_max_Airy_disk_max_extent");
+    checkOptionInt(&bsr_config->cgi_max_Airy_disk_min_extent, option, value, "cgi_max_Airy_disk_min_extent");
+    checkOptionBool(&bsr_config->cgi_allow_anti_alias, option, value, "cgi_allow_anti_alias");
   }
 
   //
-  // values that can be set from config file, command line, or cgi query_string
+  // values that can be set from config file, command line, or CGI QUERY_STRING
   //
-  checkOptionBool(&bsr_config->enable_Gaia, option, value, "enable_Gaia");
+  checkOptionBool(&bsr_config->Gaia_db_enable, option, value, "Gaia_db_enable");
   checkOptionInt(&bsr_config->Gaia_min_parallax_quality, option, value, "Gaia_min_parallax_quality");
-  checkOptionBool(&bsr_config->enable_external, option, value, "enable_external");
+  checkOptionBool(&bsr_config->external_db_enable, option, value, "external_db_enable");
   checkOptionDouble(&bsr_config->render_distance_min, option, value, "render_distance_min");
   checkOptionDouble(&bsr_config->render_distance_max, option, value, "render_distance_max");
   checkOptionInt(&bsr_config->render_distance_selector, option, value, "render_distance_selector");
@@ -238,7 +249,7 @@ void setOptionValue(bsr_config_t *bsr_config, char *option, char *value, int fro
   checkOptionDouble(&bsr_config->green_filter_short_limit, option, value, "green_filter_short_limit");
   checkOptionDouble(&bsr_config->blue_filter_long_limit, option, value, "blue_filter_long_limit");
   checkOptionDouble(&bsr_config->blue_filter_short_limit, option, value, "blue_filter_short_limit");
-  checkOptionBool(&bsr_config->Airy_disk, option, value, "Airy_disk");
+  checkOptionBool(&bsr_config->Airy_disk_enable, option, value, "Airy_disk_enable");
   checkOptionDouble(&bsr_config->Airy_disk_first_null, option, value, "Airy_disk_first_null");
   checkOptionInt(&bsr_config->Airy_disk_max_extent, option, value, "Airy_disk_max_extent");
   checkOptionInt(&bsr_config->Airy_disk_min_extent, option, value, "Airy_disk_min_extent");
@@ -271,31 +282,91 @@ void setOptionValue(bsr_config_t *bsr_config, char *option, char *value, int fro
   checkOptionDouble(&bsr_config->camera_tilt, option, value, "camera_tilt");
 }
 
+int processConfigSegment(bsr_config_t *bsr_config, char *segment, int from_cgi) {
+  int segment_length;
+  char *symbol_p;
+  char option[256];
+  size_t option_length;
+  char value[256];
+  size_t value_length;
+
+  //
+  // special handling for --help
+  //
+  if ((strcasestr(segment, "help") == segment) && (strlen(segment) == strlen("help"))) {
+    printUsage();
+    exit(0);
+  }
+
+  //
+  // search for option/value delimiter and split option and value strings
+  //
+  segment_length=strlen(segment);
+  symbol_p=strchr(segment, '=');
+  if ((segment_length > 0) && (symbol_p != NULL)) {
+    option_length=(symbol_p - segment);
+    value_length=(segment_length - option_length);
+
+    //
+    // enforce range restrictions on option and value
+    //
+    if ((option_length < 254) && (value_length < 254)) {
+      strncpy(option, segment, option_length);
+      option[option_length]=0;
+      strncpy(value, (symbol_p+=1), value_length);
+      value[value_length]=0;
+
+      //
+      // remove non-alphanumeric characters before and after value
+      //
+      cleanupValueStr(value);
+
+      //
+      // send to option value processing fucntion
+      //
+      setOptionValue(bsr_config, option, value, 0); // 0 == not from cgi
+
+    } // end option_length and value_length checks
+  } // end symbol_p check
+
+  return(0);
+}
+
+
 int loadConfigFromFile(bsr_config_t *bsr_config) {
+  int from_cgi;
   FILE *config_file;
   char *input_line_p;
   char *symbol_p;
   size_t input_line_length;
   char input_line[256];
-  char input_line_trimmed[256];
-  size_t input_line_trimmed_length;
-  char option[256];
-  size_t option_length;
-  char value[256];
-  size_t value_length;
+  char segment[256];
+  size_t segment_length;
+  char *query_string;
   
+  //
+  // options from config file are not from remote CGI users
+  //
+  from_cgi=0;
+
+  //
+  // print status udpate if not in CGI mode. We use the existence of QUERY_STRING to guess CGI mode at this point
+  //
+  query_string=NULL;
+  query_string=getenv("QUERY_STRING");
+  if ((query_string == NULL) && (bsr_config->print_status == 1)) {
+    printf("bsrender version %s\n", BSR_VERSION);
+    printf("Loading configuration file %s\n", bsr_config->config_file_name);
+    fflush(stdout);
+  }
+
+  //
   // attempt to open config file
-/*
-  // need to add cgi auto-detect here
-  printf("Loading configuration from %s\n", bsr_config->config_file_name);
-  fflush(stdout);
-*/
+  //
   config_file=fopen(bsr_config->config_file_name, "r");
-  if (config_file == NULL) {
-/*
+  if ((config_file == NULL) && (query_string == NULL)) {
     printf("Warning: could not open %s\n", bsr_config->config_file_name);
     fflush(stdout);
-*/
     return(0);
   }
 
@@ -304,42 +375,28 @@ int loadConfigFromFile(bsr_config_t *bsr_config) {
   //
   input_line_p=fgets(input_line, 256, config_file);
   while(input_line_p != NULL) {
-    input_line_length=strlen(input_line);
-
     //
     // search for comment symbol and remove any comments, otherwise just remove newline
     //
+    input_line_length=strlen(input_line);
     symbol_p=strchr(input_line, '#');
     if (symbol_p != NULL) {
-      input_line_trimmed_length=(symbol_p - input_line);
+      segment_length=(symbol_p - input_line);
     } else {
-      input_line_trimmed_length=input_line_length-1;
+      segment_length=input_line_length-1;
     } 
-    strncpy(input_line_trimmed, input_line, input_line_trimmed_length);
-    input_line_trimmed[input_line_trimmed_length]=0;
+    strncpy(segment, input_line, segment_length);
+    segment[segment_length]=0;
 
     //
-    // search for option/value delimiter and split option and value strings
+    // process config segment
     //
-    symbol_p=strchr(input_line_trimmed, '=');
-    if (symbol_p != NULL) {
-      option_length=(symbol_p - input_line_trimmed);
-      value_length=(input_line_trimmed_length - option_length);
-      // enforce range restrictions on option and value
-      if ((option_length < 254) && (value_length < 254)) {
-        strncpy(option, input_line_trimmed, option_length);
-        option[option_length]=0;
-        strncpy(value, (symbol_p+=1), value_length);
-        value[value_length]=0;
+    from_cgi=0;
+    processConfigSegment(bsr_config, segment, from_cgi);
 
-        // remove non-alphanumeric characters before and after value
-        cleanupValueStr(value);
-
-        // send to option value processing fucntion
-        setOptionValue(bsr_config, option, value, 0); // 0 == not from cgi
-
-      } // end option_length and value_length checks
-    } // end symbol_p check
+    //
+    // load next line from config file
+    //
     input_line_p=fgets(input_line, 256, config_file);
   } // end while input_line_raw
 
@@ -348,14 +405,16 @@ int loadConfigFromFile(bsr_config_t *bsr_config) {
 
 int loadConfigFromQueryString(bsr_config_t *bsr_config, char *query_string) {
   int done;
+  int from_cgi;
   char *query_p;
   char segment[2048];
   int segment_length;
   char *symbol_p;
-  char option[256];
-  size_t option_length;
-  char value[256];
-  size_t value_length;
+
+  //
+  // any config segments in this function are from cgi. Set to 1 to enforce privileged config options
+  //
+  from_cgi=1;
 
   //
   // load first segment from query_string
@@ -372,42 +431,20 @@ int loadConfigFromQueryString(bsr_config_t *bsr_config, char *query_string) {
       segment_length=strlen(query_p);
     }
   }
+
+  //
+  // loop for processing segments from query string
+  //
   while (done == 0) {
+    //
+    // process config segment
+    //
     strncpy(segment, query_p, segment_length);
     segment[segment_length]=0;
+    processConfigSegment(bsr_config, segment, from_cgi);
 
     //
-    // search for option/value delimiter and split option and value strings
-    //
-    symbol_p=strchr(segment, '=');
-    if ((segment_length > 0) && (symbol_p != NULL)) {
-      option_length=(symbol_p - segment);
-      value_length=(segment_length - option_length);
-
-      //
-      // enforce range restrictions on option and value
-      //
-      if ((option_length < 254) && (value_length < 254)) {
-        strncpy(option, segment, option_length);
-        option[option_length]=0;
-        strncpy(value, (symbol_p+=1), value_length);
-        value[value_length]=0;
-
-        //
-        // remove non-alphanumeric characters before and after value
-        //
-        cleanupValueStr(value);
-
-        //
-        // send to option value processing fucntion
-        //
-        setOptionValue(bsr_config, option, value, 1); // 1 == from cgi
-
-      } // end option_length and value_length checks
-    } // end symbol_p check
-
-    //
-    // load next segment
+    // load next segment from query string
     //
     query_p+=segment_length;
     if (query_p[0] == 0) {
@@ -426,34 +463,62 @@ int loadConfigFromQueryString(bsr_config_t *bsr_config, char *query_string) {
   return(0);
 }
 
-int validateCGIOptions(bsr_config_t *bsr_config) {
-  if (bsr_config->camera_res_x < 1) {
-    bsr_config->camera_res_x=1;
-  }
-  if (bsr_config->camera_res_x > bsr_config->cgi_max_res_x) {
-    bsr_config->camera_res_x=bsr_config->cgi_max_res_x;
-  }
-  if (bsr_config->camera_res_y < 1) {
-    bsr_config->camera_res_y=1;
-  }
-  if (bsr_config->camera_res_y > bsr_config->cgi_max_res_y) {
-    bsr_config->camera_res_y=bsr_config->cgi_max_res_y;
-  }
-  if (bsr_config->Gaia_min_parallax_quality < bsr_config->cgi_Gaia_min_parallax_quality) {
-    bsr_config->Gaia_min_parallax_quality=bsr_config->cgi_Gaia_min_parallax_quality;
-  }
-  if (bsr_config->cgi_allow_Airy_disk == 0) {
-    bsr_config->Airy_disk=0;
-  }
-  if (bsr_config->Airy_disk_first_null < bsr_config->cgi_min_Airy_disk_first_null) {
-    bsr_config->Airy_disk_first_null=bsr_config->cgi_min_Airy_disk_first_null;
-  }
-  if (bsr_config->Airy_disk_max_extent > bsr_config->cgi_max_Airy_disk_max_extent) {
-    bsr_config->Airy_disk_max_extent=bsr_config->cgi_max_Airy_disk_max_extent;
-  }
-  if (bsr_config->Airy_disk_min_extent > bsr_config->cgi_max_Airy_disk_max_extent) {
-    bsr_config->Airy_disk_min_extent=bsr_config->cgi_max_Airy_disk_max_extent;
-  }
+int processCmdArgs(bsr_config_t *bsr_config, int argc, char **argv) {
+  int i;
+  int from_cgi;
+  char *option_start;
 
+  if (argc == 1) {
+    return(0);
+  } else {
+    for (i=1; i <= (argc - 1); i++) {
+      if (argv[i][1] == 'c') {
+        // configuration file name
+        if (argv[i][2] != 0) {
+          // option concatenated onto switch
+          option_start=argv[i];
+          strcpy(bsr_config->config_file_name, (option_start + (size_t)2));
+        } else if ((argc >= (i + 1)) && (argv[i + 1][0] != '-')) {
+          // option is probably next argv
+          option_start=argv[i + 1];
+          strcpy(bsr_config->config_file_name, option_start);
+        } // end if no space
+
+      } else if (argv[i][1] == 'd') {
+        // data files directory
+        if (argv[i][2] != 0) {
+          // option concatenated onto switch
+          option_start=argv[i];
+          strcpy(bsr_config->data_file_directory, (option_start + (size_t)2));
+        } else if ((argc >= (i + 1)) && (argv[i + 1][0] != '-')) {
+          // option is probably next argv
+          option_start=argv[i + 1];
+          strcpy(bsr_config->data_file_directory, option_start);
+        } // end if no space
+      } else if (argv[i][1] == 'h') {
+        // print help
+        printUsage();
+        exit(0);
+      } else if (argv[i][1] == 'o') {
+        // output filename
+        if (argv[i][2] != 0) {
+          // option concatenated onto switch
+          option_start=argv[i];
+          strcpy(bsr_config->output_file_name, (option_start + (size_t)2));
+        } else if ((argc >= (i + 1)) && (argv[i + 1][0] != '-')) {
+          // option is probably next argv
+          option_start=argv[i + 1];
+          strcpy(bsr_config->output_file_name, option_start);
+        } // end if no space
+      } else if (argv[i][1] == 'q') {
+        // quite mode - suppress non-error status messages
+        bsr_config->print_status=0;
+      } else if (argv[i][1] == '-') {
+        // long config option
+        from_cgi=0;
+        processConfigSegment(bsr_config, (argv[i]+2), from_cgi);
+      } // end which option
+    } // end for argc
+  } // end if any options
   return(0);
 }

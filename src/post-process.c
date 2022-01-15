@@ -63,9 +63,9 @@ int postProcess(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   int i;
 
   //
-  // main thread: display status message if not in cgi mode
+  // main thread: display status message if not in CGI mode
   //
-  if ((bsr_state->perthread->my_pid == bsr_state->master_pid) && (bsr_config->cgi_mode != 1)) {
+  if ((bsr_state->perthread->my_pid == bsr_state->master_pid) && (bsr_config->cgi_mode != 1) && (bsr_config->print_status == 1)) {
     clock_gettime(CLOCK_REALTIME, &starttime);
     printf("Applying camera gamma and intensity limit...");
     fflush(stdout);
@@ -160,12 +160,12 @@ int postProcess(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   } // end if not main thread
 
   //
-  // main thread: output execution time if not in cgi mode
+  // main thread: output execution time if not in CGI mode
   //
-  if ((bsr_state->perthread->my_pid == bsr_state->master_pid) && (bsr_config->cgi_mode != 1)) {
+  if ((bsr_state->perthread->my_pid == bsr_state->master_pid) && (bsr_config->cgi_mode != 1) && (bsr_config->print_status == 1)) {
     clock_gettime(CLOCK_REALTIME, &endtime);
     elapsed_time=((double)(endtime.tv_sec - 1500000000) + ((double)endtime.tv_nsec / 1.0E9)) - ((double)(starttime.tv_sec - 1500000000) + ((double)starttime.tv_nsec) / 1.0E9);
-    printf(" (%.4fs)\n", elapsed_time);
+    printf(" (%.3fs)\n", elapsed_time);
     fflush(stdout);
   }
 

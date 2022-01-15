@@ -39,7 +39,7 @@
 #ifndef BSRENDER_H
 #define BSRENDER_H
 
-#define BSR_VERSION "0.9-dev-69"
+#define BSR_VERSION "0.9-dev-70"
 
 //
 // these checkpoints are used to monitor and control worker thread progress
@@ -192,6 +192,8 @@ typedef struct {
 typedef struct {
   char config_file_name[256];
   char data_file_directory[256];
+  char output_file_name[256];
+  int print_status;
   int num_threads;
   int per_thread_buffer;
   int per_thread_buffer_Airy;
@@ -202,9 +204,11 @@ typedef struct {
   int cgi_allow_Airy_disk;
   double cgi_min_Airy_disk_first_null;
   int cgi_max_Airy_disk_max_extent;
-  int enable_Gaia;
+  int cgi_max_Airy_disk_min_extent;
+  int cgi_allow_anti_alias;
+  int Gaia_db_enable;
   int Gaia_min_parallax_quality;
-  int enable_external;
+  int external_db_enable;
   double render_distance_min;
   double render_distance_max;
   int render_distance_selector;
@@ -228,7 +232,7 @@ typedef struct {
   double green_filter_short_limit;
   double blue_filter_long_limit;
   double blue_filter_short_limit;
-  int Airy_disk;
+  int Airy_disk_enable;
   double Airy_disk_first_null;
   int Airy_disk_max_extent;
   int Airy_disk_min_extent;

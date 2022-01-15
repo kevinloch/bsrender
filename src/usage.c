@@ -40,25 +40,144 @@
 #include <stdio.h>
 
 void printUsage() {
-  printf("bsrender version %s\n", BSR_VERSION);
-  printf("\n\
-NAME\n\
-     bsrender -- Render PNG image from 3D star database\n\
+  printf("bsrender version %s, render PNG image from 3D star database\n", BSR_VERSION);
+  printf("\
 \n\
-SYNOPSIS\n\
-     bsrender [-c filename] [-d path] [-h]\n\
- \n\
-OPTIONS:\n\
-     -c filename\n\
-          Set configuration file name (default: ./bsrender.cfg)\n\
+Usage:\n\
+     bsrender [OPTION]...\n\
 \n\
-     -d path\n\
-          Set path to data files (default: ./galaxydata)\n\
+     See sample conifguration file for default settings. Configuration options are applied in this order:\n\
+     built-in defaults, configuration file, command line flags, environment QUERY_STRING (if CGI mode)\n\
 \n\
-     -h\n\
-          Show help\n\
+Command line only options:\n\
+     -c FILE                              Set configuration file name (default: bsrender.cfg)\n\
+     --help, -h                           Show usage\n\
 \n\
-DESCRIPTON\n\
- bsrender (Billion Star Rendering Engine) is designed to handle billions of stars such as those in the ESA's Gaia EDR3 dataset.\n\
- \n");
+Privileged options - these cannot be changed by remote users in CGI mode:\n\
+     --data_file_directory=DIR, -d        Path to galaxy-* data files, limit 255 characters\n\
+     --output_file_name=FILE, -o          Output filename, may include path, limit 255 characters\n\
+     --print_status=BOOL, -q              yes = sppress non-error status messages (also -q)\n\
+                                          no = will allow informational status messages\n\
+                                          Messages are always suppressed in CGI mode\n\
+     --num_threads=NUM                    Total number of threads including main thread and rendering\n\
+                                          threads (minimum 2)\n\
+                                          For best performance set to number of vcpus\n\
+     --per_thread_buffer=NUM              Number of stars to buffer between each rendering thread and main thread\n\
+                                          Also sets size of dedup buffer for each thread\n\
+     --per_thread_buffer_Airy=NUM         Number of stars to buffer between each rendering thread and main thread\n\
+                                          when Airy disks are enabled\n\
+                                          Also sets size of dedup buffer for each thread\n\
+     --cgi_mode=BOOL                      yes = enable CGI mode (html headers and png data written to stdout)\n\
+     --cgi_max_res_x=NUM                  Maximum allowed horizontal resolution for CGI users\n\
+     --cgi_max_res_y=NUM                  Maximum allowed vertical resolution for CGI users\n\
+     --cgi_Gaia_min_parallax_quality=NUM  Minimum allowed parallax quality of Gaia stars for CGI users\n\
+     --cgi_allow_Airy_disk=BOOL           yes = Airy disk mode is allowed for CGI users\n\
+     --cgi_allow_anti_alias=BOOL          yes = anti-aliasing mode is allowed for CGI users\n\
+     --cgi_min_Airy_disk_first_null=FLOAT Minimum allowed first null distance for CGI users\n\
+     --cgi_max_Airy_disk_min_extent=NUM   Maximum allowed Airy disk minimum extent for CGI users\n\
+     --cgi_max_Airy_disk_max_extent=NUM   Maximum allowed Airy disk extent for CGI users\n\
+\n\
+Star filters:\n\
+     --enable_Gaia=BOOL                   yes = Enable galaxy-pq*.dat with Gaia stars\n\
+     --Gaia_min_parallax_quality=NUM      Minimum parallax quality of Gaia stars (GEDR3 'parallax_over_error')\n\
+                                          Valid values: 0,1,2,3,5,10,20,30,50,100\n\
+     --enable_external=BOOL               yes = Enable galaxy-external.dat with non-Gaia stars\n\
+     --render_distance_min=FLOAT          Minimum star distance\n\
+     --render_distance_max=FLOAT          Maximum star distance\n\
+     --render_distance_selector=NUM       min/max star distance is measured from 0=camera, 1=target\n\
+     --star_color_min=FLOAT               Minimum star effective color temperature in Kelvin\n\
+     --star_color_max=FLOAT               Maximum star effective color temperature in Kelvin\n\
+\n\
+Camera options:\n\
+     --camera_res_x=NUM                   Horizontal resolution\n\
+     --camera_res_y=NUM                   Vertical resolution\n\
+     --camera_fov=FLOAT                   Field of vew in decimal degrees\n\
+     --camera_pixel_limit_mag=FLOAT       Pixel exposure limit in Vega scale magnitude\n\
+     --camera_pixel_limit_mode=NUM        How to handle overexposed pixels: 0=saturate to white, 1=preserve color\n\
+     --camera_wb_enable=BOOL              yes = Enable white balance correction\n\
+     --camera_wb_temp=FLOAT               White balance color temperature in Kelvin\n\
+     --camera_color_saturation=FLOAT      Chroma saturation level (4.0 = 4x crhoma)\n\
+     --camera_gamma=FLOAT                 Image gamma adjustment. This option never changes PNG header gamma as it\n\
+                                          is intended to modify the way the image looks\n\
+     --camera_projection=NUM              Raster projection: 0=lat/lon, 1=spherical, 2=Hammer, 3=Mollewide\n\
+     --spherical_orientation=NUM          Spherical projection orientation: 0 = forward centered, 1 = forward on\n\
+                                          left, rear on right\n\
+     --Mollewide_iterations=NUM           Number of iterations for Mollewide projection algorithm\n\
+\n\
+Camera bandpass filter options:\n\
+     --red_filter_long_limit=FLOAT        Red channel passpand long wavelength limit in nm\n\
+     --red_filter_short_limit=FLOAT       Red channel passband short wavelength limit in nm\n\
+     --green_filter_long_limit=FLOAT      Green channel passband long wavelength limit in nm\n\
+     --green_filter_short_limit=FLOAT     Green channel passband short wavelength limit in nm\n\
+     --blue_filter_long_limit=FLOAT       Blue channel passband long wavelength limit in nm\n\
+     --blue_filter_short_limit=FLOAT      Blue channel passband short wavelength limit in nm\n\
+\n\
+Diffraction:\n\
+     --Airy_disk=BOOL                     yes = spread star flux with Airy disk pattern\n\
+                                          no = star flux is mapped to exactly one output pixel\n\
+     --Airy_disk_first_null=FLOAT         Radius to the first Airy disk null (green channel) in pixels\n\
+                                          This sets the scale for the Airy disk patterns\n\
+     --Airy_disk_max_extent=NUM           Maximum extent of Airy disk pattern in pixels\n\
+                                          To minimize rendering time actual extent is autoscaled between min-max\n\
+                                          for each star depending on how bright it is\n\
+     --Airy_disk_min_extent=NUM           Minimum extent of Airy disk pattern in pixels. Minimum extent for all stars\n\
+                                          Larger values can dramatically increase rendering time\n\
+     --Airy_disk_obstruction=FLOAT        Aperture obstruction ratio (secondary mirror for example). Set to 0.0\n\
+                                          for unobstructed aperture. Hubble = 0.127\n\
+\n\
+Anti-aliasing:\n\
+     --anti_alias_enable=BOOL             yes = spread and pixel intensity to neighboring pixels\n\
+                                          no = pixel intensity is mapped to nearest pixel\n\
+                                          This also applies to each Airy disk pixel\n\
+     --anti_alias_radius=FLOAT            Radius of anti-aliasing spread in pixels. Valid range 0.5 - 2.0\n\
+\n\
+Skyglow:\n\
+     --skyglow_enable=BOOL                yes = Enable skyglow effect\n\
+     --skyglow_temp=FLOAT                 Effective temperature of skyglow in Kelvin\n\
+     --skyglow_per_pixel_mag=FLOAT        Intensity of skyglow per output pixel in Vega scale magnitude\n\
+\n\
+Post-processing:\n\
+     --Gaussian_blur_radius=NUM           Optional Gaussian blur with this radius in pixels\n\
+     --output_scaling_factor=FLOAT        Optional output scaling using Lanczos2 interpolation\n\
+\n\
+Overlays:\n\
+     --draw_crosshairs=BOOL               yes = Draw small crosshairs in center of image. Note: This will not\n\
+                                          be centered on target if pan, tilt, or side-by-side spherical mode is used\n\
+     --draw_grid_lines=BOOL               yes = Draw horizontal and vertical lines at 25%%, 50%%, and 75%% of\n\
+                                          width and height\n\
+\n\
+Output:\n\
+     --sRGB_gamma=BOOL                    yes = apply standard sRGB encoding gamma after camera_gamma and before\n\
+                                          conversion to 8 or 16 bits per color. PNG header gamma is set to default\n\
+                                          (sRGB)\n\
+                                          no = do not apply sRGB encoding gamma. PNG header gamma is set to 1.0\n\
+                                          regardless of camera_gamma setting\n\
+     --bits_per_color=NUM                 8 or 16 bits per color PNG format\n\
+\n\
+Camera position in Euclidian ICRS coordinates:\n\
+     --camera_icrs_x=FLOAT                x coordinate in parsecs\n\
+     --camera_icrs_y=FLOAT                y coordinate in parsecs\n\
+     --camera_icrs_z=FLOAT                z coordinate in parsecs\n\
+\n\
+Camera position in spherical ICRS coordinates. These override Euclidian if not zero:\n\
+     --camera_icrs_ra=FLOAT               Right ascension in decimal degrees\n\
+     --camera_icrs_dec=FLOAT              Declination in decimal degrees\n\
+     --camera_icrs_r=FLOAT                Distance in parsecs\n\
+\n\
+Camera target in Euclidian ICRS coordinates:\n\
+     --target_icrs_x=FLOAT                x coordinate in parsecs\n\
+     --target_icrs_y=FLOAT                y coordinate in parsecs\n\
+     --target_icrs_z=FLOAT                z coordinate in parsecs\n\
+\n\
+Camera target in spherical ICRS coordinates. These override Euclidian if not zero:\n\
+     --target_icrs_ra=FLOAT              Right ascension in decimal degrees\n\
+     --target_icrs_dec=FLOAT             Declination in decimal degrees\n\
+     --target_icrs_r=FLOAT               Distance in parsecs\n\
+\n\
+Optional camera rotation/pan/tilt after aiming at target:\n\
+     --camera_rotation=FLOAT             Camera rotation once aimed at target in decimal degrees\n\
+     --camera_pan=FLOAT                  Camera left-right pan once aimed at target and rotated in decimal degrees\n\
+     --camera_tilt=FLOAT                 Camera up/down tilt once aimed at arget, rotated, and panned in decimal\n\
+                                         degrees\n\
+\n");
 }
