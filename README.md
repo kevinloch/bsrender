@@ -113,7 +113,7 @@ This may take up to 24 hours to complete, depending on system and disk speed. Be
 
   Some options are privileged and cannot be set by CGI users.
 
-## Helpful hints
+### Helpful hints
 
   - Reducing the 'camera\_fov' (zooming in) will generally require increasing 'camera\_pixel\_limit\_mag' (pixel intensity limit in the web interface) which makes camera more sensitive to maintain the same subjective iamge brightness. This is because dense star fields aggregate to brighter individual pixels with wider field of view. For very narrow fields of view with individual stars, enabling Airy disks is Highly recommended. Otherwise the individual star pixels can be very hard to see and increasing 'camera\_pixel\_limit\_mag' may just saturate those pixels without increasing subjective brightness.
   - Similarly, increasing the camera resolution will generally require increasing 'camera\_pixel\_limit\_mag' to maintain the same subjective image brightness. Use caution with increasing 'camera\_pixel\_limit\_mag' too high with very high resolutions and/or narrow fields of view. Colors will desaturate as pixel intensity is saturated unless 'camera\_pixel\_limit\_mode' is set to 1 (preserve color) and even then unnatural colors will result. The key is to remain aware of when stars start to map to individual pixels and the approximate magnitude of those stars. Enabling Airy disks provides significant freedom to "overexpose" pixels as overexposed stars will appear larger and still preserve some of their color in the outer parts of the Airy disk.
@@ -122,7 +122,7 @@ This may take up to 24 hours to complete, depending on system and disk speed. Be
   - Star 'temperature' is effective temperature not actual star temperature, except for supplemental stars in he external.csv dataset. This effective temperature corresponds to a Planck blackbody spectrum that is the closest fit to the Gaia rp, bp and G flux data. Despite ignoring the distortion of stellar spectra by extinction this produces amazingly accurate star colors, often indistinguishable from Hubble photographs when Airy disks are enabled and the correct simulated Hubble passband filters are selected.
   - Due to uncertainty in the parallax data of approximately 20 microarcseconds, things start to look weird as the camera is positioned more than a short distance away from the sun. This is a limitation of the source data and not any bug or problem with the rendering engine. If override parallax is enabled in mkgalaxy (by setting -p > 0), there will be a spherical shell of residual stars at 1000 / minimum\_parallax parsecs from the Sun. This is of course artificial but is better than having some stars (like LMC and SMC) much farther away from the galaxy than they really are. The sample data files were generated with a 20 microarcsecond minimum parallax enforced and a 50 kpc artifical shell of distance-limited stars.
 
-## CGI mode
+### CGI mode
 
   when cgi\_mode=yes is set in the config file html headers and png data will be output to stdout, with all other output suppressed (unless run with -h).
   CGI requests should be made with http GET requests using the same key/value pairs as in the config file. Some options (data\_file\_directory, num\_threads, per\_thread\_buffer, cgi\_) cannot be overridden via CGI and some are limited by the cgi\_ options in config file.
