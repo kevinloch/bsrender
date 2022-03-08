@@ -39,7 +39,7 @@
 #ifndef BSRENDER_H
 #define BSRENDER_H
 
-#define BSR_VERSION "0.9-dev-71"
+#define BSR_VERSION "0.9-dev-72"
 
 //
 // these checkpoints are used to monitor and control worker thread progress
@@ -178,7 +178,7 @@ typedef struct {
   size_t status_array_size;
   size_t dedup_buffer_size;
   size_t dedup_index_size;
-  size_t Airymap_width;
+  size_t Airymap_size;
   size_t bsr_state_size;
 } bsr_state_t;
 
@@ -246,7 +246,7 @@ typedef struct {
   double output_scaling_factor;
   int draw_crosshairs;
   int draw_grid_lines;
-  int sRGB_gamma;
+  int rgb_color_space;
   int bits_per_color;
   double camera_icrs_x;
   double camera_icrs_y;

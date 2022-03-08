@@ -87,19 +87,17 @@ int outputPNG(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   } 
   
   //
-  // override default sRGB gamma header info if sRGB is disabled in config
-  //
-  if (bsr_config->sRGB_gamma == 0) {
-    png_set_gAMA(png_ptr, info_ptr, 1.0);
-  }
-
-  //
   // write PNG header
   //
-  if (bsr_config->bits_per_color == 8) {
-    bit_depth=8;
+  if (bsr_config->rgb_color_space == 1) {
+    png_set_sRGB_gAMA_and_cHRM(png_ptr, info_ptr, PNG_sRGB_INTENT_PERCEPTUAL); // https://www.dougchinnery.com/what-are-rendering-intents-and-how-should-i-use-them/
   } else {
+    png_set_gAMA(png_ptr, info_ptr, 1.0); // linear RGB, no colorspace info
+  }
+  if (bsr_config->bits_per_color == 16) {
     bit_depth=16;
+  } else {
+    bit_depth=8;
   }
   png_set_IHDR(png_ptr, info_ptr, bsr_state->current_image_res_x, bsr_state->current_image_res_y, bit_depth, color_type, PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE);
   png_write_info(png_ptr, info_ptr);

@@ -141,9 +141,9 @@
         if (tmpvalue != null) {
           settings_form.output_scaling_factor.value = tmpvalue;
         }
-        tmpvalue = search.get("sRGB_gamma");
+        tmpvalue = search.get("rgb_color_space");
         if (tmpvalue != null) {
-          settings_form.sRGB_gamma.value = tmpvalue;
+          settings_form.rgb_color_space.value = tmpvalue;
         }
         tmpvalue = search.get("bits_per_color");
         if (tmpvalue != null) {
@@ -323,7 +323,7 @@ skyglow_temp=${settings_form.skyglow_temp.value}&\
 skyglow_per_pixel_mag=${settings_form.skyglow_per_pixel_mag.value}&\
 Gaussian_blur_radius=${settings_form.Gaussian_blur_radius.value}&\
 output_scaling_factor=${settings_form.output_scaling_factor.value}&\
-sRGB_gamma=${settings_form.sRGB_gamma.value}&\
+rgb_color_space=${settings_form.rgb_color_space.value}&\
 bits_per_color=${settings_form.bits_per_color.value}&\
 camera_res_x=${settings_form.camera_res_x.value}&\
 camera_res_y=${settings_form.camera_res_y.value}&\
@@ -387,7 +387,7 @@ skyglow_temp=${settings_form.skyglow_temp.value}&\
 skyglow_per_pixel_mag=${settings_form.skyglow_per_pixel_mag.value}&\
 Gaussian_blur_radius=${settings_form.Gaussian_blur_radius.value}&\
 output_scaling_factor=${settings_form.output_scaling_factor.value}&\
-sRGB_gamma=${settings_form.sRGB_gamma.value}&\
+rgb_color_space=${settings_form.rgb_color_space.value}&\
 bits_per_color=${settings_form.bits_per_color.value}&\
 camera_res_x=${settings_form.camera_res_x.value}&\
 camera_res_y=${settings_form.camera_res_y.value}&\
@@ -849,7 +849,7 @@ camera_tilt=${navigation_form.camera_tilt.value}`;
             <legend>About</legend>
             <div id="centered">
               Sample web interface for
-              <h2><a href="https://github.com/kevinloch/bsrender">bsrender</a> 0.9-dev-71</h2>
+              <h2><a href="https://github.com/kevinloch/bsrender">bsrender</a> 0.9-dev-72</h2>
               using data from <a href="https://www.cosmos.esa.int/web/gaia/earlydr3">Gaia EDR3</a>
               <br>and supplemental <a href="https://bsrender.io/sample_data/0.9/external.csv">bright stars</a>
             </div>
@@ -1102,13 +1102,13 @@ s_url" size=30 value=""></td></tr>
             </select>
           </fieldset>
           <fieldset>
-            <legend>Output</legend>
-            <label for "sRGB_gamma">sRGB encoding gamma</label>
-            <select name="sRGB_gamma" id="sRGB_gamma">
-              <option value="yes" selected>on</option>
-              <option value="no">off</option>
+            <legend>PNG Output</legend>
+            <label for "rgb_color_space">RGB color space</label>
+            <select name="rgb_color_spce" id="rgb_color_space">
+              <option value="1" selected>sRGB</option>
+              <option value="0">linear RGB</option>
             </select>
-            <br><label for "bits_per_color">PNG bits per color</label>
+            <br><label for "bits_per_color">Bits per color</label>
             <select name="bits_per_color" id="bits_per_color">
               <option value="8" selected>8</option>
               <option value="16">16</option>

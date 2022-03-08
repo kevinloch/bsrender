@@ -24,7 +24,7 @@ Sample binary data files|[bsrender.io/sample_data/0.9/](https://bsrender.io/samp
   - Good performance when the data files can be cached in ram. On an AWS m6gd.12xlarge instance (48vcpu/192GBram) the full pq000 dataset (1.4B stars) can be rendered in 14 seconds at 2k resolution. The default pq010 data set (98M stars) renders in just 2 seconds
   - Support for user-supplied stars. This can be used to add stars that are too bright or dim to have their parallax measured by the Gaia satellite. A sample external.csv is provided with the Sun and all stars brighter than magnitude 3 that are not included in the Gaia dataset or are not able to be imported into bsrender because they lack parallax and/or G-band flux
   - Effective star temperature (color) is derived from Gaia bp/G and/or rp/G flux ratios for most stars.
-  - 8 or 16 bits per color PNG output, with or without sRGB encoding gamma for either bit depth
+  - 8 or 16 bits per color PNG output, with or without sRGB encoding gamma and colorspace info for either bit depth
   - Sample web interface includes presets for a few camera targets and several common Hubble bandpass filter settings (along with typical LRGB)
   
 ## Memory requirements
@@ -59,7 +59,7 @@ Most options can also be set with a configuration file. By default bsrender look
 
 ## Data files (required)
 
-The Gaia archive .csv files are not suitable for direct 3d rendering. They must be processed into a binary data format that includes the 3D position, effective temperature, and normalized intensity (relative to Vega at one parsec) of each star. The fastest and easiest way to use bsrender is to download pre-generated data files from [bsrender.io/sample_data/0.9/](https://bsrender.io/sample_data/0.9/) (46GB).
+The Gaia archive .csv files are not suitable for direct 3D rendering. They must be processed into a binary data format that includes the 3D position, effective temperature, and normalized intensity (relative to Vega at one parsec) of each star. The fastest and easiest way to use bsrender is to download pre-generated data files from [bsrender.io/sample_data/0.9/](https://bsrender.io/sample_data/0.9/) (46GB).
 
 By default bsrender expects these files to be located in the subdirectory 'galaxydata' relative to where bsrender is run from. The -d command line option or data_file_directory config file option can be used to specify an alternate filename/location. To create the subdirectory and download the sample data files to it:
 
@@ -148,7 +148,7 @@ This may take up to 24 hours to complete, depending on system and disk speed. Be
     - Optionally applying Gaussian blur (see 'Gaussian\_blur\_radius');
     - Optionally applying Lanczos2 image resizing (see 'output\_scaling\_factor')
     - Limiting maximum values to 1.0 again
-    - Optionally applying sRGB encoding gamma
+    - Optionally applying sRGB encoding gamma and colorspace info
 
   Finally, the resulting image is converted to 8 or 16 bits per color and output to a PNG file or stream.
 

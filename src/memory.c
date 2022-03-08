@@ -52,9 +52,9 @@ int freeMemory(bsr_state_t *bsr_state) {
   }
   munmap(bsr_state->thread_buf, bsr_state->thread_buffer_size);
   munmap(bsr_state->status_array, bsr_state->status_array_size);
-  munmap(bsr_state->Airymap_red, bsr_state->Airymap_width);
-  munmap(bsr_state->Airymap_green, bsr_state->Airymap_width);
-  munmap(bsr_state->Airymap_blue, bsr_state->Airymap_width);
+  munmap(bsr_state->Airymap_red, bsr_state->Airymap_size);
+  munmap(bsr_state->Airymap_green, bsr_state->Airymap_size);
+  munmap(bsr_state->Airymap_blue, bsr_state->Airymap_size);
   free(bsr_state->dedup_buf);
   free(bsr_state->dedup_index);
   munmap(bsr_state->image_output_buf, bsr_state->output_buffer_size);
@@ -86,10 +86,10 @@ int allocateMemory(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
     mmap_protection=PROT_READ | PROT_WRITE;
     mmap_visibility=MAP_SHARED | MAP_ANONYMOUS;
     Airymap_width=bsr_config->Airy_disk_max_extent + 1;
-    bsr_state->Airymap_width=Airymap_width * Airymap_width * sizeof(double);
-    bsr_state->Airymap_red=(double *)mmap(NULL, bsr_state->Airymap_width, mmap_protection, mmap_visibility, -1, 0);
-    bsr_state->Airymap_green=(double *)mmap(NULL, bsr_state->Airymap_width, mmap_protection, mmap_visibility, -1, 0);
-    bsr_state->Airymap_blue=(double *)mmap(NULL, bsr_state->Airymap_width, mmap_protection, mmap_visibility, -1, 0);
+    bsr_state->Airymap_size=Airymap_width * Airymap_width * sizeof(double);
+    bsr_state->Airymap_red=(double *)mmap(NULL, bsr_state->Airymap_size, mmap_protection, mmap_visibility, -1, 0);
+    bsr_state->Airymap_green=(double *)mmap(NULL, bsr_state->Airymap_size, mmap_protection, mmap_visibility, -1, 0);
+    bsr_state->Airymap_blue=(double *)mmap(NULL, bsr_state->Airymap_size, mmap_protection, mmap_visibility, -1, 0);
   }
 
   //

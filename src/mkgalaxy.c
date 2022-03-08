@@ -914,7 +914,7 @@ int main(int argc, char **argv) {
         // optionally calibrate parallax according to Lindegren et. al
         //
         if (mkg_config.calibrate_parallax == 1) {
-          magnitude=-2.5*log10(linear_intensity); // some stars have blank phot_G_mean_magnitude so we derive from the more reliable flux column
+          magnitude=-2.5 * log10(linear_intensity); // some stars have blank phot_G_mean_magnitude so we derive from the more reliable flux column
           calibrateParallax(&parallax, astrometric_params_solved, magnitude, color_wavenumber, ecl_lat);
         }
 

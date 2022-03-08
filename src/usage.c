@@ -147,11 +147,8 @@ Overlays:\n\
                                           width and height\n\
 \n\
 Output:\n\
-     --sRGB_gamma=BOOL                    yes = apply standard sRGB encoding gamma after camera_gamma and before\n\
-                                          conversion to 8 or 16 bits per color. PNG header gamma is set to default\n\
-                                          (sRGB)\n\
-                                          no = do not apply sRGB encoding gamma. PNG header gamma is set to 1.0\n\
-                                          regardless of camera_gamma setting\n\
+     --rgb_color_space=NUM                1 = sRGB\n\
+                                          0 = linear RGB\n\
      --bits_per_color=NUM                 8 or 16 bits per color PNG format\n\
 \n\
 Camera position in Euclidian ICRS coordinates:\n\

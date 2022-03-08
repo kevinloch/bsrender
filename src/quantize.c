@@ -133,8 +133,7 @@ int quantize(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
     //
     // optionally apply sRGB gamma
     //
-    if (bsr_config->sRGB_gamma == 1) {
-      // apply sRGB gamma
+    if (bsr_config->rgb_color_space == 1) {
       if (pixel_r <= 0.0031308) {
         pixel_r=pixel_r * 12.92;
       } else {
