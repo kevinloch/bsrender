@@ -141,15 +141,16 @@ Post-processing:\n\
      --output_scaling_factor=FLOAT        Optional output scaling using Lanczos2 interpolation\n\
 \n\
 Overlays:\n\
-     --draw_crosshairs=BOOL               yes = Draw small crosshairs in center of image. Note: This will not\n\
-                                          be centered on target if pan, tilt, or side-by-side spherical mode is used\n\
+     --draw_crosshairs=BOOL               yes = Draw small crosshairs in center of image. Note: This will not be\n\
+                                          centered on target if pan, tilt, or side-by-side spherical mode is used\n\
      --draw_grid_lines=BOOL               yes = Draw horizontal and vertical lines at 25%%, 50%%, and 75%% of\n\
                                           width and height\n\
 \n\
-Output:\n\
-     --rgb_color_space=NUM                1 = sRGB\n\
-                                          0 = linear RGB\n\
-     --bits_per_color=NUM                 8 or 16 bits per color PNG format\n\
+PNG output:\n\
+     --icc_profile=NUM                    0 = none (linear RGB), 1 = sRGB v4,\n\
+                                          2 = Display-P3 (compat) v4, 3 = Rec.2020 (compat) v4\n\
+                                          ICC profiles are from https://github.com/saucecontrol/Compact-ICC-Profiles\n\
+     --bits_per_color=NUM                 8 or 16 bits per color\n\
 \n\
 Camera position in Euclidian ICRS coordinates:\n\
      --camera_icrs_x=FLOAT                x coordinate in parsecs\n\

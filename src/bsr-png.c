@@ -43,6 +43,7 @@
 #include <png.h>
 #include "util.h"
 #include "cgi.h"
+#include "icc-profiles.h"
 
 int outputPNG(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   FILE *output_file=NULL;
@@ -85,25 +86,31 @@ int outputPNG(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   } else {
     png_init_io(png_ptr, output_file);
   } 
-  
-  //
-  // write PNG header
-  //
-  if (bsr_config->rgb_color_space == 1) {
-    png_set_sRGB_gAMA_and_cHRM(png_ptr, info_ptr, PNG_sRGB_INTENT_PERCEPTUAL); // https://www.dougchinnery.com/what-are-rendering-intents-and-how-should-i-use-them/
-  } else {
-    png_set_gAMA(png_ptr, info_ptr, 1.0); // linear RGB, no colorspace info
-  }
   if (bsr_config->bits_per_color == 16) {
     bit_depth=16;
   } else {
     bit_depth=8;
   }
   png_set_IHDR(png_ptr, info_ptr, bsr_state->current_image_res_x, bsr_state->current_image_res_y, bit_depth, color_type, PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE);
+  
+  //
+  // set color space and bit depth
+  //
+  if (bsr_config->icc_profile == 3) { // rec.2020
+    png_set_iCCP(png_ptr, info_ptr, "Rec 2020", 0, Rec2020Compat_v4_icc, Rec2020Compat_v4_icc_len);
+  } else if (bsr_config->icc_profile == 2) { // Display-P3
+    png_set_iCCP(png_ptr, info_ptr, "Display-P3", 0, DisplayP3Compat_v4_icc, DisplayP3Compat_v4_icc_len);
+  } else if (bsr_config->icc_profile == 1) { // sRGB
+    png_set_iCCP(png_ptr, info_ptr, "sRGB", 0, sRGB_v4_icc, sRGB_v4_icc_len);
+  } else { // no ICC profile and linear gamma
+    png_set_gAMA(png_ptr, info_ptr, 1.0);
+  }
+
+  //
+  // write PNG header and image data
+  //
   png_write_info(png_ptr, info_ptr);
-  // wringe PNG image data
   png_write_image(png_ptr, bsr_state->row_pointers);
-  // end write
   png_write_end(png_ptr, NULL);
 
   //

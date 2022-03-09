@@ -131,9 +131,9 @@ int quantize(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
     }
 
     //
-    // optionally apply sRGB gamma
+    // apply encoding gamma for color spaces that use it
     //
-    if (bsr_config->rgb_color_space == 1) {
+    if ((bsr_config->icc_profile == 1) || (bsr_config->icc_profile == 2)) { // sRGB and Display-P3
       if (pixel_r <= 0.0031308) {
         pixel_r=pixel_r * 12.92;
       } else {
@@ -148,6 +148,22 @@ int quantize(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
         pixel_b=pixel_b * 12.92;
       } else {
         pixel_b=(1.055 * pow(pixel_b, one_over_2dot4) - 0.055);
+      }
+    } else if (bsr_config->icc_profile == 3) { // Rec. 2020
+      if (pixel_r < 0.018053968510807) {
+        pixel_r=pixel_r * 4.5;
+      } else {
+        pixel_r=(1.09929682680944 * pow(pixel_r, 0.45) - 0.09929682680944);
+      }
+      if (pixel_g < 0.018053968510807) {
+        pixel_g=pixel_g * 4.5;
+      } else {
+        pixel_g=(1.09929682680944 * pow(pixel_g, 0.45) - 0.09929682680944);
+      }
+      if (pixel_b < 0.018053968510807) {
+        pixel_b=pixel_b * 4.5;
+      } else {
+        pixel_b=(1.09929682680944 * pow(pixel_b, 0.45) - 0.09929682680944);
       }
     }
 

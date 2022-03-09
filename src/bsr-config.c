@@ -100,7 +100,7 @@ void initConfig(bsr_config_t *bsr_config) {
   bsr_config->output_scaling_factor=1.0;
   bsr_config->draw_crosshairs=0;
   bsr_config->draw_grid_lines=0;
-  bsr_config->rgb_color_space=1;
+  bsr_config->icc_profile=1;
   bsr_config->bits_per_color=8;
   bsr_config->camera_icrs_x=0.0;
   bsr_config->camera_icrs_y=0.0;
@@ -262,7 +262,7 @@ void setOptionValue(bsr_config_t *bsr_config, char *option, char *value, int fro
   checkOptionDouble(&bsr_config->output_scaling_factor, option, value, "output_scaling_factor");
   checkOptionBool(&bsr_config->draw_crosshairs, option, value, "draw_crosshairs");
   checkOptionBool(&bsr_config->draw_grid_lines, option, value, "draw_grid_lines");
-  checkOptionInt(&bsr_config->rgb_color_space, option, value, "rgb_color_space");
+  checkOptionInt(&bsr_config->icc_profile, option, value, "icc_profile");
   checkOptionInt(&bsr_config->bits_per_color, option, value, "bits_per_color");
   checkOptionDouble(&bsr_config->camera_icrs_x, option, value, "camera_icrs_x");
   checkOptionDouble(&bsr_config->camera_icrs_y, option, value, "camera_icrs_y");

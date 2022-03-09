@@ -141,9 +141,9 @@
         if (tmpvalue != null) {
           settings_form.output_scaling_factor.value = tmpvalue;
         }
-        tmpvalue = search.get("rgb_color_space");
+        tmpvalue = search.get("icc_profile");
         if (tmpvalue != null) {
-          settings_form.rgb_color_space.value = tmpvalue;
+          settings_form.icc_profile.value = tmpvalue;
         }
         tmpvalue = search.get("bits_per_color");
         if (tmpvalue != null) {
@@ -323,7 +323,7 @@ skyglow_temp=${settings_form.skyglow_temp.value}&\
 skyglow_per_pixel_mag=${settings_form.skyglow_per_pixel_mag.value}&\
 Gaussian_blur_radius=${settings_form.Gaussian_blur_radius.value}&\
 output_scaling_factor=${settings_form.output_scaling_factor.value}&\
-rgb_color_space=${settings_form.rgb_color_space.value}&\
+icc_profile=${settings_form.icc_profile.value}&\
 bits_per_color=${settings_form.bits_per_color.value}&\
 camera_res_x=${settings_form.camera_res_x.value}&\
 camera_res_y=${settings_form.camera_res_y.value}&\
@@ -387,7 +387,7 @@ skyglow_temp=${settings_form.skyglow_temp.value}&\
 skyglow_per_pixel_mag=${settings_form.skyglow_per_pixel_mag.value}&\
 Gaussian_blur_radius=${settings_form.Gaussian_blur_radius.value}&\
 output_scaling_factor=${settings_form.output_scaling_factor.value}&\
-rgb_color_space=${settings_form.rgb_color_space.value}&\
+icc_profile=${settings_form.icc_profile.value}&\
 bits_per_color=${settings_form.bits_per_color.value}&\
 camera_res_x=${settings_form.camera_res_x.value}&\
 camera_res_y=${settings_form.camera_res_y.value}&\
@@ -1103,10 +1103,12 @@ s_url" size=30 value=""></td></tr>
           </fieldset>
           <fieldset>
             <legend>PNG Output</legend>
-            <label for "rgb_color_space">RGB color space</label>
-            <select name="rgb_color_spce" id="rgb_color_space">
-              <option value="1" selected>sRGB</option>
-              <option value="0">linear RGB</option>
+            <label for "icc_profile">ICC profile</label>
+            <select name="rgb_color_spce" id="icc_profile">
+              <option value="0">None (linear RGB)</option>
+              <option value="1" selected>sRGB v4</option>
+              <option value="2">Display P3 (compat) v4</option>
+              <option value="3">Rec. 2020 (compat) v4</option>
             </select>
             <br><label for "bits_per_color">Bits per color</label>
             <select name="bits_per_color" id="bits_per_color">
