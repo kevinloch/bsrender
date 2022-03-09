@@ -11,25 +11,29 @@ Sample binary data files|[bsrender.io/sample_data/0.9/](https://bsrender.io/samp
 
 ## Key features
 
-  - 3D translations/rotations of camera position/aiming using ICRS equitorial or Euclidian coordinates.
-  - Support for extremely large resolutions. 8.2 gigapixel (128000x64000) downscaled to 32000x16000 has been successfully rendered with 512GB ram
+  - 3D translations/rotations of camera position/aiming using ICRS equitorial or Euclidian coordinates. Camera can be placed anywhere in the Universe
   - Customizable camera resolution, field of view, sensitivity, white balance, color saturation, and gamma
-  - Camera color is accurately modeled with Planck spectrum and customizable bandpass filters for each color channel
   - Several raster projection modes are supported: lat/lon (equirectangular), Spherical (forward hemisphere centered), Spherical (front/rear hemispheres), Hammer, Mollewide
-  - Accurately modeled Airy disks provide photorealistic renderings of individual stars and clusters when enabled. This includes an optional aperture obstruction ratio.
-  - Stars can be filtered by parallax quality (parallax over error), distance from camera or target, and effective color temperature
-  - Optional Anti-aliasing with configurable radius
-  - Optional Gaussian blur and/or Lanczos2 output scaling. This allows very high resolution renderings to be smoothed and downsampled on a server before downloading
-  - Optional skyglow with configurable intensity and color temperature
-  - Good performance when the data files can be cached in ram. On an AWS m6gd.12xlarge instance (48vcpu/192GBram) the full pq000 dataset (1.4B stars) can be rendered in 14 seconds at 2k resolution. The default pq010 data set (98M stars) renders in just 2 seconds
-  - Support for user-supplied stars. This can be used to add stars that are too bright or dim to have their parallax measured by the Gaia satellite. A sample external.csv is provided with the Sun and all stars brighter than magnitude 3 that are not included in the Gaia dataset or are not able to be imported into bsrender because they lack parallax and/or G-band flux
-  - Effective star temperature (color) is derived from Gaia bp/G and/or rp/G flux ratios for most stars.
-  - 8 or 16 bits per color PNG output, with or without sRGB encoding gamma and colorspace info for either bit depth
-  - Sample web interface includes presets for a few camera targets and several common Hubble bandpass filter settings (along with typical LRGB)
+  - Stars can be filtered by parallax quality (parallax over error), distance from camera or target, and effective temperature
+  - Camera color is modeled with a Planck spectrum for the effective temperature of each star and customizable bandpass filters for each color channel
+  - Effective star temperature (color) is derived from Gaia bp/G and/or rp/G flux ratios for most stars
+  - 8 or 16 bits per color PNG output with selectable ICC profile and gamma (sRGB, Display-P3, Rec. 2020), or raw linear RGB encoding
+  - Multithreading support with customizable number of threads
+  - Runtime configuration can be from any combination of compiled-in defualts, configuration file settings, command line flags, or CGI QUERY_STRING (if in CGI mode). The same option=value settings are used in all of these modes
+  
+## Optional features
+
+- After aiming at target, separate controls are provided to pan and tilt away from target for maximum flexibility with aiming. Camera can also be rotated about it's view axis for desired orientation
+- Support for user-supplied stars. A sample external database is provided with the Sun and all stars brighter than magnitude 3 that are not included in the Gaia dataset
+- Airy disks provide photorealistic renderings of individual stars and clusters when enabled
+- Gaussian blur and/or Lanczos2 output scaling. This allows high resolution renderings to be smoothed and downsampled on a server before downloading
+- Anti-aliasing, helpful when combining multiple frames into videos or simulating DSLR/MILC images
+- Skyglow for simulating views through Earth's atmosphere
+- A sample html/javascript interface includes presets for a few camera targets and several common Hubble bandpass filter settings (along with typical LRGB). Also allows copy/paste settings URL for sharing links to your rendering settings
   
 ## Memory requirements
 
-Using the full Gaia dataset with 1.4B stars requires at least 64GB of ram to run as fast as possible. This is for the operating system to cache the 46GB dataset in memory in addition to ram used by bsrender. Larger resolutions and/or use of blur or output scaling will increase memory requirements.
+Using the full Gaia dataset with 1.4B stars requires at least 64GB of ram to run as fast as possible. This is for the operating system to cache the 46GB dataset in memory in addition to ram used by bsrender. Larger resolutions and/or use of blur or output scaling will increase memory requirements. Full 64-bit support allows for extremely large resolutions, limtied only by available ram and CPU time. 128000x64000 downsampled to 3200x16000 has been rendered with 512GB ram.
 
 ## Installation
 
@@ -124,33 +128,34 @@ This may take up to 24 hours to complete, depending on system and disk speed. Be
 
 ### CGI mode
 
-  when cgi\_mode=yes is set in the config file html headers and png data will be output to stdout, with all other output suppressed (unless run with -h).
+when cgi\_mode=yes is set in the config file html headers and png data will be output to stdout, with all other output suppressed (unless run with -h).
   CGI requests should be made with http GET requests using the same key/value pairs as in the config file. Some options (data\_file\_directory, num\_threads, per\_thread\_buffer, cgi\_) cannot be overridden via CGI and some are limited by the cgi\_ options in config file.
 
 ## Methodology
 
-  Gaia source data is pre-processed with 'gaia-edr3-extract.sh' and then 'mkgalaxy' to tranform the relevant source data feilds into the most efficient form for direct renderng. Spherical ICRS coordinates ('ra', 'dec', and r derived from 'parallax') are transformed into double precision Euclidian x,y,z coordinates. The star's linear intensity (relative to Vega at 1pc) is derived from 'phot\_G\_mean\_flux'. The effective star color temperature is derived by finding the best match (to the closest integer Kelvin) for bp/G and/or rp/G flux ratios to a Planck spectrum integrated within the Gaia rp, bp, and G passbands. If reliable bp and rp flux are not available the color wavenumber ('nu\_eff\_used\_in\_astrometry' or 'pseudocolor') is treated as the peak wavelength of a Planck spectrum and converted into an effective color temperature. These five derived fields (x, y, z, color\_temperature, linear\_1pc\_intensity) are encoded into binary data files for use by 'bsrender'. The Gaia source 'parralax\_over\_error' value is used to split stars into 10 data files by "parallax quality".
+Gaia source data is pre-processed with 'gaia-edr3-extract.sh' and then 'mkgalaxy' to tranform the relevant source data feilds into the most efficient form for direct renderng. Spherical ICRS coordinates ('ra', 'dec', and r derived from 'parallax') are transformed into double precision Euclidian x,y,z coordinates. The star's linear intensity (relative to Vega at 1pc) is derived from 'phot\_G\_mean\_flux'. The effective star color temperature is derived by finding the best match (to the closest integer Kelvin) for bp/G and/or rp/G flux ratios to a Planck spectrum integrated within the Gaia rp, bp, and G passbands. If reliable bp and rp flux are not available the color wavenumber ('nu\_eff\_used\_in\_astrometry' or 'pseudocolor') is treated as the peak wavelength of a Planck spectrum and converted into an effective color temperature. These five derived fields (x, y, z, color\_temperature, linear\_1pc\_intensity) are encoded into binary data files for use by 'bsrender'. The Gaia source 'parralax\_over\_error' value is used to split stars into 10 data files by "parallax quality".
 
-  The rendering engine 'bsrender' uses these data files to generate a PNG file (or stream in CGI mode). Extensive options for configuring rendering are provided through a configuration file 'bsrender.cfg' and most of those can also be set via CGI GET request.
+The rendering engine 'bsrender' uses these data files to generate a PNG file (or stream in CGI mode). Extensive options for configuring rendering are provided through a configuration file 'bsrender.cfg' and most of those can also be set via CGI GET request.
 
-  Before rendering begins an rgb table is initialized using the 'camera\_wb\_temp', 'camera\_color\_saturation', and camera color channel passband options. A Planck spectrum is simulated for the white balance temperature to generate white balance factors for each color channel. Then r,g,b values (normalized to the integrated wide band flux) are calculated for each temperature between 0-32767K. Later during rendering the r,g,b values for a star's effective temperature is multiplied by the linear star intensity (adjusted for distance) to generate the star's contribution to a pixel or Airy disk map of pixels. If Airy disks are enabled then a pre-computed map of Airy disk pixel factors is generated. The first null of the Airy disk in the green channel is scaled to match 'Airy\_disk\_first\_null'. The included Bessel function table supports an Airy\_disk\_max\_extent of 1000 pixels which is over 3000 orders of diffraction with Airy\_disk\_first\_null set to the minimum of 0.3.
+Before rendering begins an rgb table is initialized using the 'camera\_wb\_temp', 'camera\_color\_saturation', and camera color channel passband options. A Planck spectrum is simulated for the white balance temperature to generate white balance factors for each color channel. Then r,g,b values (normalized to the integrated wide band flux) are calculated for each temperature between 0-32767K. Later during rendering the r,g,b values for a star's effective temperature is multiplied by the linear star intensity (adjusted for distance) to generate the star's contribution to a pixel or Airy disk map of pixels. If Airy disks are enabled then a pre-computed map of Airy disk pixel factors is generated. The first null of the Airy disk in the green channel is scaled to match 'Airy\_disk\_first\_null'. The included Bessel function table supports an Airy\_disk\_max\_extent of 1000 pixels which is over 3000 orders of diffraction with Airy\_disk\_first\_null set to the minimum of 0.3.
 
-  Stars can be filtered by parallax quality, distance from either camera or target, and effective color temperature.
+Stars can be filtered by parallax quality, distance from either camera or target, and effective color temperature.
 
-  The coordinate system used internally by bsrender is Euclidian x,y,z with equitorial orientation. From the camera's perspective +x=forward, +y=left, and +z=up. Quaternion algebra is used for 3D rotations of stars which provides maximum speed, consistent precision, and avoids gimbal lock. Stars are first rotated by the (xy and xz) angles required to bring the target to the center of camera view. Optional camera rotation (yz), pan (xy) and tilt (xz) can then be applied in that order. All rotations are combined during initialization into a single rotation quaternion which is used to rotate each selected star in a single rotation operation during processing.
+The coordinate system used internally by bsrender is Euclidian x,y,z with equitorial orientation. From the camera's perspective +x=forward, +y=left, and +z=up. Quaternion algebra is used for 3D rotations of stars which provides maximum speed, consistent precision, and avoids gimbal lock. Stars are first rotated by the (xy and xz) angles required to bring the target to the center of camera view. Optional camera rotation (yz), pan (xy) and tilt (xz) can then be applied in that order. All rotations are combined during initialization into a single rotation quaternion which is used to rotate each selected star in a single rotation operation during processing.
 
-  After translation and rotation stars are filtered by field of view and mapped to an image composition buffer pixel by the selected raster projection. A star's linear intensity (adjusted for distance) is multiplied by the r,g,b lookup table for the star's effective color temperature. If Airy disks are enabled then the pre-computed Airy disk map is used to generate additional pixels up to 'Airy\_disk\_max\_radius' around the central pixel and the star's intensity\*(r,g,b) values are multiplied by the Airy map factor for each Airy disk pixel. Output pixels can optionally be anti-aliased to simulate common consumer/DSLR sensors. Pixels are stored in a double-precision floating-point image composition buffer where they are added to any pixels from previous stars at the same location.
+After translation and rotation stars are filtered by field of view and mapped to an image composition buffer pixel by the selected raster projection. A star's linear intensity (adjusted for distance) is multiplied by the r,g,b lookup table for the star's effective color temperature. If Airy disks are enabled then the pre-computed Airy disk map is used to generate additional pixels up to 'Airy\_disk\_max\_radius' around the central pixel and the star's intensity\*(r,g,b) values are multiplied by the Airy map factor for each Airy disk pixel. Output pixels can optionally be anti-aliased to simulate common consumer/DSLR sensors. Pixels are stored in a double-precision floating-point image composition buffer where they are added to any pixels from previous stars at the same location.
 
-  After the image composition buffer is complete post-processing involves several steps all performed in double precision floating point format:
-    - Normalizing pixel intensity where 'camera\_pixel\_limit\_mag' = 1.0
-    - Optionally applying 'camera\_gamma'
-    - Limiting maximum values for any r,g,b channel to 1.0 by either saturating to white or preserving color (see 'camera\_pixel\_limit\_mode')
-    - Optionally applying Gaussian blur (see 'Gaussian\_blur\_radius');
-    - Optionally applying Lanczos2 image resizing (see 'output\_scaling\_factor')
-    - Limiting maximum values to 1.0 again
-    - Optionally applying sRGB encoding gamma and colorspace info
+After the image composition buffer is complete post-processing involves several steps all performed in double precision floating point format:
+    
+  - Normalizing pixel intensity where 'camera\_pixel\_limit\_mag' = 1.0
+  - Optionally applying 'camera\_gamma'
+  - Limiting maximum values for any r,g,b channel to 1.0 by either saturating to white or preserving color (see 'camera\_pixel\_limit\_mode')
+  - Optionally applying Gaussian blur (see 'Gaussian\_blur\_radius');
+  - Optionally applying Lanczos2 image resizing (see 'output\_scaling\_factor')
+  - Limiting maximum values to 1.0 again
+  - Applying appropriate encoding gamma if an ICC profile is selected
 
-  Finally, the resulting image is converted to 8 or 16 bits per color and output to a PNG file or stream.
+Finally, the resulting image is quantized to 8 or 16 bits per color and output to a PNG file or stream with an optional ICC profile attached. Note: other than applying encoding gamma, RGB values are not changed (rebalanced) based on a selected ICC profile. 
 
 ## Data Credit
 
