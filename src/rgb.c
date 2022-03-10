@@ -100,7 +100,7 @@ int initRGBTables(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   } else {
     // set default temp
     temp=4300;
-  }	 
+  }
   // scan over wavelength range and assign intensity chunks to appropriate channels
   Gband_intensity=0.0;
   red_intensity=0.0;
