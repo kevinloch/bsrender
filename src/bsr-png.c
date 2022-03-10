@@ -77,7 +77,7 @@ int outputPNG(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   }
   
   //
-  // initialize PNG library
+  // initialize PNG ptr and info_ptr
   //
   png_ptr=png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
   info_ptr=png_create_info_struct(png_ptr);
@@ -94,16 +94,20 @@ int outputPNG(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   png_set_IHDR(png_ptr, info_ptr, bsr_state->current_image_res_x, bsr_state->current_image_res_y, bit_depth, color_type, PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE);
   
   //
-  // set color space and bit depth
+  // set color profile
   //
-  if (bsr_config->icc_profile == 3) { // rec.2020
-    png_set_iCCP(png_ptr, info_ptr, "Rec 2020", 0, Rec2020Compat_v4_icc, Rec2020Compat_v4_icc_len);
-  } else if (bsr_config->icc_profile == 2) { // Display-P3
-    png_set_iCCP(png_ptr, info_ptr, "Display-P3", 0, DisplayP3Compat_v4_icc, DisplayP3Compat_v4_icc_len);
-  } else if (bsr_config->icc_profile == 1) { // sRGB
-    png_set_iCCP(png_ptr, info_ptr, "sRGB", 0, sRGB_v4_icc, sRGB_v4_icc_len);
-  } else { // no ICC profile and linear gamma
+  if (bsr_config->icc_profile == 0) {
+    // no ICC profile and linear gamma
     png_set_gAMA(png_ptr, info_ptr, 1.0);
+  } else if (bsr_config->icc_profile == 2) {
+    // Display-P3
+    png_set_iCCP(png_ptr, info_ptr, "Display-P3", 0, DisplayP3Compat_v4_icc, DisplayP3Compat_v4_icc_len);
+  } else if (bsr_config->icc_profile == 3) {
+    // Rec. 2020
+    png_set_iCCP(png_ptr, info_ptr, "Rec 2020", 0, Rec2020Compat_v4_icc, Rec2020Compat_v4_icc_len);
+  } else {
+    // safest default is sRGB
+    png_set_iCCP(png_ptr, info_ptr, "sRGB", 0, sRGB_v4_icc, sRGB_v4_icc_len);
   }
 
   //
