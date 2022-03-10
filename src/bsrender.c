@@ -146,7 +146,7 @@ int main(int argc, char **argv) {
   //
   if ((bsr_config.cgi_mode != 1) && (bsr_config.print_status == 1)) {
     clock_gettime(CLOCK_REALTIME, &overall_starttime);
-    printf("Total threads: %d, buffers per rendering thread: %d pixels\n", (bsr_state->num_worker_threads + 1), bsr_state->per_thread_buffers);
+    printf("Total threads: %d, buffers per worker thread: %d pixels\n", (bsr_state->num_worker_threads + 1), bsr_state->per_thread_buffers);
     fflush(stdout);
   }
 

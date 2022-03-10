@@ -59,12 +59,12 @@ Privileged options - these cannot be changed by remote users in CGI mode:\n\
      --print_status=BOOL, -q              yes = sppress non-error status messages (also -q)\n\
                                           no = will allow informational status messages\n\
                                           Messages are always suppressed in CGI mode\n\
-     --num_threads=NUM                    Total number of threads including main thread and rendering\n\
+     --num_threads=NUM                    Total number of threads including main thread and worker\n\
                                           threads (minimum 2)\n\
                                           For best performance set to number of vcpus\n\
-     --per_thread_buffer=NUM              Number of stars to buffer between each rendering thread and main thread\n\
+     --per_thread_buffer=NUM              Number of stars to buffer between each worker thread and main thread\n\
                                           Also sets size of dedup buffer for each thread\n\
-     --per_thread_buffer_Airy=NUM         Number of stars to buffer between each rendering thread and main thread\n\
+     --per_thread_buffer_Airy=NUM         Number of stars to buffer between each worker thread and main thread\n\
                                           when Airy disks are enabled\n\
                                           Also sets size of dedup buffer for each thread\n\
      --cgi_mode=BOOL                      yes = enable CGI mode (html headers and png data written to stdout)\n\
