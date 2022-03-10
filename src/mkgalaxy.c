@@ -895,7 +895,6 @@ int main(int argc, char **argv) {
       // only continue if record has parallax (5 parms solved or 6 parms solved) and phot_G_mean_flux > 0
       //
       if (((astrometric_params_solved == 31) || (astrometric_params_solved == 95)) && (phot_G_mean_flux > 0.0)) {
-
         //
         // transform flux to linear intensity relative to vega 
         //
@@ -929,7 +928,6 @@ int main(int argc, char **argv) {
         // only continue if parallax is valid
         //
         if (parallax > 0.0) {
-
           //
           // transform spherical icrs to euclidian icrs
           //
@@ -1138,7 +1136,6 @@ int main(int argc, char **argv) {
       printf("  no parallax: %lld, parallax unusable: %lld, no_G_flux: %lld, color temp derived from (bp/rp: %lld, bp/G: %lld, rp/G: %lld, nu_eff_used_in_astrometry: %lld, pseudocolor: %lld, min_t_count: %lld, max_t_count: %lld), incremental time: %.3fs, total time: %.3fs\n",discard_parms_count, discard_parallax_count, discard_no_flux_count, temperature_from_bp_rp_count, temperature_from_bp_G_count, temperature_from_rp_G_count, temperature_from_nu_eff_count, temperature_from_pseudocolor_count, min_temp_count, max_temp_count, elapsed_time, overall_elapsed_time);
 
       fflush(stdout);
-      clock_gettime(CLOCK_REALTIME, &starttime);
     }
 
     input_line_p=fgets(input_line, 256, input_file);
