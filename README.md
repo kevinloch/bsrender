@@ -9,7 +9,9 @@ Live demo|[bsrender.io/demo/](https://bsrender.io/demo/)
 Source code|[github.com/kevinloch/bsrender](https://github.com/kevinloch/bsrender)
 Sample binary data files|[bsrender.io/sample_data/0.9/](https://bsrender.io/sample_data/0.9/)
 
-## Key features
+Version 1.0 with support for the newly-released DR3 dataset is coming soon! This version will feature dramatic improvements in rendering speed, support for experimental extinction removal (from DR3 GSPPHOT), and the ability to output a text list of stars within a selected field of view (including DR3 source_id, ra, dec, magnitude, and temperature for each star).
+
+## Key features v0.9
 
   - 3D translations/rotations of camera position/aiming using ICRS equitorial or Euclidian coordinates. Camera can be placed anywhere in the Universe
   - Customizable camera resolution, field of view, sensitivity, white balance, color saturation, and gamma
@@ -21,7 +23,7 @@ Sample binary data files|[bsrender.io/sample_data/0.9/](https://bsrender.io/samp
   - Multithreading support with customizable number of threads
   - Runtime configuration can be from any combination of compiled-in defualts, configuration file settings, command line flags, or CGI QUERY_STRING (if in CGI mode). The same option=value settings are used in all of these modes
   
-## Optional features
+## Optional features v0.9
 
 - After aiming at target, separate controls are provided to pan and tilt away from target for maximum flexibility with aiming. Camera can also be rotated about it's view axis for desired orientation
 - Support for user-supplied stars. A sample external database is provided with the Sun and all stars brighter than magnitude 3 that are not included in the Gaia dataset
