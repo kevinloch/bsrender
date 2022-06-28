@@ -2,7 +2,7 @@
 // Billion Star 3D Rendering Engine
 // Kevin M. Loch
 //
-// 3D rendering engine for the ESA Gaia EDR3 star dataset
+// 3D rendering engine for the ESA Gaia DR3 star dataset
 
 /*
  * BSD 3-Clause License
@@ -41,12 +41,16 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include "util.h"
 #include "usage.h"
 
 void initConfig(bsr_config_t *bsr_config) {
-  strcpy(bsr_config->config_file_name, "bsrender.cfg");
-  strcpy(bsr_config->data_file_directory, "galaxydata");
-  strcpy(bsr_config->output_file_name, "galaxy.png");
+  strncpy(bsr_config->config_file_name, "bsrender.cfg", 255);
+  bsr_config->config_file_name[255]=0;
+  strncpy(bsr_config->data_file_directory, "galaxydata", 255);
+  bsr_config->data_file_directory[255]=0;
+  strncpy(bsr_config->output_file_name, "galaxy.png", 255);
+  bsr_config->output_file_name[255]=0;
   bsr_config->print_status=1;
   bsr_config->num_threads=16;
   bsr_config->per_thread_buffer=1000;
@@ -68,6 +72,8 @@ void initConfig(bsr_config_t *bsr_config) {
   bsr_config->render_distance_selector=0;
   bsr_config->star_color_min=0.0;
   bsr_config->star_color_max=1.0E99;
+  bsr_config->extinction_dimming_undo=0;
+  bsr_config->extinction_reddening_undo=0;
   bsr_config->camera_res_x=4000;
   bsr_config->camera_res_y=2000;
   bsr_config->camera_fov=360.0;
@@ -164,7 +170,8 @@ void cleanupValueStr(char *value) {
     j++;
   }
   tmpvalue[j]=0;
-  strcpy(value, tmpvalue);
+  strncpy(value, tmpvalue, 255);
+  value[255]=0;
 }
 
 void checkOptionBool(int *config_int, char *option, char *value, char *matchstr) {
@@ -191,7 +198,8 @@ void checkOptionDouble(double *config_double, char *option, char *value, char *m
 
 void checkOptionStr(char *config_str,  char *option, char *value, char *matchstr) {
   if ((strcasestr(option, matchstr) == option) && (strlen(option) == strlen(matchstr))) {
-    strcpy(config_str, value);
+    strncpy(config_str, value, 255);
+    config_str[255]=0;
   }
 }
 
@@ -230,6 +238,8 @@ void setOptionValue(bsr_config_t *bsr_config, char *option, char *value, int fro
   checkOptionInt(&bsr_config->render_distance_selector, option, value, "render_distance_selector");
   checkOptionDouble(&bsr_config->star_color_min, option, value, "star_color_min");
   checkOptionDouble(&bsr_config->star_color_max, option, value, "star_color_max");
+  checkOptionBool(&bsr_config->extinction_dimming_undo, option, value, "extinction_dimming_undo");
+  checkOptionBool(&bsr_config->extinction_reddening_undo, option, value, "extinction_reddening_undo");
   checkOptionInt(&bsr_config->camera_res_x, option, value, "camera_res_x");
   checkOptionInt(&bsr_config->camera_res_y, option, value, "camera_res_y");
   checkOptionDouble(&bsr_config->camera_fov, option, value, "camera_fov");
@@ -309,22 +319,26 @@ int processConfigSegment(bsr_config_t *bsr_config, char *segment, int from_cgi) 
     //
     // enforce range restrictions on option and value
     //
-    if ((option_length < 254) && (value_length < 254)) {
-      strncpy(option, segment, option_length);
-      option[option_length]=0;
-      strncpy(value, (symbol_p+=1), value_length);
-      value[value_length]=0;
+    if (option_length > 255) {
+      option_length=255;
+    }
+    strncpy(option, segment, option_length);
+    option[option_length]=0;
+    if (value_length > 255) {
+      value_length=255;
+    }
+    strncpy(value, (symbol_p+=1), value_length);
+    value[value_length]=0;
 
-      //
-      // remove non-alphanumeric characters before and after value
-      //
-      cleanupValueStr(value);
+    //
+    // remove non-alphanumeric characters before and after value
+    //
+    cleanupValueStr(value);
 
-      //
-      // send to option value processing fucntion
-      //
-      setOptionValue(bsr_config, option, value, from_cgi);
-    } // end option_length and value_length checks
+    //
+    // send to option value processing fucntion
+    //
+    setOptionValue(bsr_config, option, value, from_cgi);
   } // end symbol_p check
 
   return(0);
@@ -340,14 +354,55 @@ int loadConfigFromFile(bsr_config_t *bsr_config) {
   char segment[256];
   size_t segment_length;
   char *query_string;
+  int little_endian;
   
   //
-  // print status udpate if not in CGI mode. We use the existence of QUERY_STRING to guess CGI mode at this point
+  // until we load config, use QUERY_STRING to guess CGI mode and suppress status messages
   //
   query_string=NULL;
   query_string=getenv("QUERY_STRING");
+
+  //
+  // print version and endianness
+  //
   if ((query_string == NULL) && (bsr_config->print_status == 1)) {
     printf("bsrender version %s\n", BSR_VERSION);
+    little_endian=littleEndianTest();
+#ifdef BSR_LITTLE_ENDIAN_COMPILE
+    if (little_endian == 1) {
+      printf("Compiled for little-endian, detected little-endian architecture\n");
+      fflush(stdout);
+    } else {
+      printf("Error: Compiled for little-endian, detected big-endian architecture, please re-compile\n");
+      fflush(stdout);
+      exit(1);
+    }
+#elif defined BSR_BIG_ENDIAN_COMPILE
+    if (little_endian == 0) {
+      printf("Compiled for big-endian, detected big-endian architecture\n");
+      fflush(stdout);
+    } else {
+      printf("Error: Compiled for big-endian, detected little-endian architecture, please re-compile\n");
+      fflush(stdout);
+      exit(1);
+    }
+#else
+    printf("Error: compiled for unknown endianness, please re-compile\n");
+    fflush(stdout);
+    exit(1);
+#endif
+  }
+
+  //
+  // attempt to open config file
+  //
+  config_file=fopen(bsr_config->config_file_name, "r");
+  if ((config_file == NULL) && (query_string == NULL)) {
+    printf("Warning: could not open %s\n", bsr_config->config_file_name);
+    fflush(stdout);
+    return(0);
+  }
+  if ((query_string == NULL) && (bsr_config->print_status == 1)) {
     printf("Loading configuration file %s\n", bsr_config->config_file_name);
     fflush(stdout);
   }
@@ -377,6 +432,9 @@ int loadConfigFromFile(bsr_config_t *bsr_config) {
     } else {
       segment_length=input_line_length-1;
     } 
+    if (segment_length > 255) {
+      segment_length=255;
+    }
     strncpy(segment, input_line, segment_length);
     segment[segment_length]=0;
 
@@ -426,6 +484,9 @@ int loadConfigFromQueryString(bsr_config_t *bsr_config, char *query_string) {
     //
     // process config segment
     //
+    if (segment_length > 2047) {
+      segment_length=2047;
+    }
     strncpy(segment, query_p, segment_length);
     segment[segment_length]=0;
     from_cgi=1;
@@ -465,22 +526,26 @@ int processCmdArgs(bsr_config_t *bsr_config, int argc, char **argv) {
         if (argv[i][2] != 0) {
           // option concatenated onto switch
           option_start=argv[i];
-          strcpy(bsr_config->config_file_name, (option_start + (size_t)2));
+          strncpy(bsr_config->config_file_name, (option_start + (size_t)2), 255);
+          bsr_config->config_file_name[255]=0;
         } else if ((argc >= (i + 1)) && (argv[i + 1][0] != '-')) {
           // option is probably next argv
           option_start=argv[i + 1];
-          strcpy(bsr_config->config_file_name, option_start);
+          strncpy(bsr_config->config_file_name, option_start, 255);
+          bsr_config->config_file_name[255]=0;
         } // end if no space
       } else if (argv[i][1] == 'd') {
         // data files directory
         if (argv[i][2] != 0) {
           // option concatenated onto switch
           option_start=argv[i];
-          strcpy(bsr_config->data_file_directory, (option_start + (size_t)2));
+          strncpy(bsr_config->data_file_directory, (option_start + (size_t)2), 255);
+          bsr_config->data_file_directory[255]=0;
         } else if ((argc >= (i + 1)) && (argv[i + 1][0] != '-')) {
           // option is probably next argv
           option_start=argv[i + 1];
-          strcpy(bsr_config->data_file_directory, option_start);
+          strncpy(bsr_config->data_file_directory, option_start, 255);
+          bsr_config->data_file_directory[255]=0;
         } // end if no space
       } else if (argv[i][1] == 'h') {
         // print help
@@ -491,11 +556,13 @@ int processCmdArgs(bsr_config_t *bsr_config, int argc, char **argv) {
         if (argv[i][2] != 0) {
           // option concatenated onto switch
           option_start=argv[i];
-          strcpy(bsr_config->output_file_name, (option_start + (size_t)2));
+          strncpy(bsr_config->output_file_name, (option_start + (size_t)2), 255);
+          bsr_config->output_file_name[255]=0;
         } else if ((argc >= (i + 1)) && (argv[i + 1][0] != '-')) {
           // option is probably next argv
           option_start=argv[i + 1];
-          strcpy(bsr_config->output_file_name, option_start);
+          strncpy(bsr_config->output_file_name, option_start, 255);
+          bsr_config->output_file_name[255]=0;
         } // end if no space
       } else if (argv[i][1] == 'q') {
         // quite mode - suppress non-error status messages
@@ -507,5 +574,13 @@ int processCmdArgs(bsr_config_t *bsr_config, int argc, char **argv) {
       } // end which option
     } // end for argc
   } // end if any options
+  return(0);
+}
+
+int enforceConfigLimits(bsr_config_t *bsr_config) {
+  if (bsr_config->num_threads < 2) {
+    bsr_config->num_threads=2;
+  }
+
   return(0);
 }

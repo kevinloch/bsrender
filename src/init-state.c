@@ -2,7 +2,7 @@
 // Billion Star 3D Rendering Engine
 // Kevin M. Loch
 //
-// 3D rendering engine for the ESA Gaia EDR3 star dataset
+// 3D rendering engine for the ESA Gaia DR3 star dataset
 
 /*
  * BSD 3-Clause License
@@ -41,6 +41,7 @@
 #include <sys/mman.h>
 #include <math.h>
 #include "process-stars.h"
+#include "util.h"
 
 bsr_state_t *initState(bsr_config_t *bsr_config) {
   bsr_state_t *bsr_state;
@@ -74,7 +75,7 @@ bsr_state_t *initState(bsr_config_t *bsr_config) {
   mmap_visibility=MAP_SHARED | MAP_ANONYMOUS;
   bsr_state_size=sizeof(bsr_state_t);
   bsr_state=(bsr_state_t *)mmap(NULL, bsr_state_size, mmap_protection, mmap_visibility, -1, 0);
-  if (bsr_state == NULL) {
+  if (bsr_state == MAP_FAILED) {
     if (bsr_config->cgi_mode != 1) {
       printf("Error: could not allocate shared memory for bsr_state\n");
     }
@@ -210,6 +211,11 @@ bsr_state_t *initState(bsr_config_t *bsr_config) {
   bsr_state->target_rotation.i=result.i;
   bsr_state->target_rotation.j=result.j;
   bsr_state->target_rotation.k=result.k;
+
+  //
+  // check endianness
+  //
+  bsr_state->little_endian=littleEndianTest();
 
   return(bsr_state);
 }

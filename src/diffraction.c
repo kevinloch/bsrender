@@ -2,7 +2,7 @@
 // Billion Star 3D Rendering Engine
 // Kevin M. Loch
 //
-// 3D rendering engine for the ESA Gaia EDR3 star dataset
+// 3D rendering engine for the ESA Gaia DR3 star dataset
 
 /*
  * BSD 3-Clause License
@@ -83,7 +83,7 @@ int makeAiryMap(bsr_state_t *bsr_state, double *Airymap, int max_extent, int hal
   // generate Airy disk map
   //
   map_index_x=0;
-  map_index_y=(bsr_state->perthread->my_thread_id * lines_per_thread);
+  map_index_y=bsr_state->perthread->my_thread_id * lines_per_thread;
   Airymap_p=Airymap + (Airymap_max_width * map_index_y);
   for (map_offset=0; ((map_offset < (Airymap_max_width * lines_per_thread)) && (map_index_y < Airymap_max_width)); map_offset++) {
     pixel_x=(double)map_index_x;

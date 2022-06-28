@@ -2,7 +2,7 @@
 // Billion Star 3D Rendering Engine
 // Kevin M. Loch
 //
-// 3D rendering engine for the ESA Gaia EDR3 star dataset
+// 3D rendering engine for the ESA Gaia DR3 star dataset
 
 /*
  * BSD 3-Clause License
@@ -39,7 +39,7 @@
 #ifndef BSR_UTIL_H
 #define BSR_UTIL_H
 
-int hash24(long int image_offset);
+int littleEndianTest();
 int waitForWorkerThreads(bsr_state_t *bsr_state, int min_status);
 int waitForMainThread(bsr_state_t *bsr_state, int min_status);
 int checkExceptions(bsr_state_t *bsr_state);

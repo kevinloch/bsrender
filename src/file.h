@@ -36,9 +36,11 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef BSR_GAUSSIAN_BLUR_H
-#define BSR_GAUSSIAN_BLUR_H
+#ifndef BSR_FILE_H
+#define BSR_FILE_H
 
-int GaussianBlur(bsr_config_t *bsr_config, bsr_state_t *bsr_state);
+int openInputFiles(bsr_config_t *bsr_config, bsr_state_t *bsr_state);
+int closeInputFiles(bsr_config_t *bsr_config, bsr_state_t *bsr_state);
 
-#endif // BSR_GAUSSIN_BLUR_H
+
+#endif // BSR_FILE_H

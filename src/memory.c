@@ -2,7 +2,7 @@
 // Billion Star 3D Rendering Engine
 // Kevin M. Loch
 //
-// 3D rendering engine for the ESA Gaia EDR3 star dataset
+// 3D rendering engine for the ESA Gaia DR3 star dataset
 
 /*
  * BSD 3-Clause License
@@ -99,7 +99,7 @@ int allocateMemory(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   mmap_visibility=MAP_SHARED | MAP_ANONYMOUS;
   bsr_state->composition_buffer_size=(size_t)bsr_config->camera_res_x * (size_t)bsr_config->camera_res_y * sizeof(pixel_composition_t);
   bsr_state->image_composition_buf=(pixel_composition_t *)mmap(NULL, bsr_state->composition_buffer_size, mmap_protection, mmap_visibility, -1, 0);
-  if (bsr_state->image_composition_buf == NULL) {
+  if (bsr_state->image_composition_buf == MAP_FAILED) {
     if ((bsr_config->cgi_mode != 1) && (bsr_config->print_status == 1)) {
       printf("Error: could not allocate shared memory for image composition buffer\n");
     }
@@ -117,7 +117,7 @@ int allocateMemory(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
     mmap_visibility=MAP_SHARED | MAP_ANONYMOUS;
     bsr_state->blur_buffer_size=(size_t)bsr_config->camera_res_x * (size_t)bsr_config->camera_res_y * sizeof(pixel_composition_t);
     bsr_state->image_blur_buf=(pixel_composition_t *)mmap(NULL, bsr_state->blur_buffer_size, mmap_protection, mmap_visibility, -1, 0);
-    if (bsr_state->image_blur_buf == NULL) {
+    if (bsr_state->image_blur_buf == MAP_FAILED) {
       if (bsr_config->cgi_mode != 1) {
         printf("Error: could not allocate shared memory for image blur buffer\n");
         fflush(stdout);
@@ -136,7 +136,7 @@ int allocateMemory(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
     mmap_visibility=MAP_SHARED | MAP_ANONYMOUS;
     bsr_state->resize_buffer_size=(size_t)bsr_state->resize_res_x * (size_t)bsr_state->resize_res_y * sizeof(pixel_composition_t);
     bsr_state->image_resize_buf=(pixel_composition_t *)mmap(NULL, bsr_state->resize_buffer_size, mmap_protection, mmap_visibility, -1, 0);
-    if (bsr_state->image_resize_buf == NULL) {
+    if (bsr_state->image_resize_buf == MAP_FAILED) {
       if (bsr_config->cgi_mode != 1) {
         printf("Error: could not allocate shared memory for image resize buffer\n");
         fflush(stdout);
@@ -218,7 +218,7 @@ int allocateMemory(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   bsr_state->thread_buffer_count=bsr_state->num_worker_threads * bsr_state->per_thread_buffers;
   bsr_state->thread_buffer_size=bsr_state->thread_buffer_count * sizeof(thread_buffer_t);
   bsr_state->thread_buf=(thread_buffer_t *)mmap(NULL, bsr_state->thread_buffer_size, mmap_protection, mmap_visibility, -1, 0);
-  if (bsr_state->thread_buf == NULL) {
+  if (bsr_state->thread_buf == MAP_FAILED) {
     if (bsr_config->cgi_mode != 1) {
       printf("Error: could not allocate shared memory for main thread buffer\n");
     }
@@ -234,7 +234,7 @@ int allocateMemory(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   // allocate shared memory for thread status array
   bsr_state->status_array_size=(bsr_state->num_worker_threads + 1) * sizeof(bsr_status_t);
   bsr_state->status_array=(bsr_status_t *)mmap(NULL, bsr_state->status_array_size, mmap_protection, mmap_visibility, -1, 0);
-  if (bsr_state->status_array == NULL) {
+  if (bsr_state->status_array == MAP_FAILED) {
     if (bsr_config->cgi_mode != 1) {
       printf("Error: could not allocate shared memory for thread status array\n");
     }
@@ -265,7 +265,7 @@ int allocateMemory(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
     bsr_state->output_buffer_size=(long long)output_res_x * (long long)output_res_y * (long long)6 * sizeof(png_byte);
   }
   bsr_state->image_output_buf=(png_byte *)mmap(NULL, bsr_state->output_buffer_size, mmap_protection, mmap_visibility, -1, 0);
-  if (bsr_state->image_output_buf == NULL) {
+  if (bsr_state->image_output_buf == MAP_FAILED) {
     if (bsr_config->cgi_mode != 1) {
       printf("Error: could not allocate memory for image output buffer\n");
       fflush(stdout);
@@ -280,7 +280,7 @@ int allocateMemory(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   mmap_visibility=MAP_SHARED | MAP_ANONYMOUS;
   bsr_state->row_pointers_size=(output_res_y * sizeof(png_bytep));
   bsr_state->row_pointers=(png_bytep *)mmap(NULL, bsr_state->row_pointers_size, mmap_protection, mmap_visibility, -1, 0);
-  if (bsr_state->row_pointers == NULL) {
+  if (bsr_state->row_pointers == MAP_FAILED) {
     if (bsr_config->cgi_mode != 1) {
       printf("Error: could not allocate memory for libpng row_pointers\n");
       fflush(stdout);

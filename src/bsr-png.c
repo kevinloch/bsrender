@@ -2,7 +2,7 @@
 // Billion Star 3D Rendering Engine
 // Kevin M. Loch
 //
-// 3D rendering engine for the ESA Gaia EDR3 star dataset
+// 3D rendering engine for the ESA Gaia DR3 star dataset
 
 /*
  * BSD 3-Clause License
@@ -105,6 +105,18 @@ int outputPNG(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   } else if (bsr_config->icc_profile == 3) {
     // Rec. 2020
     png_set_iCCP(png_ptr, info_ptr, "Rec 2020", 0, Rec2020Compat_v4_icc, Rec2020Compat_v4_icc_len);
+  } else if (bsr_config->icc_profile == 4) {
+    // Rec. 601 NTSC
+    png_set_iCCP(png_ptr, info_ptr, "Rec 601 NTSC", 0, Rec601NTSC_v4_icc, Rec601NTSC_v4_icc_len);
+  } else if (bsr_config->icc_profile == 5) {
+    // Rec. 601 PAL
+    png_set_iCCP(png_ptr, info_ptr, "Rec 2020", 0, Rec601PAL_v4_icc, Rec601PAL_v4_icc_len);
+  } else if (bsr_config->icc_profile == 6) {
+    // Rec. 709
+    png_set_iCCP(png_ptr, info_ptr, "Rec 2020", 0, Rec709_v4_icc, Rec709_v4_icc_len);
+  } else if (bsr_config->icc_profile == 7) {
+    // no ICC profile and flat 2.0 gamma
+    png_set_gAMA(png_ptr, info_ptr, 0.5);
   } else {
     // safest default is sRGB
     png_set_iCCP(png_ptr, info_ptr, "sRGB", 0, sRGB_v4_icc, sRGB_v4_icc_len);

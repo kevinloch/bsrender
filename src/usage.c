@@ -2,7 +2,7 @@
 // Billion Star 3D Rendering Engine
 // Kevin M. Loch
 //
-// 3D rendering engine for the ESA Gaia EDR3 star dataset
+// 3D rendering engine for the ESA Gaia DR3 star dataset
 
 /*
  * BSD 3-Clause License
@@ -79,14 +79,18 @@ Privileged options - these cannot be changed by remote users in CGI mode:\n\
 \n\
 Star filters:\n\
      --enable_Gaia=BOOL                   yes = Enable galaxy-pq*.dat with Gaia stars\n\
-     --Gaia_min_parallax_quality=NUM      Minimum parallax quality of Gaia stars (GEDR3 'parallax_over_error')\n\
+     --Gaia_min_parallax_quality=NUM      Minimum parallax quality of Gaia stars (GDR3 'parallax_over_error')\n\
                                           Valid values: 0,1,2,3,5,10,20,30,50,100\n\
      --enable_external=BOOL               yes = Enable galaxy-external.dat with non-Gaia stars\n\
      --render_distance_min=FLOAT          Minimum star distance\n\
      --render_distance_max=FLOAT          Maximum star distance\n\
      --render_distance_selector=NUM       min/max star distance is measured from 0=camera, 1=target\n\
-     --star_color_min=FLOAT               Minimum star effective color temperature in Kelvin\n\
-     --star_color_max=FLOAT               Maximum star effective color temperature in Kelvin\n\
+     --star_color_min=FLOAT               Minimum star apparent color temperature in Kelvin\n\
+     --star_color_max=FLOAT               Maximum star apparent color temperature in Kelvin\n\
+\n\
+Extinction options:\n\
+     --extinction_dimming_undo=BOOL       yes = undo extinction dimming (based on Gaia DR3 AG_GSPPHOT)\n\
+     --extinction_reddening_undo=BOOL     yes = undo extinction reddening (based on Gaia DR3 TEFF_GSPPHOT)\n\
 \n\
 Camera options:\n\
      --camera_res_x=NUM                   Horizontal resolution\n\
@@ -99,7 +103,7 @@ Camera options:\n\
      --camera_color_saturation=FLOAT      Chroma saturation level (4.0 = 4x crhoma)\n\
      --camera_gamma=FLOAT                 Image gamma adjustment. This option never changes PNG header gamma as it\n\
                                           is intended to modify the way the image looks\n\
-     --camera_projection=NUM              Raster projection: 0=lat/lon, 1=spherical, 2=Hammer, 3=Mollewide\n\
+     --camera_projection=NUM              Raster projection: 0 = lat/lon, 1 = spherical, 2 = Hammer, 3 = Mollewide\n\
      --spherical_orientation=NUM          Spherical projection orientation: 0 = forward centered, 1 = forward on\n\
                                           left, rear on right\n\
      --Mollewide_iterations=NUM           Number of iterations for Mollewide projection algorithm\n\
@@ -147,9 +151,10 @@ Overlays:\n\
                                           width and height\n\
 \n\
 PNG output:\n\
-     --icc_profile=NUM                    0 = none (linear RGB), 1 = sRGB v4,\n\
-                                          2 = Display-P3 (compat) v4, 3 = Rec.2020 (compat) v4\n\
-                                          ICC profiles are from https://github.com/saucecontrol/Compact-ICC-Profiles\n\
+     --icc_profile=NUM                    0 = None - linear gamma, 1 = sRGB, 2 = Display-P3 (compatible Z),\n\
+                                          3 = Rec. 2020 (compatible Z), 4 = Rec. 601 NTSC, 5 = Rec. 601 PAL,\n\
+                                          6 = Rec. 709, 7 = None - flat 2.0 gamma\n\
+                                          ICC profiles are v4 from https://github.com/saucecontrol/Compact-ICC-Profiles\n\
      --bits_per_color=NUM                 8 or 16 bits per color\n\
 \n\
 Camera position in Euclidian ICRS coordinates:\n\

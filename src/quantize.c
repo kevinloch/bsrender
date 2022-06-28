@@ -2,7 +2,7 @@
 // Billion Star 3D Rendering Engine
 // Kevin M. Loch
 //
-// 3D rendering engine for the ESA Gaia EDR3 star dataset
+// 3D rendering engine for the ESA Gaia DR3 star dataset
 
 /*
  * BSD 3-Clause License
@@ -107,7 +107,7 @@ int quantize(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
     bpp=6;
   }
   output_x=0;
-  output_y=(bsr_state->perthread->my_thread_id * lines_per_thread);
+  output_y=bsr_state->perthread->my_thread_id * lines_per_thread;
   image_output_p=bsr_state->image_output_buf + ((long long)output_res_x * (long long)output_y * (long long)bpp);
   current_image_p=bsr_state->current_image_buf + ((long long)output_res_x * (long long)output_y);
   if (output_y < output_res_y) {
@@ -149,7 +149,8 @@ int quantize(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
       } else {
         pixel_b=(1.055 * pow(pixel_b, one_over_2dot4) - 0.055);
       }
-    } else if (bsr_config->icc_profile == 3) { // Rec. 2020
+    } else if ((bsr_config->icc_profile == 3) || (bsr_config->icc_profile == 4)\
+            || (bsr_config->icc_profile == 5) || (bsr_config->icc_profile == 6)) { // Rec. 2020, Rec. 601 NTSC, Rec. 601 PAL, Rec. 709
       if (pixel_r < 0.018053968510807) {
         pixel_r=pixel_r * 4.5;
       } else {
@@ -165,6 +166,10 @@ int quantize(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
       } else {
         pixel_b=(1.09929682680944 * pow(pixel_b, 0.45) - 0.09929682680944);
       }
+    } else if (bsr_config->icc_profile == 7) { // flat 2.0 gamma
+      pixel_r=pow(pixel_r, 0.5);
+      pixel_g=pow(pixel_g, 0.5);
+      pixel_b=pow(pixel_b, 0.5);
     }
 
     //

@@ -2,7 +2,7 @@
 // Billion Star 3D Rendering Engine
 // Kevin M. Loch
 //
-// 3D rendering engine for the ESA Gaia EDR3 star dataset
+// 3D rendering engine for the ESA Gaia DR3 star dataset
 
 /*
  * BSD 3-Clause License
@@ -37,25 +37,14 @@
  */
 
 //
-// pre-processor for the ESA Gaia EDR3 star dataset
+// pre-processor for the ESA Gaia DR3 star dataset
 //
 // This program creates binary data files for use by the rendering engine
-// Data is sorted into separate files by "Gaia paralax quality" which is the value of the 'parallax_over_error' field in the GEDR3 data set
+// Data is sorted into separate files by "Gaia paralax quality" which is the value of the 'parallax_over_error' field in the GDR3 data set
 // galaxy-pq030 for example has stars with a minimum parallax quality of 30.0, but less than the next highest tier (50.0)
 //
-// The format of the binary data files is given by the star_record data type
-//
-//   typedef struct {
-//    double icrs_x;
-//    double icrs_y;
-//    double icrs_z;
-//    uint64_t intensity_and_temperature;
-//  } star_record_t;
-//
-// where intensity_and_temperature has a single precision value for the the normalized (to vega at 1 parsec) flux in the 32 MSB,
-// and the color temperature of the star as an unsigned integer between 0..32767 in the 32 LSB.
-// For speed in the rendering engine no byte-order checking/setting is done so the data files must be generated on a compatible platform for the rendering engine.
-//
+
+//#define DEBUG
 
 #include "bsrender.h" // needs to be first to get GNU_SOURCE define for strcasestr
 #include <stdint.h>
@@ -65,6 +54,7 @@
 #include <math.h>
 #include <time.h>
 #include "bandpass-ratio.h"
+#include "util.h"
 
 void printUsage() {
   printf("mkgalaxy version %s\n", BSR_VERSION);
@@ -73,34 +63,60 @@ NAME\n\
      mkgalaxy -- create binary data files for use with bsrender\n\
 \n\
 SYNOPSIS\n\
-     mkgalaxy [-b] [-w] [-c] [-p] [-h]\n\
+     mkgalaxy [-b] [-w] [-d] [-p] [-c] [-n] [-m] [-l] [-g] [-h]\n\
  \n\
 OPTIONS:\n\
      -b\n\
-          Use bp/G and rp/G bandpass ratios to estimate effective temperature (default)\n\
+          Use bp/G and rp/G bandpass ratios to estimate apparent temperature (default)\n\
 \n\
      -w\n\
-          Use Gaia EDR3 color wavenumber fieldto estimate effective temperature\n\
+          Use Gaia DR3 color wavenumber field to estimate apparent temperature\n\
+\n\
+     -d\n\
+          Use Gaia DR3 'gspphot_distance' field instead of 'parallax' when available\n\
+\n\
+     -p\n\
+          Only use Gaia DR3 'parallax' for star distance (default)\n\
 \n\
      -c\n\
           Enable Lindegren et al parallax calibration\n\
 \n\
-     -p\n\
-          Override parallax if lower than this value or set to zero to disable override (default 0.02 miliarcseconds)\n\
+     -n\n\
+          Do not use Lindegren et al parallax calibration (default)\n\
+\n\
+     -m\n\
+          Maximum star distance from Earth. Stars further away will be fixed to this value. Set to zero to disable (default is 50,000 parsecs)\n\
+\n\
+     -l\n\
+          Force output to little-endian format (default is to match this platform)\n\
+\n\
+     -g\n\
+          Force output big-endian format (default is to match this platform)\n\
 \n\
      -h\n\
           Show help\n\
 \n\
 DESCRIPTON\n\
- mkgalaxy processes extracted fields from ESA's Gaia EDR3 dataset for use with bsrender. Uses the output from 'gaia-edr3-extract.sh' in the bsrender package\n\
+ mkgalaxy processes extracted fields from ESA's Gaia DR3 dataset for use with bsrender. Uses the output from 'gaia-dr3-extract.sh' in the bsrender package\n\
  \n");
 }
 
 int setDefaults(mkg_config_t *mkg_config) {
+  int little_endian;
+
   mkg_config->use_bandpass_ratios=1;
+  mkg_config->use_gspphot_distance=0;
   mkg_config->calibrate_parallax=0;
-  mkg_config->override_parallax_toolow=1;
-  mkg_config->minimum_parallax=0.02;
+  mkg_config->enable_maximum_distance=1;
+  mkg_config->maximum_distance=50000.0;
+
+  little_endian=littleEndianTest();
+  if (little_endian == 1) {
+    mkg_config->output_little_endian=1;
+  } else {
+    mkg_config->output_little_endian=0;
+  }
+
   return(0);
 }
 
@@ -115,47 +131,63 @@ int processCmdArgs(mkg_config_t *mkg_config, int argc, char **argv) {
   } else {
     for (i=1; i <= (argc - 1); i++) {
       if (argv[i][1] == 'b') {
-        // use bandpass ratios for effective temperature
+        // use bandpass ratios for apparent temperature
         mkg_config->use_bandpass_ratios=1;
       } else if (argv[i][1] == 'w') {
-        // use Gaia EDR3 wavenumber for effective temperature
+        // use Gaia DR3 wavenumber for apparent temperature
         mkg_config->use_bandpass_ratios=0;
+      } else if (argv[i][1] == 'd') {
+        // use DR3 'gspphot_distance' instead of 'parallax' when available 
+        mkg_config->use_gspphot_distance=1;
+      } else if (argv[i][1] == 'p') {
+        // only use DR3 'parallax'
+        mkg_config->use_gspphot_distance=0;
       } else if (argv[i][1] == 'c') {
         // enable Lindegren et al parallax calibration mode
         mkg_config->calibrate_parallax=1;
-      } else if (argv[i][1] == 'p') {
-        // minimum parallax (miliarcseconds)
+      } else if (argv[i][1] == 'n') {
+        // do not enable Lindegren et al parallax calibration mode
+        mkg_config->calibrate_parallax=0;
+      } else if (argv[i][1] == 'm') {
+        // maximum distance (parsecs)
         if (argv[i][2] != 0) {
           // option concatenated onto switch
           option_start=argv[i];
-          option_length=strlen(option_start + (size_t)2);
+          option_length=strnlen(option_start + (size_t)2, 31);
           if (option_length > 31) {
             option_length=31;
           }
           strncpy(tmpstr, (option_start + (size_t)2), option_length);
-          tmpstr[31]=0;
-          mkg_config->minimum_parallax=strtod(tmpstr, NULL);
-          if (mkg_config->minimum_parallax <=0.0) {
-            mkg_config->override_parallax_toolow=0;
+          tmpstr[option_length]=0;
+          mkg_config->maximum_distance=strtod(tmpstr, NULL);
+          if (mkg_config->maximum_distance <=0.0) {
+            mkg_config->enable_maximum_distance=0;
+            mkg_config->maximum_distance=0.0;
           } else {
-            mkg_config->override_parallax_toolow=1;
+            mkg_config->enable_maximum_distance=1;
           }
         } else if ((argc >= (i + 1)) && (argv[i + 1][0] != '-')) {
           // option is probably next argv
           option_start=argv[i + 1];
-          option_length=strlen(option_start);
+          option_length=strnlen(option_start, 31);
           if (option_length > 31) {
             option_length=31;
           }
           strncpy(tmpstr, option_start, option_length);
-          tmpstr[31]=0;
-          mkg_config->minimum_parallax=strtod(tmpstr, NULL);
-          if (mkg_config->minimum_parallax <=0.0) {
-            mkg_config->override_parallax_toolow=0;
+          tmpstr[option_length]=0;
+          mkg_config->maximum_distance=strtod(tmpstr, NULL);
+          if (mkg_config->maximum_distance <=0.0) {
+            mkg_config->enable_maximum_distance=0;
           } else {
-            mkg_config->override_parallax_toolow=1;
+            mkg_config->enable_maximum_distance=1;
           }
         } // end if no space
+      } else if (argv[i][1] == 'l') {
+        // force output to littl-endian
+        mkg_config->output_little_endian=1;
+      } else if (argv[i][1] == 'g') {
+        // force output to big-endian
+        mkg_config->output_little_endian=0;
       } else if (argv[i][1] == 'h') {
         // print help
         printUsage();
@@ -518,6 +550,7 @@ int main(int argc, char **argv) {
   double elapsed_time;
   double overall_elapsed_time;
   FILE *input_file;
+  char file_name[256];
   FILE *output_file_pq000;
   FILE *output_file_pq001;
   FILE *output_file_pq002;
@@ -546,9 +579,12 @@ int main(int argc, char **argv) {
   long long pq030_count;
   long long pq050_count;
   long long pq100_count;
+  long long total_output_count;
   long long discard_no_flux_count;
   long long discard_parms_count;
   long long discard_parallax_count;
+  long long distance_override_negative_count;
+  long long distance_override_toohigh_count;
   long long temperature_from_bp_G_count;
   long long temperature_from_rp_G_count;
   long long temperature_from_bp_rp_count;
@@ -556,11 +592,16 @@ int main(int argc, char **argv) {
   long long temperature_from_pseudocolor_count;
   long long min_temp_count;
   long long max_temp_count;
+  long long unreddened_min_temp_count;
+  long long unreddened_max_temp_count;
+  long long gspphot_distance_count;
+  long long undimmed_count;
+  long long unreddened_count;
   const double flux_to_vega=5.3095E-11; // approximate conversion factor for phot_g_mean_flux to intensity relative to Vega
   float linear_1pc_intensity;
+  float linear_1pc_intensity_undimmed;
   uint64_t color_temperature;
-  star_record_t star_record;
-  int star_record_size=sizeof(star_record_t);
+  uint64_t color_temperature_unreddened;
   double bp_over_G_ref[32768];
   double rp_over_G_ref[32768];
   double bp_over_rp_ref[32768];
@@ -574,9 +615,18 @@ int main(int argc, char **argv) {
   int rp_over_G_invalid;
   int bp_over_rp_invalid;
   mkg_config_t mkg_config;
+  double icrs_x;
+  double icrs_y;
+  double icrs_z;
+  char star_record[BSR_STAR_RECORD_SIZE];
+  size_t star_record_size=(size_t)BSR_STAR_RECORD_SIZE;
+  char file_header[BSR_FILE_HEADER_SIZE];
+  size_t file_header_size;
+  int little_endian;
+  int same_endian; // 1 == output endianness is same as arch
 
-  // fields imported from GEDR3
-  char random_index[32];
+  // fields imported from GDR3
+  uint64_t source_id;
   double ra;
   double dec;
   double parallax;
@@ -588,6 +638,9 @@ int main(int argc, char **argv) {
   double phot_bp_mean_flux;
   double phot_rp_mean_flux;
   double ecl_lat;
+  double teff_gspphot;
+  double gspphot_distance;
+  double ag_gspphot;
 
   // temp working vars
   double distance;
@@ -595,6 +648,10 @@ int main(int argc, char **argv) {
   double dec_rad;
   double magnitude;
   double linear_intensity; // intensity relative to vega
+  double linear_intensity_undimmed; // intensity relative to vega with extinction removed (according to ag_gspphot)
+  uint64_t tmp64;
+  uint32_t tmp32;
+  uint16_t tmp16;
 
   //
   // initialize timers
@@ -620,15 +677,25 @@ int main(int argc, char **argv) {
   } else {
     printf("Star temperatures determined by 'nu_eff_used_in_astrometery' or 'pseudocolor'\n");
   }
+  if (mkg_config.use_gspphot_distance == 1) {
+    printf("Star distance derived from DR3 'gspphot_distance' when available instead of 'parallax'\n");
+  } else {
+    printf("Star distance derived from DR3 'parallax' only\n");
+  }
   if (mkg_config.calibrate_parallax == 1) {
     printf("Lindegren et. al. parallax calibration enabled\n");
   } else {
     printf("Lindegrenn et. al. parallax calibration disabled\n");
   }
-  if (mkg_config.override_parallax_toolow == 1) {
-    printf("Minimum parallax of %.3f miliarcsedons will be enforced\n", mkg_config.minimum_parallax);
+  if (mkg_config.enable_maximum_distance == 1) {
+    printf("Maximum distance of %.1e parsecs will be enforced\n", mkg_config.maximum_distance);
   } else {
-    printf("Minimum parallax enforcement disabled\n");
+    printf("Maximum distance enforcement disabled\n");
+  }
+  if (mkg_config.output_little_endian == 1) {
+    printf("Output data files will be in little-endian format\n");
+  } else {
+    printf("Output data files will be in big-endian format\n");
   }
 
   //
@@ -639,11 +706,11 @@ int main(int argc, char **argv) {
   //
   // attempt to open input file
   //
-  printf("init, Opening input file gaia-edr3-extracted.csv\n");
+  printf("Opening input file gaia-dr3-extracted.csv\n");
   fflush(stdout);
-  input_file=fopen("gaia-edr3-extracted.csv", "rb");
+  input_file=fopen("gaia-dr3-extracted.csv", "rb");
   if (input_file == NULL) {
-    printf("init, Error: could not open gaia-edr3-extracted.csv\n");
+    printf("Error: could not open gaia-dr3-extracted.csv\n");
     fflush(stdout);
     return(1);
   }
@@ -651,86 +718,163 @@ int main(int argc, char **argv) {
   //
   // attempt to open ouptut files
   //
-  printf("init, Opening output file galaxy-pq000.dat\n");
-  fflush(stdout);
-  output_file_pq000=fopen("galaxy-pq000.dat", "wb");
+
+  if (mkg_config.output_little_endian == 1) {
+    sprintf(file_name, "%s-pq000-%s.%s", BSR_GDR3_PREFIX, BSR_LE_SUFFIX, BSR_EXTENSION);
+  } else {
+    sprintf(file_name, "%s-pq000-%s.%s", BSR_GDR3_PREFIX, BSR_BE_SUFFIX, BSR_EXTENSION);
+  }
+  printf("Opening output file %s\n", file_name);
+  output_file_pq000=fopen(file_name, "wb");
   if (output_file_pq000 == NULL) {
-    printf("init, Error: could not open galaxy-pq000.dat for writing\n");
+    printf("Error: could not open %s for writing\n", file_name);
     fflush(stdout);
     return(1);
   }
-  printf("init, Opening output file galaxy-pq001.dat\n");
-  fflush(stdout);
-  output_file_pq001=fopen("galaxy-pq001.dat", "wb");
+  if (mkg_config.output_little_endian == 1) {
+    sprintf(file_name, "%s-pq001-%s.%s", BSR_GDR3_PREFIX, BSR_LE_SUFFIX, BSR_EXTENSION);
+  } else {
+    sprintf(file_name, "%s-pq001-%s.%s", BSR_GDR3_PREFIX, BSR_BE_SUFFIX, BSR_EXTENSION);
+  }
+  printf("Opening output file %s\n", file_name);
+  output_file_pq001=fopen(file_name, "wb");
   if (output_file_pq001 == NULL) {
-    printf("init, Error: could not open galaxy-pq001.dat for writing\n");
+    printf("Error: could not open %s for writing\n", file_name);
     fflush(stdout);
     return(1);
   }
-  printf("init, Opening output file galaxy-pq002.dat\n");
-  fflush(stdout);
-  output_file_pq002=fopen("galaxy-pq002.dat", "wb");
+  if (mkg_config.output_little_endian == 1) {
+    sprintf(file_name, "%s-pq002-%s.%s", BSR_GDR3_PREFIX, BSR_LE_SUFFIX, BSR_EXTENSION);
+  } else {
+    sprintf(file_name, "%s-pq002-%s.%s", BSR_GDR3_PREFIX, BSR_BE_SUFFIX, BSR_EXTENSION);
+  }
+  printf("Opening output file %s\n", file_name);
+  output_file_pq002=fopen(file_name, "wb");
   if (output_file_pq002 == NULL) {
-    printf("init, Error: could not open galaxy-pq002.dat for writing\n");
+    printf("Error: could not open %s for writing\n", file_name);
     fflush(stdout);
     return(1);
   }
-  printf("init, Opening output file galaxy-pq003.dat\n");
-  fflush(stdout);
-  output_file_pq003=fopen("galaxy-pq003.dat", "wb");
+  if (mkg_config.output_little_endian == 1) {
+    sprintf(file_name, "%s-pq003-%s.%s", BSR_GDR3_PREFIX, BSR_LE_SUFFIX, BSR_EXTENSION);
+  } else {
+    sprintf(file_name, "%s-pq003-%s.%s", BSR_GDR3_PREFIX, BSR_BE_SUFFIX, BSR_EXTENSION);
+  }
+  printf("Opening output file %s\n", file_name);
+  output_file_pq003=fopen(file_name, "wb");
   if (output_file_pq003 == NULL) {
-    printf("init, Error: could not open galaxy-pq003.dat for writing\n");
+    printf("Error: could not open %s for writing\n", file_name);
     fflush(stdout);
     return(1);
   }
-  printf("init, Opening output file galaxy-pq005.dat\n");
-  fflush(stdout);
-  output_file_pq005=fopen("galaxy-pq005.dat", "wb");
+  if (mkg_config.output_little_endian == 1) {
+    sprintf(file_name, "%s-pq005-%s.%s", BSR_GDR3_PREFIX, BSR_LE_SUFFIX, BSR_EXTENSION);
+  } else {
+    sprintf(file_name, "%s-pq005-%s.%s", BSR_GDR3_PREFIX, BSR_BE_SUFFIX, BSR_EXTENSION);
+  }
+  printf("Opening output file %s\n", file_name);
+  output_file_pq005=fopen(file_name, "wb");
   if (output_file_pq005 == NULL) {
-    printf("init, Error: could not open galaxy-pq005.dat for writing\n");
+    printf("Error: could not open %s for writing\n", file_name);
     fflush(stdout);
     return(1);
   }
-  printf("init, Opening output file galaxy-pq010.dat\n");
-  fflush(stdout);
-  output_file_pq010=fopen("galaxy-pq010.dat", "wb");
+  if (mkg_config.output_little_endian == 1) {
+    sprintf(file_name, "%s-pq010-%s.%s", BSR_GDR3_PREFIX, BSR_LE_SUFFIX, BSR_EXTENSION);
+  } else {
+    sprintf(file_name, "%s-pq010-%s.%s", BSR_GDR3_PREFIX, BSR_BE_SUFFIX, BSR_EXTENSION);
+  }
+  printf("Opening output file %s\n", file_name);
+  output_file_pq010=fopen(file_name, "wb");
   if (output_file_pq010 == NULL) {
-    printf("init, Error: could not open galaxy-pq010.dat for writing\n");
+    printf("Error: could not open %s for writing\n", file_name);
     fflush(stdout);
     return(1);
   }
-  printf("init, Opening output file galaxy-pq020.dat\n");
-  fflush(stdout);
-  output_file_pq020=fopen("galaxy-pq020.dat", "wb");
+  if (mkg_config.output_little_endian == 1) {
+    sprintf(file_name, "%s-pq020-%s.%s", BSR_GDR3_PREFIX, BSR_LE_SUFFIX, BSR_EXTENSION);
+  } else {
+    sprintf(file_name, "%s-pq020-%s.%s", BSR_GDR3_PREFIX, BSR_BE_SUFFIX, BSR_EXTENSION);
+  }
+  printf("Opening output file %s\n", file_name);
+  output_file_pq020=fopen(file_name, "wb");
   if (output_file_pq020 == NULL) {
-    printf("init, Error: could not open galaxy-pq020.dat for writing\n");
+    printf("Error: could not open %s for writing\n", file_name);
     fflush(stdout);
     return(1);
   }
-  printf("init, Opening output file galaxy-pq030.dat\n");
-  fflush(stdout);
-  output_file_pq030=fopen("galaxy-pq030.dat", "wb");
+  if (mkg_config.output_little_endian == 1) {
+    sprintf(file_name, "%s-pq030-%s.%s", BSR_GDR3_PREFIX, BSR_LE_SUFFIX, BSR_EXTENSION);
+  } else {
+    sprintf(file_name, "%s-pq030-%s.%s", BSR_GDR3_PREFIX, BSR_BE_SUFFIX, BSR_EXTENSION);
+  }
+  printf("Opening output file %s\n", file_name);
+  output_file_pq030=fopen(file_name, "wb");
   if (output_file_pq030 == NULL) {
-    printf("init, Error: could not open galaxy-pq030.dat for writing\n");
+    printf("Error: could not open %s for writing\n", file_name);
     fflush(stdout);
     return(1);
   }
-  printf("init, Opening output file galaxy-pq050.dat\n");
-  fflush(stdout);
-  output_file_pq050=fopen("galaxy-pq050.dat", "wb");
+  if (mkg_config.output_little_endian == 1) {
+    sprintf(file_name, "%s-pq050-%s.%s", BSR_GDR3_PREFIX, BSR_LE_SUFFIX, BSR_EXTENSION);
+  } else {
+    sprintf(file_name, "%s-pq050-%s.%s", BSR_GDR3_PREFIX, BSR_BE_SUFFIX, BSR_EXTENSION);
+  }
+  printf("Opening output file %s\n", file_name);
+  output_file_pq050=fopen(file_name, "wb");
   if (output_file_pq050 == NULL) {
-    printf("init, Error: could not open galaxy-pq050.dat for writing\n");
+    printf("Error: could not open %s for writing\n", file_name);
     fflush(stdout);
     return(1);
   }
-  printf("init, Opening output file galaxy-pq100.dat\n");
-  fflush(stdout);
-  output_file_pq100=fopen("galaxy-pq100.dat", "wb");
+  if (mkg_config.output_little_endian == 1) {
+    sprintf(file_name, "%s-pq100-%s.%s", BSR_GDR3_PREFIX, BSR_LE_SUFFIX, BSR_EXTENSION);
+  } else {
+    sprintf(file_name, "%s-pq100-%s.%s", BSR_GDR3_PREFIX, BSR_BE_SUFFIX, BSR_EXTENSION);
+  }
+  printf("Opening output file %s\n", file_name);
+  output_file_pq100=fopen(file_name, "wb");
   if (output_file_pq100 == NULL) {
-    printf("init, Error: could not open galaxy-pq100.dat for writing\n");
+    printf("Error: could not open %s for writing\n", file_name);
     fflush(stdout);
     return(1);
   }
+
+  //
+  // check endianness
+  //
+  little_endian=littleEndianTest();
+  if ((mkg_config.output_little_endian ^ little_endian) == 0) {
+    same_endian=1;
+  } else {
+    same_endian=0;
+  }
+
+  //
+  // write file headers
+  //
+  if (mkg_config.output_little_endian == 1) {
+    snprintf(file_header, BSR_FILE_HEADER_SIZE, "%s, mkgalaxy version: %s, use_bandpass_ratios: %d, use_gspphot_distance: %d, calibrate_parallax: %d, enable_maximum_distance: %d, maximum_distance: %.1e\n", BSR_MAGIC_NUMBER_LE, BSR_VERSION, mkg_config.use_bandpass_ratios, mkg_config.use_gspphot_distance, mkg_config.calibrate_parallax, mkg_config.enable_maximum_distance, mkg_config.maximum_distance);
+  } else {
+    snprintf(file_header, BSR_FILE_HEADER_SIZE, "%s, mkgalaxy version: %s, use_bandpass_ratios: %d, use_gspphot_distance: %d, calibrate_parallax: %d, enable_maximum_distance: %d, maximum_distance: %.1e\n", BSR_MAGIC_NUMBER_BE, BSR_VERSION, mkg_config.use_bandpass_ratios, mkg_config.use_gspphot_distance, mkg_config.calibrate_parallax, mkg_config.enable_maximum_distance, mkg_config.maximum_distance);
+  } 
+  // pad the rest of file_header with zeros
+  file_header_size=strnlen(file_header, (BSR_FILE_HEADER_SIZE - 1));
+  for (i=(int)file_header_size; i < BSR_FILE_HEADER_SIZE; i++) {
+    file_header[i]=0;
+  }
+  printf("Writing file headers\n");
+  fflush(stdout);
+  fwrite(file_header, BSR_FILE_HEADER_SIZE, 1, output_file_pq100);
+  fwrite(file_header, BSR_FILE_HEADER_SIZE, 1, output_file_pq050);
+  fwrite(file_header, BSR_FILE_HEADER_SIZE, 1, output_file_pq030);
+  fwrite(file_header, BSR_FILE_HEADER_SIZE, 1, output_file_pq020);
+  fwrite(file_header, BSR_FILE_HEADER_SIZE, 1, output_file_pq010);
+  fwrite(file_header, BSR_FILE_HEADER_SIZE, 1, output_file_pq005);
+  fwrite(file_header, BSR_FILE_HEADER_SIZE, 1, output_file_pq003);
+  fwrite(file_header, BSR_FILE_HEADER_SIZE, 1, output_file_pq002);
+  fwrite(file_header, BSR_FILE_HEADER_SIZE, 1, output_file_pq001);
+  fwrite(file_header, BSR_FILE_HEADER_SIZE, 1, output_file_pq000);
 
   //
   // read and process each line of input file
@@ -739,6 +883,8 @@ int main(int argc, char **argv) {
   discard_no_flux_count=0;
   discard_parms_count=0;
   discard_parallax_count=0;
+  distance_override_negative_count=0;
+  distance_override_toohigh_count=0;
   pq000_count=0;
   pq001_count=0; 
   pq002_count=0; 
@@ -749,6 +895,7 @@ int main(int argc, char **argv) {
   pq030_count=0;
   pq050_count=0;
   pq100_count=0;
+  total_output_count=0;
   temperature_from_bp_G_count=0;
   temperature_from_rp_G_count=0;
   temperature_from_bp_rp_count=0;
@@ -756,27 +903,39 @@ int main(int argc, char **argv) {
   temperature_from_pseudocolor_count=0;
   min_temp_count=0;
   max_temp_count=0;
+  unreddened_min_temp_count=0;
+  unreddened_max_temp_count=0;
+  gspphot_distance_count=0;
+  undimmed_count=0;
+  unreddened_count=0;
   input_line_p=fgets(input_line, 256, input_file);
+  printf("Beginning input file processing\n");
+  fflush(stdout);
   while (input_line_p != NULL) {
 
-/*
-    printf("input_line: %s", input_line_p);
+#ifdef DEBUG
+    printf("debug, input_line: %s", input_line_p);
     fflush(stdout);
-*/
+#endif
+
     //
-    // random_index,ra,dec,parallax,parallax_over_error,astrometric_params_solved,nu_eff_used_in_astrometry,pseudocolour,phot_g_mean_flux,phot_bp_mean_flux,phot_rp_mean_flux,ecl_lat
+    // dom_index,ra,dec,parallax,parallax_over_error,astrometric_params_solved,nu_eff_used_in_astrometry,pseudocolour,phot_g_mean_flux,phot_bp_mean_flux,phot_rp_mean_flux,ecl_lat,teff_gspphot,gspphot_distance,ag_gspphot
     //
     if (input_line[0] != 'r') { // skip csv header lines
       input_count++;
       field_start=input_line;
 
       //
-      // random_index
+      // source_id
       //
       field_end=strchr(field_start, ','); 
       field_length=(field_end - field_start);
-      strncpy(random_index, field_start, field_length);
-      random_index[field_length]=0;
+      if (field_length > 31) {
+        field_length=31;
+      }
+      strncpy(tmpstr, field_start, field_length);
+      tmpstr[field_length]=0;
+      source_id=strtoull(tmpstr, NULL, 10);
       field_start=(field_end+1);
 
       //
@@ -784,6 +943,9 @@ int main(int argc, char **argv) {
       //
       field_end=strchr(field_start, ',');
       field_length=(field_end - field_start);
+      if (field_length > 31) {
+        field_length=31;
+      }
       strncpy(tmpstr, field_start, field_length);
       tmpstr[field_length]=0;
       ra=strtod(tmpstr, NULL);
@@ -794,6 +956,9 @@ int main(int argc, char **argv) {
       //
       field_end=strchr(field_start, ',');
       field_length=(field_end - field_start);
+      if (field_length > 31) {
+        field_length=31;
+      }
       strncpy(tmpstr, field_start, field_length);
       tmpstr[field_length]=0;
       dec=strtod(tmpstr, NULL);
@@ -804,19 +969,33 @@ int main(int argc, char **argv) {
       //
       field_end=strchr(field_start, ',');
       field_length=(field_end - field_start);
+      if (field_length > 31) {
+        field_length=31;
+      }
       strncpy(tmpstr, field_start, field_length);
       tmpstr[field_length]=0;
-      parallax=strtod(tmpstr, NULL);
+      if (tmpstr[0] == 'n') { // null record
+        parallax=0.0;
+      } else {
+        parallax=strtod(tmpstr, NULL);
+      }
       field_start=(field_end+1);
 
       //
-      // paralax_over_error
+      // parallax_over_error
       //
       field_end=strchr(field_start, ',');
       field_length=(field_end - field_start);
+      if (field_length > 31) {
+        field_length=31;
+      }
       strncpy(tmpstr, field_start, field_length);
       tmpstr[field_length]=0;
-      parallax_over_error=strtod(tmpstr, NULL);
+      if (tmpstr[0] == 'n') { // null record
+        parallax_over_error=0.0;
+      } else {
+        parallax_over_error=strtod(tmpstr, NULL);
+      }
       field_start=(field_end+1);
 
       //
@@ -824,6 +1003,9 @@ int main(int argc, char **argv) {
       //
       field_end=strchr(field_start, ',');
       field_length=(field_end - field_start);
+      if (field_length > 31) {
+        field_length=31;
+      }
       strncpy(tmpstr, field_start, field_length);
       tmpstr[field_length]=0;
       astrometric_params_solved=strtol(tmpstr, NULL, 10);
@@ -834,9 +1016,16 @@ int main(int argc, char **argv) {
       //
       field_end=strchr(field_start, ',');
       field_length=(field_end - field_start);
+      if (field_length > 31) {
+        field_length=31;
+      }
       strncpy(tmpstr, field_start, field_length);
       tmpstr[field_length]=0;
-      nu_eff_used_in_astrometry=strtod(tmpstr, NULL);
+      if (tmpstr[0] == 'n') { // null record
+        nu_eff_used_in_astrometry=0.0;
+      } else {
+        nu_eff_used_in_astrometry=strtod(tmpstr, NULL);
+      }
       field_start=(field_end+1);
 
       //
@@ -844,9 +1033,16 @@ int main(int argc, char **argv) {
       //
       field_end=strchr(field_start, ',');
       field_length=(field_end - field_start);
+      if (field_length > 31) {
+        field_length=31;
+      }
       strncpy(tmpstr, field_start, field_length);
       tmpstr[field_length]=0;
-      pseudocolor=strtod(tmpstr, NULL);
+      if (tmpstr[0] == 'n') { // null record
+        pseudocolor=0.0;
+      } else {
+        pseudocolor=strtod(tmpstr, NULL);
+      }
       field_start=(field_end+1);
 
       //
@@ -854,9 +1050,16 @@ int main(int argc, char **argv) {
       //
       field_end=strchr(field_start, ',');
       field_length=(field_end - field_start);
+      if (field_length > 31) {
+        field_length=31;
+      }
       strncpy(tmpstr, field_start, field_length);
       tmpstr[field_length]=0;
-      phot_G_mean_flux=strtod(tmpstr, NULL);
+      if (tmpstr[0] == 'n') { // null record
+        phot_G_mean_flux=0.0;
+      } else {
+        phot_G_mean_flux=strtod(tmpstr, NULL);
+      }
       field_start=(field_end+1);
 
       //
@@ -864,9 +1067,16 @@ int main(int argc, char **argv) {
       //
       field_end=strchr(field_start, ',');
       field_length=(field_end - field_start);
+      if (field_length > 31) {
+        field_length=31;
+      }
       strncpy(tmpstr, field_start, field_length);
       tmpstr[field_length]=0;
-      phot_bp_mean_flux=strtod(tmpstr, NULL);
+      if (tmpstr[0] == 'n') { // null record
+        phot_bp_mean_flux=0.0;
+      } else {
+        phot_bp_mean_flux=strtod(tmpstr, NULL);
+      }
       field_start=(field_end+1);
 
       //
@@ -874,34 +1084,93 @@ int main(int argc, char **argv) {
       //
       field_end=strchr(field_start, ',');
       field_length=(field_end - field_start);
+      if (field_length > 31) {
+        field_length=31;
+      }
       strncpy(tmpstr, field_start, field_length);
       tmpstr[field_length]=0;
-      phot_rp_mean_flux=strtod(tmpstr, NULL);
+      if (tmpstr[0] == 'n') { // null record
+        phot_rp_mean_flux=0.0;
+      } else {
+        phot_rp_mean_flux=strtod(tmpstr, NULL);
+      }
       field_start=(field_end+1);
 
       //
       // ecl_lat
       //
-      field_end=strchr(field_start, '\0'); // special processing for last field
+      field_end=strchr(field_start, ',');
       field_length=(field_end - field_start);
-      if (field_length > 255) {
-        field_length=255;
+      if (field_length > 31) {
+        field_length=31;
       }
       strncpy(tmpstr, field_start, field_length);
       tmpstr[field_length]=0;
       ecl_lat=strtod(tmpstr, NULL);
+      field_start=(field_end+1);
+
+      //
+      // teff_gspphot
+      //
+      field_end=strchr(field_start, ',');
+      field_length=(field_end - field_start);
+      if (field_length > 31) {
+        field_length=31;
+      }
+      strncpy(tmpstr, field_start, field_length);
+      tmpstr[field_length]=0;
+      if (tmpstr[0] == 'n') { // null record
+        teff_gspphot=0.0;
+      } else {
+        teff_gspphot=strtod(tmpstr, NULL);
+      }
+      field_start=(field_end+1);
+
+      //
+      // gspphot_distance
+      //
+      field_end=strchr(field_start, ',');
+      field_length=(field_end - field_start);
+      if (field_length > 31) {
+        field_length=31;
+      }
+      strncpy(tmpstr, field_start, field_length);
+      tmpstr[field_length]=0;
+      if (tmpstr[0] == 'n') { // null record
+        gspphot_distance=0.0;
+      } else {
+        gspphot_distance=strtod(tmpstr, NULL);
+      }
+      field_start=(field_end+1);
+
+      //
+      // ag_gspphot
+      //
+      field_end=strchr(field_start, '\0'); // special processing for last field
+      field_length=(field_end - field_start);
+      if (field_length > 31) {
+        field_length=31;
+      }
+      strncpy(tmpstr, field_start, field_length);
+      tmpstr[field_length]=0;
+      if (tmpstr[0] == 'n') { // null record
+        ag_gspphot=0.0;
+      } else {
+        ag_gspphot=strtod(tmpstr, NULL);
+      }
 
       //
       // only continue if record has parallax (5 parms solved or 6 parms solved) and phot_G_mean_flux > 0
       //
       if (((astrometric_params_solved == 31) || (astrometric_params_solved == 95)) && (phot_G_mean_flux > 0.0)) {
         //
-        // transform flux to linear intensity relative to vega 
+        // transform flux to linear intensity relative to vega (do this before parallax calibration)
         //
         linear_intensity=phot_G_mean_flux * flux_to_vega;
+        magnitude=-2.5 * log10(linear_intensity); // some stars have blank phot_G_mean_magnitude so we derive from the more reliable flux column
 
         //
-        // select correct color variable
+        // select correct color wavenumber variable (do this before parallax calibration)
         //
         if (astrometric_params_solved == 31) {
           color_wavenumber=nu_eff_used_in_astrometry;
@@ -913,40 +1182,60 @@ int main(int argc, char **argv) {
         // optionally calibrate parallax according to Lindegren et. al
         //
         if (mkg_config.calibrate_parallax == 1) {
-          magnitude=-2.5 * log10(linear_intensity); // some stars have blank phot_G_mean_magnitude so we derive from the more reliable flux column
           calibrateParallax(&parallax, astrometric_params_solved, magnitude, color_wavenumber, ecl_lat);
         }
 
         //
-        // optionaly override parallax below instrument minimum (or negative)
+        // only continue if gspphot_distance (if used) or parallax is valid
         //
-        if ((parallax < mkg_config.minimum_parallax) && (mkg_config.override_parallax_toolow == 1)) {
-          parallax=mkg_config.minimum_parallax;
-        }
+        if ((mkg_config.enable_maximum_distance == 1) || ((mkg_config.use_gspphot_distance == 1) && (gspphot_distance > 0.0)) || (parallax > 0.0)) {
+          //
+          // select desired distance source
+          //
+          if ((mkg_config.use_gspphot_distance == 1) && (gspphot_distance > 0.0)) {
+            distance=gspphot_distance;
+            gspphot_distance_count++;
+          } else if (parallax <= 0.0) {
+            // should only get here if enable_maximum_distance == 1 
+            distance=mkg_config.maximum_distance;
+            distance_override_negative_count++;
+          } else {
+            //distance=M_PI / (648000.0 * tan(M_PI * parallax / 648000000)); // in parsecs, full calculation
+            distance=1000.0 / parallax; // in parsecs, approximation ignoring small angle tan()
+          }
 
-        //
-        // only continue if parallax is valid
-        //
-        if (parallax > 0.0) {
+          //
+          // optionally override maximum distance
+          //
+          if ((mkg_config.enable_maximum_distance == 1) && (distance > mkg_config.maximum_distance)) {
+            distance=mkg_config.maximum_distance;
+            distance_override_toohigh_count++;
+          }
+
           //
           // transform spherical icrs to euclidian icrs
           //
-          //distance=M_PI / (648000.0 * tan(M_PI * parallax / 648000000)); // in parsecs, full calculation
-          distance=1000.0 / parallax; // in parsecs, approximation ignoring small angle tan()
           ra_rad=ra * M_PI / 180.0;
           dec_rad=dec * M_PI / 180.0;
-          star_record.icrs_x=distance * cos(dec_rad) * cos(ra_rad);
-          star_record.icrs_y=distance * cos(dec_rad) * sin(ra_rad);
-          star_record.icrs_z=distance * sin(dec_rad);
+          icrs_x=distance * cos(dec_rad) * cos(ra_rad);
+          icrs_y=distance * cos(dec_rad) * sin(ra_rad);
+          icrs_z=distance * sin(dec_rad);
 
           //
-          // convert linear intensity to intensity at 1pc
+          // convert linear intensity to intensity at 1pc and undimmed intensity at 1pc (use ag_gspphot available);
           //
           linear_1pc_intensity=(float)(linear_intensity * pow(distance, 2.0));
+          if (ag_gspphot > 0.0) {
+            linear_intensity_undimmed=pow(100.0, (-(magnitude - ag_gspphot) / 5.0));
+            linear_1pc_intensity_undimmed=(float)(linear_intensity_undimmed * pow(distance, 2.0));
+            undimmed_count++;
+          } else {
+            linear_1pc_intensity_undimmed=linear_1pc_intensity;
+          }
 
     //
-    // determine star effective color temperature
-    // try to use rp/G and bp/G ratios to determine effective temperature if this mode is enabled and rp and bp have flux
+    // determine star apparent color temperature
+    // try to use rp/G and bp/G ratios to determine apparent temperature if this mode is enabled and rp and bp have flux
     //
           //
           // get ratios
@@ -984,7 +1273,7 @@ int main(int argc, char **argv) {
           }
 
           //
-          // select best match for effective temperature
+          // select best match for apparent temperature
           //
           if ((all_invalid == 0) && ((phot_bp_mean_flux > 0.0) || (phot_rp_mean_flux > 0.0))) {
             //
@@ -1014,7 +1303,7 @@ int main(int argc, char **argv) {
               }
               temperature_from_bp_G_count++;
             } else if (rp_over_G_invalid == 0) {
-              // rp over G is least likely to give accurate effective temp due to background infrared
+              // rp over G is least likely to give accurate apparent temp due to background infrared
               for (i=500; ((i < 32768) && (bestmatch_temperature == 0)); i++) {
                 if (rp_over_G_ref[i] < rp_over_G) {
                   bestmatch_temperature=i;
@@ -1058,10 +1347,12 @@ int main(int argc, char **argv) {
             // no parameter with flux value, transofrm color_wavenumber to integer Kelvin blackbody temperature and clip extraneous values
             //
             color_temperature=(uint64_t)((2897.771955 * color_wavenumber) + 0.5); // wein's displacement to convert to Kelvin
-            if (color_temperature < 500) {
-              color_temperature=500;
-            } else if (color_temperature > 32767) {
-              color_temperature=32767;
+            if (color_temperature < 500ul) {
+              color_temperature=500ul;
+              min_temp_count++;
+            } else if (color_temperature > 32767ul) {
+              color_temperature=32767ul;
+              max_temp_count++;
             }
             if (astrometric_params_solved == 31) {
               temperature_from_nu_eff_count++;
@@ -1071,58 +1362,341 @@ int main(int argc, char **argv) {
           } // end if some parameter is valid
 
           //
-          // combine intensity and temperature into one 64 bit value
+          // set unreddened color temperature from teff_gspphot
           //
-          star_record.intensity_and_temperature=0;
-          star_record.intensity_and_temperature=(uint64_t)*((uint32_t*)&linear_1pc_intensity);
-          star_record.intensity_and_temperature <<= 32;
-          star_record.intensity_and_temperature |= color_temperature;
+          if (teff_gspphot > 0.0) {
+            color_temperature_unreddened=(uint64_t)(teff_gspphot + 0.5);
+            if (color_temperature_unreddened < 500ul) {
+              color_temperature_unreddened=500ul;
+              unreddened_min_temp_count++;
+            } else if (color_temperature_unreddened > 32767ul) {
+              color_temperature_unreddened=32767ul;
+              unreddened_max_temp_count++;
+            }
+            unreddened_count++;
+          } else {
+            color_temperature_unreddened=color_temperature;
+          }
+
+#ifdef DEBUG
+          printf("debug, source_id: %ull, parallax_over_error: %.4e, distance: %.4e, icrs_x: %.4e, icrs_y: %.4e, icrs_z: %.4e, linear_1pc_intensity: %.4e, linear_1pc_intensity_undimmed: %.4e, color_temperature: %d, color_temperature_unreddened: %d\n", source_id, parallax_over_error, distance, icrs_x, icrs_y, icrs_z, linear_1pc_intensity, linear_1pc_intensity_undimmed, color_temperature, color_temperature_unreddened);
+          fflush(stdout);
+#endif
+
+          // Binary data files have a fixed-length 256-bit ascii header (including the file identifier in the first 11 bytes), followed
+          // by a variable number of 33-byte star records.
+          //
+          // Each star record includes a 64-bit unsigned integer for Gaia DR3 'source_id', three 40-bit truncaed doubles for x,y,z,
+          // a 24-bit truncated float for linear_1pc_intensity, a 24-bit truncated float for linear_1pc_intensity_undimmed,
+          // a 16-bit unsigned int for color_temperature, and a 16-bit unsigned int for color_temperature_unreddened.
+          // these are packed into a 33 byte star record with each field encoded in the selected byte order.
+          //
+          // +---------------+---------+---------+---------+-----+-----+---+---+
+          // |   source_id   |    x    |    y    |    z    | li  |li-u | c |c-u|
+          // +---------------+---------+---------+---------+-----+-----+---+---+
+          // |      8        |    5    |    5    |    5    |  3  |  3  | 2 | 2 |
+          //                               bytes
+          //
+          // mkgalaxy and mkexternal have options to generate either little-endian or big-endian files but the bye-order of the file
+          // must match the architecture it is used on with bsrender. This is to avoid unnessary operations in the performance
+          // critical inner-loop of processStars() which iterates over potentially billions of star records.
+          //
 
           //
-          // output transformed fields to correct output dat file
+          // pack star record fields into 33-byte star_record
+          //
+          if (same_endian == 1) {
+            //
+            // output endianness is same as this arch
+            //
+
+            // source_id
+            tmp64=0;
+            tmp64=source_id;
+            star_record[0]=*(char *)&tmp64;
+            tmp64 >>= 8;
+            star_record[1]=*(char *)&tmp64;
+            tmp64 >>= 8;
+            star_record[2]=*(char *)&tmp64;
+            tmp64 >>= 8;
+            star_record[3]=*(char *)&tmp64;
+            tmp64 >>= 8;
+            star_record[4]=*(char *)&tmp64;
+            tmp64 >>= 8;
+            star_record[5]=*(char *)&tmp64;
+            tmp64 >>= 8;
+            star_record[6]=*(char *)&tmp64;
+            tmp64 >>= 8;
+            star_record[7]=*(char *)&tmp64;
+
+            // icrs_x
+            tmp64=0;
+            tmp64=*(uint64_t *)&icrs_x;
+            if (little_endian == 1) {
+              tmp64 >>= 24; // skip 24 lsb if source is little-endian
+            }
+            star_record[8]=*(char *)&tmp64;
+            tmp64 >>= 8;
+            star_record[9]=*(char *)&tmp64;
+            tmp64 >>= 8;
+            star_record[10]=*(char *)&tmp64;
+            tmp64 >>= 8;
+            star_record[11]=*(char *)&tmp64;
+            tmp64 >>= 8;
+            star_record[12]=*(char *)&tmp64;
+
+            // icrs_y
+            tmp64=0;
+            tmp64=*(uint64_t *)&icrs_y;
+            if (little_endian == 1) {
+              tmp64 >>= 24; // skip 24 lsb if source is little-endian
+            }
+            star_record[13]=*(char *)&tmp64;
+            tmp64 >>= 8;
+            star_record[14]=*(char *)&tmp64;
+            tmp64 >>= 8;
+            star_record[15]=*(char *)&tmp64;
+            tmp64 >>= 8;
+            star_record[16]=*(char *)&tmp64;
+            tmp64 >>= 8;
+            star_record[17]=*(char *)&tmp64;
+
+            // icrs_z
+            tmp64=0;
+            tmp64=*(uint64_t *)&icrs_z;
+            if (little_endian == 1) {
+              tmp64 >>= 24; // skip 24 lsb if source is little-endian
+            }
+            star_record[18]=*(char *)&tmp64;
+            tmp64 >>= 8;
+            star_record[19]=*(char *)&tmp64;
+            tmp64 >>= 8;
+            star_record[20]=*(char *)&tmp64;
+            tmp64 >>= 8;
+            star_record[21]=*(char *)&tmp64;
+            tmp64 >>= 8;
+            star_record[22]=*(char *)&tmp64;
+
+            // linear_1pc_intensity
+            tmp32=0;
+            tmp32=*(uint32_t *)&linear_1pc_intensity;
+            if (little_endian == 1) {
+              tmp32 >>= 8; // skip 8 lsb if source is little-endian
+            }
+            star_record[23]=*(char *)&tmp32;
+            tmp32 >>= 8;
+            star_record[24]=*(char *)&tmp32;
+            tmp32 >>= 8;
+            star_record[25]=*(char *)&tmp32;
+
+            // linear_1pc_intensity_undimmed
+            tmp32=0;
+            tmp32=*(uint32_t *)&linear_1pc_intensity_undimmed;
+            if (little_endian == 1) {
+              tmp32 >>= 8; // skip 8 lsb if source is little-endian
+            }
+            star_record[26]=*(char *)&tmp32;
+            tmp32 >>= 8;
+            star_record[27]=*(char *)&tmp32;
+            tmp32 >>= 8;
+            star_record[28]=*(char *)&tmp32;
+
+            // color_temperature
+            tmp16=0;
+            tmp16=*(uint16_t *)&color_temperature;
+            star_record[29]=*(char *)&tmp16;
+            tmp16 >>= 8;
+            star_record[30]=*(char *)&tmp16;
+
+            // color_temperature_unreddened
+            tmp16=0;
+            tmp16=*(uint16_t *)&color_temperature_unreddened;
+            star_record[31]=*(char *)&tmp16;
+            tmp16 >>= 8;
+            star_record[32]=*(char *)&tmp16;
+          } else {
+            //
+            // output endianness is opposite this arch
+            //
+
+            // source_id
+            tmp64=0;
+            tmp64=source_id;
+            star_record[7]=*(char *)&tmp64;
+            tmp64 >>= 8;
+            star_record[6]=*(char *)&tmp64;
+            tmp64 >>= 8;
+            star_record[5]=*(char *)&tmp64;
+            tmp64 >>= 8;
+            star_record[4]=*(char *)&tmp64;
+            tmp64 >>= 8;
+            star_record[3]=*(char *)&tmp64;
+            tmp64 >>= 8;
+            star_record[2]=*(char *)&tmp64;
+            tmp64 >>= 8;
+            star_record[1]=*(char *)&tmp64;
+            tmp64 >>= 8;
+            star_record[0]=*(char *)&tmp64;
+
+            // icrs_x
+            tmp64=0;
+            tmp64=*(uint64_t *)&icrs_x;
+            if (little_endian == 1) {
+              tmp64 >>= 24; // skip 24 lsb if source is little-endian
+            }
+            star_record[12]=*(char *)&tmp64;
+            tmp64 >>= 8;
+            star_record[11]=*(char *)&tmp64;
+            tmp64 >>= 8;
+            star_record[10]=*(char *)&tmp64;
+            tmp64 >>= 8;
+            star_record[9]=*(char *)&tmp64;
+            tmp64 >>= 8;
+            star_record[8]=*(char *)&tmp64;
+
+            // icrs_y
+            tmp64=0;
+            tmp64=*(uint64_t *)&icrs_y;
+            if (little_endian == 1) {
+              tmp64 >>= 24; // skip 24 lsb if source is little-endian
+            }
+            star_record[17]=*(char *)&tmp64;
+            tmp64 >>= 8;
+            star_record[16]=*(char *)&tmp64;
+            tmp64 >>= 8;
+            star_record[15]=*(char *)&tmp64;
+            tmp64 >>= 8;
+            star_record[14]=*(char *)&tmp64;
+            tmp64 >>= 8;
+            star_record[13]=*(char *)&tmp64;
+
+            // icrs_z
+            tmp64=0;
+            tmp64=*(uint64_t *)&icrs_z;
+            if (little_endian == 1) {
+              tmp64 >>= 24; // skip 24 lsb if source is little-endian
+            }
+            star_record[22]=*(char *)&tmp64;
+            tmp64 >>= 8;
+            star_record[21]=*(char *)&tmp64;
+            tmp64 >>= 8;
+            star_record[20]=*(char *)&tmp64;
+            tmp64 >>= 8;
+            star_record[19]=*(char *)&tmp64;
+            tmp64 >>= 8;
+            star_record[18]=*(char *)&tmp64;
+
+            // linear_1pc_intensity
+            tmp32=0;
+            tmp32=*(uint32_t *)&linear_1pc_intensity;
+            if (little_endian == 1) {
+              tmp32 >>= 8; // skip 8 lsb if source is little-endian
+            }
+            star_record[25]=*(char *)&tmp32;
+            tmp32 >>= 8;
+            star_record[24]=*(char *)&tmp32;
+            tmp32 >>= 8;
+            star_record[23]=*(char *)&tmp32;
+
+            // linear_1pc_intensity_undimmed
+            tmp32=0;
+            tmp32=*(uint32_t *)&linear_1pc_intensity_undimmed;
+            if (little_endian == 1) {
+              tmp32 >>= 8; // skip 8 lsb if source is little-endian
+            }
+            star_record[28]=*(char *)&tmp32;
+            tmp32 >>= 8;
+            star_record[27]=*(char *)&tmp32;
+            tmp32 >>= 8;
+            star_record[26]=*(char *)&tmp32;
+
+            // color_temperature
+            tmp16=0;
+            tmp16=*(uint16_t *)&color_temperature;
+            star_record[30]=*(char *)&tmp16;
+            tmp16 >>= 8;
+            star_record[29]=*(char *)&tmp16;
+
+            // color_temperature_unreddend
+            tmp16=0;
+            tmp16=*(uint16_t *)&color_temperature_unreddened;
+            star_record[32]=*(char *)&tmp16;
+            tmp16 >>= 8;
+            star_record[31]=*(char *)&tmp16;
+          }
+
+          //
+          // output star_record to correct output dat file
           //
           if (parallax_over_error >= 100.0) {
-            fwrite(&star_record, star_record_size, 1, output_file_pq100);
+            fwrite(star_record, star_record_size, 1, output_file_pq100);
             pq100_count++;
+            total_output_count++;
           } else if (parallax_over_error >= 50.0) {
-            fwrite(&star_record, star_record_size, 1, output_file_pq050);
+            fwrite(star_record, star_record_size, 1, output_file_pq050);
             pq050_count++;
+            total_output_count++;
           } else if (parallax_over_error >= 30.0) {
-            fwrite(&star_record, star_record_size, 1, output_file_pq030);
+            fwrite(star_record, star_record_size, 1, output_file_pq030);
             pq030_count++;
+            total_output_count++;
           } else if (parallax_over_error >= 20.0) {
-            fwrite(&star_record, star_record_size, 1, output_file_pq020);
+            fwrite(star_record, star_record_size, 1, output_file_pq020);
             pq020_count++;
+            total_output_count++;
           } else if (parallax_over_error >= 10.0) {
-            fwrite(&star_record, star_record_size, 1, output_file_pq010);
+            fwrite(star_record, star_record_size, 1, output_file_pq010);
             pq010_count++;
+            total_output_count++;
           } else if (parallax_over_error >= 5.0) {
-            fwrite(&star_record, star_record_size, 1, output_file_pq005);
+            fwrite(star_record, star_record_size, 1, output_file_pq005);
             pq005_count++;
+            total_output_count++;
           } else if (parallax_over_error >= 3.0) {
-            fwrite(&star_record, star_record_size, 1, output_file_pq003);
+            fwrite(star_record, star_record_size, 1, output_file_pq003);
             pq003_count++;
+            total_output_count++;
           } else if (parallax_over_error >= 2.0) {
-            fwrite(&star_record, star_record_size, 1, output_file_pq002);
+            fwrite(star_record, star_record_size, 1, output_file_pq002);
             pq002_count++;
+            total_output_count++;
           } else if (parallax_over_error >= 1.0) {
-            fwrite(&star_record, star_record_size, 1, output_file_pq001);
+            fwrite(star_record, star_record_size, 1, output_file_pq001);
             pq001_count++;
+            total_output_count++;
           } else {
-            fwrite(&star_record, star_record_size, 1, output_file_pq000);
+            fwrite(star_record, star_record_size, 1, output_file_pq000);
             pq000_count++;
+            total_output_count++;
           }
 
         } else {
           discard_parallax_count++;
+#ifdef DEBUG
+          printf("debug, ignoring star due to missing or negative parallax\n");
+          fflush(stdout);
+#endif
         } // end ignore if zero or negative parallax after corrections
       } else {
         if (phot_G_mean_flux <= 0.0) {
           discard_no_flux_count++;
+#ifdef DEBUG
+          printf("debug, ignoring star due to no G-band flux\n");
+          fflush(stdout);
+#endif
         } else {
           discard_parms_count++;
+#ifdef DEBUG
+          printf("debug, ignoring star due to insufficient astrometric params\n");
+          fflush(stdout);
+#endif
         }
-      } // end ignore if not parms=5 or 6
+      } // end ignore if not parms=5 or 6 or no G flux
+#ifdef DEBUG
+    } else {
+      printf("debug, ignoring csv header line\n");
+      fflush(stdout);
+#endif
     } // end ignore csv header lines
 
     //
@@ -1132,10 +1706,54 @@ int main(int argc, char **argv) {
       clock_gettime(CLOCK_REALTIME, &endtime);
       elapsed_time=((double)(endtime.tv_sec - 1500000000) + ((double)endtime.tv_nsec / 1.0E9)) - ((double)(starttime.tv_sec - 1500000000) + ((double)starttime.tv_nsec) / 1.0E9);
       overall_elapsed_time=((double)(endtime.tv_sec - 1500000000) + ((double)endtime.tv_nsec / 1.0E9)) - ((double)(overall_starttime.tv_sec - 1500000000) + ((double)overall_starttime.tv_nsec) / 1.0E9);
-      printf("status, input records: %9lld, output records by parallax quality (pq000: %lld, pq001: %lld, pq002: %lld, pq003: %lld, pq005: %lld, pq010: %lld, pq020: %lld, pq030: %lld, pq050: %lld, pq100: %lld),\n",  input_count, pq000_count, pq001_count, pq002_count, pq003_count, pq005_count, pq010_count, pq020_count, pq030_count, pq050_count, pq100_count);
-      printf("  no parallax: %lld, parallax unusable: %lld, no_G_flux: %lld, color temp derived from (bp/rp: %lld, bp/G: %lld, rp/G: %lld, nu_eff_used_in_astrometry: %lld, pseudocolor: %lld, min_t_count: %lld, max_t_count: %lld), incremental time: %.3fs, total time: %.3fs\n",discard_parms_count, discard_parallax_count, discard_no_flux_count, temperature_from_bp_rp_count, temperature_from_bp_G_count, temperature_from_rp_G_count, temperature_from_nu_eff_count, temperature_from_pseudocolor_count, min_temp_count, max_temp_count, elapsed_time, overall_elapsed_time);
-
+      printf("------\nInput records: %9lld\n", input_count);
+      printf("\nOutput by parallax quality\n");
+      printf("  pq000: %lld\n", pq000_count);
+      printf("  pq001: %lld\n", pq001_count);
+      printf("  pq002: %lld\n", pq002_count);
+      printf("  pq003: %lld\n", pq003_count);
+      printf("  pq005: %lld\n", pq005_count);
+      printf("  pq010: %lld\n", pq010_count);
+      printf("  pq020: %lld\n", pq020_count);
+      printf("  pq030: %lld\n", pq030_count);
+      printf("  pq050: %lld\n", pq050_count);
+      printf("  pq100: %lld\n", pq100_count);
+      printf("  Total: %lld\n", total_output_count);
+      printf("\nDiscards\n");
+      printf("  2-parameter solution (no parallax): %lld\n", discard_parms_count);
+      printf("  5 or 6-parameter solution but no G-band flux: %lld\n", discard_no_flux_count);
+      if (mkg_config.enable_maximum_distance == 1) {
+        printf("  Negative parallax: (maximum distance override enabled)\n");
+      } else {
+        printf("  Negative parallax: %lld\n", discard_parallax_count);
+      }
+      printf("\nValues derived from Gaia DR3 GSPPhot fields\n");
+      if (mkg_config.use_gspphot_distance == 0) {
+        printf("  Distance: (disabled)\n");
+      } else {
+        printf("  Distance: %lld\n", gspphot_distance_count);
+      }
+      printf("  Undimmed intensity: %lld\n", undimmed_count);
+      printf("  Unreddened temperature: %lld\n", unreddened_count);
+      if (mkg_config.enable_maximum_distance == 1) {
+        printf("\nDistance override (max=%.1e parsecs)\n", mkg_config.maximum_distance);
+        printf("  Negative parallax: %lld\n", distance_override_negative_count);
+        printf("  Distance too high: %lld\n", distance_override_toohigh_count);
+      }
+      printf("\nApparent temperature derived from\n");
+      printf("  bp/rp: %lld\n", temperature_from_bp_rp_count);
+      printf("  bp/G: %lld\n", temperature_from_bp_G_count);
+      printf("  rp/G: %lld\n", temperature_from_rp_G_count);
+      printf("  nu_eff_used_in_astrometry: %lld\n", temperature_from_nu_eff_count);
+      printf("  pseudocolor: %lld\n", temperature_from_pseudocolor_count);
+      printf("\nTemperature min/max override\n");
+      printf("  Apparent temperature < 500K: %lld\n", min_temp_count);
+      printf("  Apparent temperature > 32767K: %lld\n", max_temp_count);
+      printf("  Unreddened temperature < 500K: %lld\n", unreddened_min_temp_count);
+      printf("  Unreddened temperature > 32767K: %lld\n", unreddened_max_temp_count);
+      printf("\nIncremental time: %.3fs, total time: %.3fs\n", elapsed_time, overall_elapsed_time);
       fflush(stdout);
+      clock_gettime(CLOCK_REALTIME, &starttime);
     }
 
     input_line_p=fgets(input_line, 256, input_file);
@@ -1147,9 +1765,52 @@ int main(int argc, char **argv) {
   clock_gettime(CLOCK_REALTIME, &endtime);
   elapsed_time=((double)(endtime.tv_sec - 1500000000) + ((double)endtime.tv_nsec / 1.0E9)) - ((double)(starttime.tv_sec - 1500000000) + ((double)starttime.tv_nsec) / 1.0E9);
   overall_elapsed_time=((double)(endtime.tv_sec - 1500000000) + ((double)endtime.tv_nsec / 1.0E9)) - ((double)(overall_starttime.tv_sec - 1500000000) + ((double)overall_starttime.tv_nsec) / 1.0E9);
-  printf("status, input records: %9lld, output records by parallax quality (pq000: %lld, pq001: %lld, pq002: %lld, pq003: %lld, pq005: %lld, pq010: %lld, pq020: %lld, pq030: %lld, pq050: %lld, pq100: %lld),\n",  input_count, pq000_count, pq001_count, pq002_count, pq003_count, pq005_count, pq010_count, pq020_count, pq030_count, pq050_count, pq100_count);
-  printf("  no parallax: %lld, parallax unusable: %lld, no_G_flux: %lld, color temp derived from (bp/rp: %lld, bp/G: %lld, rp/G: %lld, nu_eff_used_in_astrometry: %lld, pseudocolor: %lld, min_t_count: %lld, max_t_count: %lld), incremental time: %.3fs, total time: %.3fs\n",discard_parms_count, discard_parallax_count, discard_no_flux_count, temperature_from_bp_rp_count, temperature_from_bp_G_count, temperature_from_rp_G_count, temperature_from_nu_eff_count, temperature_from_pseudocolor_count, min_temp_count, max_temp_count, elapsed_time, overall_elapsed_time);
-
+  printf("------\nInput records: %9lld\n", input_count);
+  printf("\nOutput by parallax quality\n");
+  printf("  pq000: %lld\n", pq000_count);
+  printf("  pq001: %lld\n", pq001_count);
+  printf("  pq002: %lld\n", pq002_count);
+  printf("  pq003: %lld\n", pq003_count);
+  printf("  pq005: %lld\n", pq005_count);
+  printf("  pq010: %lld\n", pq010_count);
+  printf("  pq020: %lld\n", pq020_count);
+  printf("  pq030: %lld\n", pq030_count);
+  printf("  pq050: %lld\n", pq050_count);
+  printf("  pq100: %lld\n", pq100_count);
+  printf("  Total: %lld\n", total_output_count);
+  printf("\nDiscards\n");
+  printf("  2-parameter solution (no parallax): %lld\n", discard_parms_count);
+  printf("  5 or 6-parameter solution but no G-band flux: %lld\n", discard_no_flux_count);
+  if (mkg_config.enable_maximum_distance == 1) {
+    printf("  Negative parallax: (maximum distance override enabled)\n");
+  } else {
+    printf("  Negative parallax: %lld\n", discard_parallax_count);
+  }
+  printf("\nValues derived from Gaia DR3 GSPPhot fields\n");
+  if (mkg_config.use_gspphot_distance == 0) {
+    printf("  Distance: (disabled)\n");
+  } else {
+    printf("  Distance: %lld\n", gspphot_distance_count);
+  }
+  printf("  Undimmed intensity: %lld\n", undimmed_count);
+  printf("  Unreddened temperature: %lld\n", unreddened_count);
+  if (mkg_config.enable_maximum_distance == 1) {
+    printf("\nDistance override (max=%.1e parsecs)\n", mkg_config.maximum_distance);
+    printf("  Negative parallax: %lld\n", distance_override_negative_count);
+    printf("  Distance too high: %lld\n", distance_override_toohigh_count);
+  }
+  printf("\nApparent temperature derived from\n");
+  printf("  bp/rp: %lld\n", temperature_from_bp_rp_count);
+  printf("  bp/G: %lld\n", temperature_from_bp_G_count);
+  printf("  rp/G: %lld\n", temperature_from_rp_G_count);
+  printf("  nu_eff_used_in_astrometry: %lld\n", temperature_from_nu_eff_count);
+  printf("  pseudocolor: %lld\n", temperature_from_pseudocolor_count);
+  printf("\nTemperature min/max override\n");
+  printf("  Apparent temperature < 500K: %lld\n", min_temp_count);
+  printf("  Apparent temperature > 32767K: %lld\n", max_temp_count);
+  printf("  Unreddened temperature < 500K: %lld\n", unreddened_min_temp_count);
+  printf("  Unreddened temperature > 32767K: %lld\n", unreddened_max_temp_count);
+  printf("\nIncremental time: %.3fs, total time: %.3fs\n", elapsed_time, overall_elapsed_time);
   fflush(stdout);
 
   //

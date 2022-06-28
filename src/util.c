@@ -2,7 +2,7 @@
 // Billion Star 3D Rendering Engine
 // Kevin M. Loch
 //
-// 3D rendering engine for the ESA Gaia EDR3 star dataset
+// 3D rendering engine for the ESA Gaia DR3 star dataset
 
 /*
  * BSD 3-Clause License
@@ -40,6 +40,27 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/wait.h>
+
+int littleEndianTest() {
+  uint64_t tmp64;
+  char endian_test;
+  int little_endian;
+
+  //
+  // *runtime* test for big/little endianness
+  // there are a million ways to do this and none of them are great...
+  // so we use a method as close as possible to the way our file writing/reading code works
+  //
+  tmp64=1ul;
+  endian_test=*(char *)&tmp64;
+  if (endian_test == 1) {
+    little_endian=1;
+  } else {
+    little_endian=0;
+  }
+
+  return(little_endian);
+}
 
 int checkExceptions(bsr_state_t *bsr_state) {
   int i;

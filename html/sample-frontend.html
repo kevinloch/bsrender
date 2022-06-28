@@ -105,6 +105,14 @@
         if (tmpvalue != null) {
           settings_form.star_color_max.value = tmpvalue;
         }
+        tmpvalue = search.get("extinction_dimming_undo");
+        if (tmpvalue != null) {
+          settings_form.extinction_dimming_undo.value = tmpvalue;
+        }
+        tmpvalue = search.get("extinction_reddening_undo");
+        if (tmpvalue != null) {
+          settings_form.extinction_reddening_undo.value = tmpvalue;
+        }
         tmpvalue = search.get("draw_crosshairs");
         if (tmpvalue == "yes") {
           settings_form.draw_crosshairs.value = tmpvalue;
@@ -316,6 +324,8 @@ render_distance_max=${settings_form.render_distance_max.value}&\
 render_distance_selector=${settings_form.render_distance_selector.value}&\
 star_color_min=${settings_form.star_color_min.value}&\
 star_color_max=${settings_form.star_color_max.value}&\
+extinction_dimming_undo=${settings_form.extinction_dimming_undo.value}&\
+extinction_reddening_undo=${settings_form.extinction_reddening_undo.value}&\
 draw_crosshairs=${settings_form.draw_crosshairs.value}&\
 draw_grid_lines=${settings_form.draw_grid_lines.value}&\
 skyglow_enable=${settings_form.skyglow_enable.value}&\
@@ -380,6 +390,8 @@ render_distance_max=${settings_form.render_distance_max.value}&\
 render_distance_selector=${settings_form.render_distance_selector.value}&\
 star_color_min=${settings_form.star_color_min.value}&\
 star_color_max=${settings_form.star_color_max.value}&\
+extinction_dimming_undo=${settings_form.extinction_dimming_undo.value}&\
+extinction_reddening_undo=${settings_form.extinction_reddening_undo.value}&\
 draw_crosshairs=${settings_form.draw_crosshairs.value}&\
 draw_grid_lines=${settings_form.draw_grid_lines.value}&\
 skyglow_enable=${settings_form.skyglow_enable.value}&\
@@ -876,9 +888,9 @@ camera_tilt=${navigation_form.camera_tilt.value}`;
             <legend>About</legend>
             <div id="centered">
               Sample web interface for
-              <h2><a href="https://github.com/kevinloch/bsrender">bsrender</a> 0.9-dev-72</h2>
-              using data from <a href="https://www.cosmos.esa.int/web/gaia/earlydr3">Gaia EDR3</a>
-              <br>and supplemental <a href="https://bsrender.io/sample_data/0.9/external.csv">bright stars</a>
+              <h2><a href="https://github.com/kevinloch/bsrender">bsrender</a> 1.0-dev-14</h2>
+              using data from <a href="https://www.cosmos.esa.int/web/gaia/dr3">Gaia DR3</a>
+              <br>and supplemental <a href="https://bsrender.io/sample_data/1.0-dev/external.csv">bright stars</a>
             </div>
             <p>
             <div id="button_style">
@@ -940,6 +952,23 @@ s_url" size=30 value=""></td></tr>
             <input type="text" name="star_color_min" id="star_color_min" size="12" value="0.0">
             <br><label for="star_color_max">Max star termperature (K)</label>
             <input type="text" name="star_color_max" id="star_color_max" size="12" value="1.0E99">
+          </fieldset>
+          <fieldset>
+            <legend>Extinction Options</legend>
+            <div id="centered">
+              <em>Caution: experimental Gaia DR3 GSPPhot processing,
+              <br>effects may be exaggerated for some stars</em>
+            </div>
+            <br><label for "extinction_dimming_undo">Undo dimming</label>
+            <select name="extinction_dimming_undo" id="extinction_dimming_undo">
+              <option value="no" selected>no</option>
+              <option value="yes">yes</option>
+            </select>
+            <br><label for "extinction_reddening_undo">Undo reddening</label>
+            <select name="extinction_reddening_undo" id="extinction_reddening_undo">
+              <option value="no" selected>no</option>
+              <option value="yes">yes</option>
+            </select>
           </fieldset>
           <fieldset>
             <legend>Camera Options</legend>
@@ -1139,12 +1168,19 @@ s_url" size=30 value=""></td></tr>
           </fieldset>
           <fieldset>
             <legend>PNG Output</legend>
-            <label for "icc_profile">ICC profile</label>
+            <div id="centered">
+              <em>Note: ICC profiles are compact <a href="https://github.com/saucecontrol/Compact-ICC-Profiles">open source</a> version 4</em>
+            </div>
+            <br><label for "icc_profile">ICC profile</label>
             <select name="rgb_color_spce" id="icc_profile">
-              <option value="0">None (linear RGB)</option>
-              <option value="1" selected>sRGB v4</option>
-              <option value="2">Display P3 (compat) v4</option>
-              <option value="3">Rec. 2020 (compat) v4</option>
+              <option value="0">None - linear gamma</option>
+              <option value="7">None - flat 2.0 gamma</option>
+              <option value="1" selected>sRGB</option>
+              <option value="2">Display P3 (compatible Z)</option>
+              <option value="3">Rec. 2020 (compatible Z)</option>
+              <option value="4">Rec. 601 NTSC</option>
+              <option value="5">Rec. 601 PAL</option>
+              <option value="6">Rec. 709</option>
             </select>
             <br><label for "bits_per_color">Bits per color</label>
             <select name="bits_per_color" id="bits_per_color">

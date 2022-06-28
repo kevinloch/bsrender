@@ -2,7 +2,7 @@
 // Billion Star 3D Rendering Engine
 // Kevin M. Loch
 //
-// 3D rendering engine for the ESA Gaia EDR3 star dataset
+// 3D rendering engine for the ESA Gaia DR3 star dataset
 
 /*
  * BSD 3-Clause License
@@ -154,7 +154,7 @@ int GaussianBlur(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   // all threads: apply Gaussian 1D kernel to each pixel horizontally and put output in blur buffer
   //
   blur_x=0;
-  blur_y=(bsr_state->perthread->my_thread_id * lines_per_thread);
+  blur_y=bsr_state->perthread->my_thread_id * lines_per_thread;
   image_blur_p=bsr_state->image_blur_buf + ((long long)blur_res_x * (long long)blur_y);
   for (blur_i=0; ((blur_i < ((long long)blur_res_x * (long long)lines_per_thread)) && (blur_y < blur_res_y)); blur_i++) {
     //
@@ -213,7 +213,7 @@ int GaussianBlur(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   // note in this step we use image_blur_buf as source and current_iamge_buf as dest so some variable names will be backwards
   //
   blur_x=0;
-  blur_y=(bsr_state->perthread->my_thread_id * lines_per_thread);
+  blur_y=bsr_state->perthread->my_thread_id * lines_per_thread;
   image_blur_p=bsr_state->current_image_buf + ((long long)blur_res_x * (long long)blur_y);
   for (blur_i=0; ((blur_i < ((long long)blur_res_x * (long long)lines_per_thread)) && (blur_y < blur_res_y)); blur_i++) {
     //

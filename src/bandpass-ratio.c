@@ -2,7 +2,7 @@
 // Billion Star 3D Rendering Engine
 // Kevin M. Loch
 //
-// 3D rendering engine for the ESA Gaia EDR3 star dataset
+// 3D rendering engine for the ESA Gaia DR3 star dataset
 
 /*
  * BSD 3-Clause License
@@ -60,7 +60,7 @@ int initBandpassRatioTables(double *rp_over_G_ref, double *bp_over_G_ref, double
   double bp_intensity;
 
   //
-  // Range of Gaia EDR3 passband data file is 320-1100nm
+  // Range of Gaia DR3 passband data file is 320-1100nm
   //
   wavelength_start=320;
   wavelength_end=1100;

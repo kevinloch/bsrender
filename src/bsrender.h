@@ -2,7 +2,7 @@
 // Billion Star 3D Rendering Engine
 // Kevin M. Loch
 //
-// 3D rendering engine for the ESA Gaia EDR3 star dataset
+// 3D rendering engine for the ESA Gaia DR3 star dataset
 
 /*
  * BSD 3-Clause License
@@ -39,7 +39,40 @@
 #ifndef BSRENDER_H
 #define BSRENDER_H
 
-#define BSR_VERSION "0.9-dev-72"
+#define BSR_VERSION "1.0-dev-14"
+
+//
+// Binary data file details
+//
+// As of v1.0, bsrender data files have a fixed-length 256-bit ascii header (including the file identifier in the first 11 bytes),
+// followed by a variable number of 33-byte star records. The ascii header can be viewed with 'head -1 <filename>'.
+//
+// Each star record includes a 64-bit unsigned integer for Gaia DR3 'source_id', three 40-bit truncaed doubles for x,y,z,
+// a 24-bit truncated float for linear_1pc_intensity, a 24-bit truncated float for linear_1pc_intensity_undimmed,
+// a 16-bit unsigned int for color_temperature, and a 16-bit unsigned int for color_temperature_unreddened.
+// these are packed into a 33 byte star record with each field encoded in the selected byte order.
+//
+// +---------------+---------+---------+---------+-----+-----+---+---+
+// |   source_id   |    x    |    y    |    z    | li  |li-u | c |c-u|
+// +---------------+---------+---------+---------+-----+-----+---+---+
+// |      8        |    5    |    5    |    5    |  3  |  3  | 2 | 2 |
+//                               bytes
+//
+// mkgalaxy and mkexternal have options to generate either little-endian or big-endian files but the bye-order of the file
+// must match the architecture it is used on with bsrender. This is to avoid unnessary operations in the performance
+// critical inner-loop of processStars() which iterates over potentially billions of star records. The filenames contain '-le'
+// or '-be' to indicate byte order. Byte order is also indicated with the file identifier in the first 11 bytes of the header:
+// BSRENDER_LE for little-endian and BSRENDER_BE for big-endian.
+//
+#define BSR_EXTERNAL_PREFIX "galaxy-external"
+#define BSR_GDR3_PREFIX "galaxy-gdr3"
+#define BSR_LE_SUFFIX "le" // filename suffix for little-endian files
+#define BSR_BE_SUFFIX "be" // filename suffix for big-endian files
+#define BSR_EXTENSION "bsr" // file extension
+#define BSR_FILE_HEADER_SIZE 256 // bytes, ascii including magic number
+#define BSR_MAGIC_NUMBER_LE "BSRENDER_LE" // file identifier for little-endian files, included in file header size
+#define BSR_MAGIC_NUMBER_BE "BSRENDER_BE" // file identifier for big-endian files, included in file header size
+#define BSR_STAR_RECORD_SIZE 33  // bytes
 
 //
 // these checkpoints are used to monitor and control worker thread progress
@@ -74,7 +107,33 @@
 #define _GNU_SOURCE // needed for strcasestr in string.h
 #include <stdint.h> // needed for uint64_t
 #include <unistd.h>
+#include <sys/stat.h>
 #include <png.h>
+
+//
+// For most things we detect endianness runtime with littleEndianTest(). For the inner loop of processStars() we
+// want to avoid any unnessary instructions so we attempt to detect at compile time.
+// A check in bsr-config.c will detect a mismatch from compiled and runtime modes
+//
+// from https://stackoverflow.com/questions/4239993/determining-endianness-at-compile-time
+//
+#if defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__ || \
+    defined(__BIG_ENDIAN__) || \
+    defined(__ARMEB__) || \
+    defined(__THUMBEB__) || \
+    defined(__AARCH64EB__) || \
+    defined(_MIBSEB) || defined(__MIBSEB) || defined(__MIBSEB__)
+// It's a big-endian target architecture
+#define BSR_BIG_ENDIAN_COMPILE
+#elif defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__ || \
+    defined(__LITTLE_ENDIAN__) || \
+    defined(__ARMEL__) || \
+    defined(__THUMBEL__) || \
+    defined(__AARCH64EL__) || \
+    defined(_MIPSEL) || defined(__MIPSEL) || defined(__MIPSEL__)
+// It's a little-endian target architecture
+#define BSR_LITTLE_ENDIAN_COMPILE
+#endif
 
 typedef struct {
   double r;
@@ -82,13 +141,6 @@ typedef struct {
   double j;
   double k;
 } quaternion_t;
-
-typedef struct {
-  double icrs_x;
-  double icrs_y;
-  double icrs_z;
-  uint64_t intensity_and_temperature;
-} star_record_t;
 
 typedef struct {
   pid_t pid;
@@ -122,7 +174,9 @@ typedef struct {
 } pixel_composition_t;
 
 typedef struct {
+  //
   // these are not globally mmapped so they can be set differently by each thread after fork()
+  //
   thread_buffer_t *thread_buf_p;
   int thread_buffer_index;
   int my_thread_id;
@@ -131,35 +185,57 @@ typedef struct {
 } bsr_thread_state_t;
 
 typedef struct {
-  // bsr_state is globally mmapped so these should be the same in each thread
-  thread_buffer_t *thread_buf; // globally mmaped
-  pixel_composition_t *image_composition_buf; // globally mmaped
-  png_byte *image_output_buf; // globally mmaped
-  png_bytep *row_pointers; // globally mmaped
-  pixel_composition_t *image_blur_buf; // globally mmaped
-  pixel_composition_t *image_resize_buf;  // globally mmaped
-  dedup_buffer_t *dedup_buf; // not globally mmapped
-  dedup_index_t *dedup_index; // not globally mmapped
+  int fd;
+  struct stat sb;
+  char *buf; // pointer to large input file, globally mmapped
+  size_t buf_size;
+} input_file_t;
+
+typedef struct {
+  //
+  // bsr_state is globally mmapped so all of these variables will be the sync'ed between threads
+  // the remaining comments in this struct refer to the objects the pointers point to, which may or may not be mmapped
+  // depending on if they are initialized and/or updated by multiple threads
+  //
+  thread_buffer_t *thread_buf;                // updated by all threads, globally mmaped
+  pixel_composition_t *image_composition_buf; // updated by all threads, globally mmaped
+  png_byte *image_output_buf;                 // updated by all threads, globally mmaped
+  png_bytep *row_pointers;                    // updated by all threads, globally mmaped
+  pixel_composition_t *image_blur_buf;        // updated by all threads, globally mmaped
+  pixel_composition_t *image_resize_buf;      // updated by all threads, globally mmaped
+  dedup_buffer_t *dedup_buf;        // thread-specific buffer, malloc'ed so each thread get's it's own local buffer when fork()'ed
+  dedup_index_t *dedup_index;       // thread-specific buffer, malloc'ed so each thread get's it's own local buffer when fork()'ed
+  input_file_t input_file_external;
+  input_file_t input_file_pq100;
+  input_file_t input_file_pq050;
+  input_file_t input_file_pq030;
+  input_file_t input_file_pq020;
+  input_file_t input_file_pq010;
+  input_file_t input_file_pq005;
+  input_file_t input_file_pq003;
+  input_file_t input_file_pq002;
+  input_file_t input_file_pq001;
+  input_file_t input_file_pq000;
   int dedup_index_mode;
   int resize_res_x;
   int resize_res_y;
-  pixel_composition_t *current_image_buf;
+  pixel_composition_t *current_image_buf; // just a pointer to one of the real image buffers which are all globally mmapped
   int current_image_res_x;
   int current_image_res_y;
   int num_worker_threads;
   pid_t master_pid;
   pid_t master_pgid;
   pid_t httpd_pid;
-  bsr_thread_state_t *perthread;
+  bsr_thread_state_t *perthread; // thread-specific variables, not globally mmapped
   int per_thread_buffers;
   int thread_buffer_count;
-  bsr_status_t *status_array;
-  double *rgb_red;
-  double *rgb_green;
-  double *rgb_blue;
-  double *Airymap_red; // globally mmaped
-  double *Airymap_green; // globally mmaped
-  double *Airymap_blue; // globally mmaped
+  bsr_status_t *status_array;    // updated by all threads, globally mmaped
+  double rgb_red[32768];
+  double rgb_green[32768];
+  double rgb_blue[32768];
+  double *Airymap_red;           // multi-thread initialization, globally mmapped
+  double *Airymap_green;         // multi-thread initialization, globally mmapped
+  double *Airymap_blue;          // multi-thread initialization, globally mmapped
   double camera_hfov;
   double camera_half_res_x;
   double camera_half_res_y;
@@ -169,6 +245,7 @@ typedef struct {
   double camera_pixel_limit;
   double anti_alias_per_pixel;
   quaternion_t target_rotation;
+  int little_endian;
   size_t composition_buffer_size;
   size_t output_buffer_size;
   size_t row_pointers_size;
@@ -184,9 +261,11 @@ typedef struct {
 
 typedef struct {
   int use_bandpass_ratios;
+  int use_gspphot_distance;
   int calibrate_parallax;
-  int override_parallax_toolow;
-  double minimum_parallax;
+  int enable_maximum_distance;
+  double maximum_distance;
+  int output_little_endian;
 } mkg_config_t;
 
 typedef struct {
@@ -214,6 +293,8 @@ typedef struct {
   int render_distance_selector;
   double star_color_min;
   double star_color_max;
+  int extinction_dimming_undo;
+  int extinction_reddening_undo;
   int camera_res_x;
   int camera_res_y;
   double camera_fov;

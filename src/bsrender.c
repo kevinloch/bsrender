@@ -2,7 +2,7 @@
 // Billion Star 3D Rendering Engine
 // Kevin M. Loch
 //
-// 3D rendering engine for the ESA Gaia EDR3 star dataset
+// 3D rendering engine for the ESA Gaia DR3 star dataset
 
 /*
  * BSD 3-Clause License
@@ -38,8 +38,8 @@
 
 #include "bsrender.h" // needs to be first to get GNU_SOURCE define for strcasestr
 #include <stdint.h>
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <sys/mman.h>
@@ -56,6 +56,7 @@
 #include "post-process.h"
 #include "image-composition.h"
 #include "memory.h"
+#include "file.h"
 #include "quantize.h"
 #include "diffraction.h"
 
@@ -63,18 +64,6 @@ int main(int argc, char **argv) {
   bsr_config_t bsr_config;
   bsr_state_t *bsr_state;
   bsr_thread_state_t perthread;
-  char file_path[1024];
-  FILE *input_file_external=NULL;
-  FILE *input_file_pq100=NULL;
-  FILE *input_file_pq050=NULL;
-  FILE *input_file_pq030=NULL;
-  FILE *input_file_pq020=NULL;
-  FILE *input_file_pq010=NULL;
-  FILE *input_file_pq005=NULL;
-  FILE *input_file_pq003=NULL;
-  FILE *input_file_pq002=NULL;
-  FILE *input_file_pq001=NULL;
-  FILE *input_file_pq000=NULL;
   struct timespec overall_starttime;
   struct timespec overall_endtime;
   struct timespec starttime;
@@ -82,9 +71,6 @@ int main(int argc, char **argv) {
   double elapsed_time;
   int all_workers_done;
   int i;
-  double rgb_red[32768];
-  double rgb_green[32768];
-  double rgb_blue[32768];
   pixel_composition_t *image_composition_p;
   int main_thread_buffer_index;
   int buffer_is_empty;
@@ -121,6 +107,11 @@ int main(int argc, char **argv) {
   }
 
   //
+  // enforce config parameters
+  //
+  enforceConfigLimits(&bsr_config);
+
+  //
   // allocate memory for and initialize bsr_state
   //
   bsr_state=initState(&bsr_config);
@@ -132,6 +123,11 @@ int main(int argc, char **argv) {
     exit(1);
   }
   bsr_state->perthread=&perthread;
+
+  //
+  // open input files
+  //
+  openInputFiles(&bsr_config, bsr_state);
 
   //
   // calculate number of worker threads to be forked
@@ -158,9 +154,6 @@ int main(int argc, char **argv) {
     printf("Initializing rgb color tables...");
     fflush(stdout);
   }
-  bsr_state->rgb_red=rgb_red;
-  bsr_state->rgb_green=rgb_green;
-  bsr_state->rgb_blue=rgb_blue;
   initRGBTables(&bsr_config, bsr_state);
   if ((bsr_config.cgi_mode != 1) && (bsr_config.print_status == 1)) {
     clock_gettime(CLOCK_REALTIME, &endtime);
@@ -173,135 +166,6 @@ int main(int argc, char **argv) {
   // allocate memory and initialize various buffers that get attached to bsr_state
   //
   allocateMemory(&bsr_config, bsr_state);
-
-  //
-  // attempt to open 'external' input file
-  //
-  if (bsr_config.external_db_enable == 1) {
-    sprintf(file_path, "%s/galaxy-external.dat", bsr_config.data_file_directory);
-    input_file_external=fopen(file_path, "rb");
-    if (input_file_external == NULL) {
-      if (bsr_config.cgi_mode != 1) {
-        printf("Error: could not open %s\n", file_path);
-        fflush(stdout);
-      }
-      exit(1);
-    }
-  } // end if enable external
-
-  //
-  // attempt to open Gaia input file(s)
-  //
-  if (bsr_config.Gaia_db_enable == 1) {
-    sprintf(file_path, "%s/galaxy-pq100.dat", bsr_config.data_file_directory);
-    input_file_pq100=fopen(file_path, "rb");
-    if (input_file_pq100 == NULL) {
-      if (bsr_config.cgi_mode != 1) {
-        printf("Error: could not open %s\n", file_path);
-        fflush(stdout);
-      }
-      exit(1);
-    }
-    if (bsr_config.Gaia_min_parallax_quality < 100) {
-      sprintf(file_path, "%s/galaxy-pq050.dat", bsr_config.data_file_directory);
-      input_file_pq050=fopen(file_path, "rb");
-      if (input_file_pq050 == NULL) {
-        if (bsr_config.cgi_mode != 1) {
-          printf("Error: could not open %s\n", file_path);
-          fflush(stdout);
-        }
-        exit(1);
-      }
-    }
-    if (bsr_config.Gaia_min_parallax_quality < 50) {
-      sprintf(file_path, "%s/galaxy-pq030.dat", bsr_config.data_file_directory);
-      input_file_pq030=fopen(file_path, "rb");
-      if (input_file_pq030 == NULL) {
-        if (bsr_config.cgi_mode != 1) {
-          printf("Error: could not open %s\n", file_path);
-          fflush(stdout);
-        }
-        exit(1);
-      }
-    }
-    if (bsr_config.Gaia_min_parallax_quality < 30) {
-      sprintf(file_path, "%s/galaxy-pq020.dat", bsr_config.data_file_directory);
-      input_file_pq020=fopen(file_path, "rb");
-      if (input_file_pq020 == NULL) {
-        if (bsr_config.cgi_mode != 1) {
-          printf("Error: could not open %s\n", file_path);
-          fflush(stdout);
-        }
-        exit(1);
-      }
-    }
-    if (bsr_config.Gaia_min_parallax_quality < 20) {
-      sprintf(file_path, "%s/galaxy-pq010.dat", bsr_config.data_file_directory);
-      input_file_pq010=fopen(file_path, "rb");
-      if (input_file_pq010 == NULL) {
-        if (bsr_config.cgi_mode != 1) {
-          printf("Error: could not open %s\n", file_path);
-          fflush(stdout);
-        }
-        exit(1);
-      }
-    }
-    if (bsr_config.Gaia_min_parallax_quality < 10) {
-      sprintf(file_path, "%s/galaxy-pq005.dat", bsr_config.data_file_directory);
-      input_file_pq005=fopen(file_path, "rb");
-      if (input_file_pq005 == NULL) {
-        if (bsr_config.cgi_mode != 1) {
-          printf("Error: could not open %s\n", file_path);
-          fflush(stdout);
-        }
-        exit(1);
-      }
-    }
-    if (bsr_config.Gaia_min_parallax_quality < 5) {
-      sprintf(file_path, "%s/galaxy-pq003.dat", bsr_config.data_file_directory);
-      input_file_pq003=fopen(file_path, "rb");
-      if (input_file_pq003 == NULL) {
-        if (bsr_config.cgi_mode != 1) {
-          printf("Error: could not open %s\n", file_path);
-          fflush(stdout);
-        }
-        exit(1);
-      }
-    }
-    if (bsr_config.Gaia_min_parallax_quality < 3) {
-      sprintf(file_path, "%s/galaxy-pq002.dat", bsr_config.data_file_directory);
-      input_file_pq002=fopen(file_path, "rb");
-      if (input_file_pq002 == NULL) {
-        if (bsr_config.cgi_mode != 1) {
-          printf("Error: could not open %s\n", file_path);
-          fflush(stdout);
-        }
-        exit(1);
-      }
-    }
-    if (bsr_config.Gaia_min_parallax_quality < 2) {
-      sprintf(file_path, "%s/galaxy-pq001.dat", bsr_config.data_file_directory);
-      input_file_pq001=fopen(file_path, "rb");
-      if (input_file_pq001 == NULL) {
-        if (bsr_config.cgi_mode != 1) {
-          printf("Error: could not open %s\n", file_path);
-          fflush(stdout);
-        }
-        exit(1);
-      }
-    }
-    if (bsr_config.Gaia_min_parallax_quality < 1) {
-      sprintf(file_path, "%s/galaxy-pq000.dat", bsr_config.data_file_directory);
-      input_file_pq000=fopen(file_path, "rb");
-      if (input_file_pq000 == NULL) {
-        if (bsr_config.cgi_mode != 1) {
-          printf("Error: could not open %s\n", file_path);
-          fflush(stdout);
-        }
-        exit(1);
-      }
-    }
-  } // end if enable Gaia
 
   //
   // fork worker threads
@@ -374,39 +238,39 @@ int main(int argc, char **argv) {
     bsr_state->perthread->thread_buffer_index=0; // index within this threads block
 
     //
-    // worker threads: set input file and send to rendering function
+    // worker threads: send each input file to rendering function
     //
     if (bsr_config.external_db_enable == 1) {
-      processStars(&bsr_config, bsr_state, input_file_external);
+      processStars(&bsr_config, bsr_state, &bsr_state->input_file_external);
     } // end if enable external
     if (bsr_config.Gaia_db_enable == 1) {
-      processStars(&bsr_config, bsr_state, input_file_pq100);
+      processStars(&bsr_config, bsr_state, &bsr_state->input_file_pq100);
       if (bsr_config.Gaia_min_parallax_quality < 100) {
-        processStars(&bsr_config, bsr_state, input_file_pq050);
+        processStars(&bsr_config, bsr_state, &bsr_state->input_file_pq050);
       }
       if (bsr_config.Gaia_min_parallax_quality < 50) {
-        processStars(&bsr_config, bsr_state, input_file_pq030);
+        processStars(&bsr_config, bsr_state, &bsr_state->input_file_pq030);
       }
       if (bsr_config.Gaia_min_parallax_quality < 30) {
-        processStars(&bsr_config, bsr_state, input_file_pq020);
+        processStars(&bsr_config, bsr_state, &bsr_state->input_file_pq020);
       }
       if (bsr_config.Gaia_min_parallax_quality < 20) {
-        processStars(&bsr_config, bsr_state, input_file_pq010);
+        processStars(&bsr_config, bsr_state, &bsr_state->input_file_pq010);
       }
       if (bsr_config.Gaia_min_parallax_quality < 10) {
-        processStars(&bsr_config, bsr_state, input_file_pq005);
+        processStars(&bsr_config, bsr_state, &bsr_state->input_file_pq005);
       }
       if (bsr_config.Gaia_min_parallax_quality < 05) {
-        processStars(&bsr_config, bsr_state, input_file_pq003);
+        processStars(&bsr_config, bsr_state, &bsr_state->input_file_pq003);
       }
       if (bsr_config.Gaia_min_parallax_quality < 03) {
-        processStars(&bsr_config, bsr_state, input_file_pq002);
+        processStars(&bsr_config, bsr_state, &bsr_state->input_file_pq002);
       }
       if (bsr_config.Gaia_min_parallax_quality < 02) {
-        processStars(&bsr_config, bsr_state, input_file_pq001);
+        processStars(&bsr_config, bsr_state, &bsr_state->input_file_pq001);
       }
       if (bsr_config.Gaia_min_parallax_quality < 01) {
-        processStars(&bsr_config, bsr_state, input_file_pq000);
+        processStars(&bsr_config, bsr_state, &bsr_state->input_file_pq000);
       }
     } // end if enable Gaia
 
@@ -494,43 +358,6 @@ int main(int argc, char **argv) {
     // main thread: output png file
     //
     outputPNG(&bsr_config, bsr_state);
-
-    //
-    // main thread: clean up file pointers
-    //
-    if (input_file_external != NULL) {
-      fclose(input_file_external);
-    }
-    if (input_file_pq100 != NULL) {
-      fclose(input_file_pq100);
-    }
-    if (input_file_pq050 != NULL) {
-      fclose(input_file_pq050);
-    }
-    if (input_file_pq030 != NULL) {
-      fclose(input_file_pq030);
-    }
-    if (input_file_pq020 != NULL) {
-      fclose(input_file_pq020);
-    }
-    if (input_file_pq010 != NULL) {
-      fclose(input_file_pq010);
-    }
-    if (input_file_pq005 != NULL) {
-      fclose(input_file_pq005);
-    }
-    if (input_file_pq003 != NULL) {
-      fclose(input_file_pq003);
-    }
-    if (input_file_pq002 != NULL) {
-      fclose(input_file_pq002);
-    }
-    if (input_file_pq001 != NULL) {
-      fclose(input_file_pq001);
-    }
-    if (input_file_pq000 != NULL) {
-      fclose(input_file_pq000);
-    }
 
     //
     // main thread: clean up memory allocations

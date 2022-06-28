@@ -1,8 +1,7 @@
-
 // Billion Star 3D Rendering Engine
 // Kevin M. Loch
 //
-// 3D rendering engine for the ESA Gaia EDR3 star dataset
+// 3D rendering engine for the ESA Gaia DR3 star dataset
 
 /*
  * BSD 3-Clause License
@@ -36,8 +35,11 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+//#define DEBUG
+
 #include "bsrender.h" // needs to be first to get GNU_SOURCE define for strcasestr
 #include <stdio.h>
+#include <stdlib.h>
 #include <math.h>
 #include "util.h"
 
@@ -364,7 +366,7 @@ int antiAliasPixel(bsr_config_t *bsr_config, bsr_state_t *bsr_state, double outp
   return(0);
 }
 
-int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_file) {
+int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, input_file_t *input_file) {
   //
   // This function handles the most expensive operations in bsrender. It performs the following:
   //
@@ -378,8 +380,17 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
   // - sends pixels to main thread for integration into the image composition buffer
   //
   int i;
-  star_record_t star_record;
-  int star_record_size=sizeof(star_record_t);
+  long long total_input_records;
+  long long input_records_per_thread;
+  long long input_record_abs;  // index of which star record we are at over the entire input file
+  long long input_record_rel;  // index of which star record we are at relative to beginning of this thread's part of input file
+  char *input_file_p;          // pointer to an arbitrary byte in the input file
+  char *star_record_p;         // pointer to current star record variable byte being loaded with data from input file 
+  int my_thread_id;
+  uint64_t source_id;
+  double star_icrs_x;
+  double star_icrs_y;
+  double star_icrs_z;
   double star_x;
   double star_y;
   double star_z;
@@ -390,9 +401,9 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
   double star_xy;
   quaternion_t star_q;
   quaternion_t rotated_star_q;
-  uint64_t color_temperature;
-  float star_linear_1pc_intensity;
-  double star_linear_intensity; // star linear intensity as viewed from camera
+  int color_temperature;
+  float linear_1pc_intensity;
+  double linear_intensity; // star linear intensity as viewed from camera
   double output_az;
   double output_az_by2;
   double output_el;
@@ -423,31 +434,227 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
   double r;
   double g;
   double b;
+  size_t star_record_size=(size_t)BSR_STAR_RECORD_SIZE;
 
   //
   // init shortcut variables
   //
   Airymap_max_width=bsr_config->Airy_disk_max_extent + 1;
+  my_thread_id=bsr_state->perthread->my_thread_id;
+  total_input_records=(input_file->buf_size - 256) / star_record_size;
+  input_records_per_thread=(long long)ceil(((float)total_input_records / (float)bsr_state->num_worker_threads));
+  if (input_records_per_thread < 1) {
+    input_records_per_thread=1;
+  }
+
+/*
+printf("my_thread_id: %d, total_input_records: %lld, input_records_per_thread: %lld\n", my_thread_id, total_input_records, input_records_per_thread);
+fflush(stdout);
+*/
 
   //
-  // read and process each line of input file
+  // process each line of input file
   // 
-  fread(&star_record, star_record_size, 1, input_file);
-  while ((feof(input_file) == 0) && (ferror(input_file) == 0)) {
+  input_record_abs=(my_thread_id - 1) * input_records_per_thread; // set absolute input record index to beginning of this thread's section of input file
+  input_file_p=input_file->buf;
+
+  // skip 256-byte ascii header
+  input_file_p+=256;
+
+  // skip to beginning of this thread's section of input file
+  input_file_p+=((long long)star_record_size * (long long)input_record_abs);
+
+/*
+  printf("thread_id: %d, begin, input_record_abs: %lld, input_file_p: %lu\n", my_thread_id, input_record_abs, input_file_p);
+  fflush(stdout);
+*/
+
+  // process each star record
+  for (input_record_rel=0; ((input_record_rel < input_records_per_thread) && (input_record_abs < total_input_records)); input_record_rel++) {
+
+/*
+  printf("thread_id: %d, input_record_abs: %lld, input_record_rel: %lld, input_file_p: %lu\n", my_thread_id, input_record_abs, input_record_rel, input_file_p);
+  fflush(stdout);
+*/
+
+    //
+    // Binary data file details
+    //
+    // As of v1.0, bsrender data files have a fixed-length 256-bit ascii header (including the file identifier in the first 11 bytes), 
+    // followed by a variable number of 33-byte star records. The ascii header can be viewed with 'head -1 <filename>'.
+    //
+    // Each star record includes a 64-bit unsigned integer for Gaia DR3 'source_id', three 40-bit truncaed doubles for x,y,z,
+    // a 24-bit truncated float for linear_1pc_intensity, a 24-bit truncated float for linear_1pc_intensity_undimmed,
+    // a 16-bit unsigned int for color_temperature, and a 16-bit unsigned int for color_temperature_unreddened.
+    // these are packed into a 33 byte star record with each field encoded in the selected byte order.
+    //
+    // +---------------+---------+---------+---------+-----+-----+---+---+
+    // |   source_id   |    x    |    y    |    z    | li  |li-u | c |c-u|
+    // +---------------+---------+---------+---------+-----+-----+---+---+
+    // |      8        |    5    |    5    |    5    |  3  |  3  | 2 | 2 |
+    //                               bytes
+    //
+    // mkgalaxy and mkexternal have options to generate either little-endian or big-endian files but the bye-order of the file
+    // must match the architecture it is used on with bsrender. This is to avoid unnessary operations in the performance
+    // critical inner-loop of processStars() which iterates over potentially billions of star records. The filenames contain '-le'
+    // or '-be' to indicate byte order. Byte order is also indicated with the file identifier in the first 11 bytes of the header:
+    // BSRENDER_LE for little-endian and BSRENDER_BE for big-endian.
+    //
+
+    //
+    // unpack star record from 33 byte star_record into individual variables
+    //
+
+    // load source_id 
+    source_id=0;
+    star_record_p=(char *)&source_id;
+    *star_record_p=*input_file_p;
+    input_file_p++;
+    star_record_p++;
+    *star_record_p=*input_file_p;
+    input_file_p++;
+    star_record_p++;
+    *star_record_p=*input_file_p;
+    input_file_p++;
+    star_record_p++;
+    *star_record_p=*input_file_p;
+    input_file_p++;
+    star_record_p++;
+    *star_record_p=*input_file_p;
+    input_file_p++;
+    star_record_p++;
+    *star_record_p=*input_file_p;
+    input_file_p++;
+    star_record_p++;
+    *star_record_p=*input_file_p;
+    input_file_p++;
+    star_record_p++;
+    *star_record_p=*input_file_p;
+    input_file_p++;
+    star_record_p++;
+
+    // load star_icrs_x
+    star_icrs_x=0.0;
+    star_record_p=(char *)&star_icrs_x;
+    star_record_p+=3; // skip 24 lsb
+    *star_record_p=*input_file_p;
+    input_file_p++;
+    star_record_p++;
+    *star_record_p=*input_file_p;
+    input_file_p++;
+    star_record_p++;
+    *star_record_p=*input_file_p;
+    input_file_p++;
+    star_record_p++;
+    *star_record_p=*input_file_p;
+    input_file_p++;
+    star_record_p++;
+    *star_record_p=*input_file_p;
+    input_file_p++;
+
+    // load star_icrs_y
+    star_icrs_y=0.0;
+    star_record_p=(char *)&star_icrs_y;
+    star_record_p+=3; // skip 24 lsb
+    *star_record_p=*input_file_p;
+    input_file_p++;
+    star_record_p++;
+    *star_record_p=*input_file_p;
+    input_file_p++;
+    star_record_p++;
+    *star_record_p=*input_file_p;
+    input_file_p++;
+    star_record_p++;
+    *star_record_p=*input_file_p;
+    input_file_p++;
+    star_record_p++;
+    *star_record_p=*input_file_p;
+    input_file_p++;
+
+    // load star_icrs_z
+    star_icrs_z=0.0;
+    star_record_p=(char *)&star_icrs_z;
+    star_record_p+=3; // skip 24 lsb
+    *star_record_p=*input_file_p;
+    input_file_p++;
+    star_record_p++;
+    *star_record_p=*input_file_p;
+    input_file_p++;
+    star_record_p++;
+    *star_record_p=*input_file_p;
+    input_file_p++;
+    star_record_p++;
+    *star_record_p=*input_file_p;
+    input_file_p++;
+    star_record_p++;
+    *star_record_p=*input_file_p;
+    input_file_p++;
+
+    // load intensity
+    if (bsr_config->extinction_dimming_undo == 1) {
+      // undimmed intensity
+      input_file_p+=3; // skip over apparent intensity field
+      linear_1pc_intensity=0.0;
+      star_record_p=(char *)&linear_1pc_intensity;
+      star_record_p++; // skip 8 lsb
+      *star_record_p=*input_file_p;
+      input_file_p++;
+      star_record_p++;
+      *star_record_p=*input_file_p;
+      input_file_p++;
+      star_record_p++;
+      *star_record_p=*input_file_p;
+      input_file_p++;
+    } else {
+      // apparent intensity
+      linear_1pc_intensity=0.0;
+      star_record_p=(char *)&linear_1pc_intensity;
+      star_record_p++; // skip 8 lsb
+      *star_record_p=*input_file_p;
+      input_file_p++;
+      star_record_p++;
+      *star_record_p=*input_file_p;
+      input_file_p++;
+      star_record_p++;
+      *star_record_p=*input_file_p;
+      input_file_p+=4; // skip over undimmed intensity field
+    }
+
+    // load color temperature
+    if (bsr_config->extinction_reddening_undo == 1) {
+      // unreddened color temperature
+      input_file_p+=2; // skip over apparent color temperature field
+      color_temperature=0;
+      star_record_p=(char *)&color_temperature;
+      *star_record_p=*input_file_p;
+      input_file_p++;
+      star_record_p++;
+      *star_record_p=*input_file_p;
+      input_file_p++;
+    } else {
+      // apparent color temperature
+      color_temperature=0;
+      star_record_p=(char *)&color_temperature;
+      *star_record_p=*input_file_p;
+      input_file_p++;
+      star_record_p++;
+      *star_record_p=*input_file_p;
+      input_file_p+=3; // skip over apprent color temperature field
+    }
+
+#ifdef DEBUG
+    printf("debug, thread_id: %d, source_id: %lu, star_icrs_x: %.4e, star_icrs_y: %.4e, star_icrs_z: %.4e, linear_1pc_intensity: %.4e, color_temperature: %d\n", my_thread_id, source_id, star_icrs_x, star_icrs_y, star_icrs_z, linear_1pc_intensity, color_temperature);
+    fflush(stdout);
+#endif
+
     //
     // translate original star x,y,z to new coordinates as seen by camera position
     //
-    star_x=star_record.icrs_x - bsr_config->camera_icrs_x;
-    star_y=star_record.icrs_y - bsr_config->camera_icrs_y;
-    star_z=star_record.icrs_z - bsr_config->camera_icrs_z;
+    star_x=star_icrs_x - bsr_config->camera_icrs_x;
+    star_y=star_icrs_y - bsr_config->camera_icrs_y;
+    star_z=star_icrs_z - bsr_config->camera_icrs_z;
     star_r2=(star_x * star_x) + (star_y * star_y) + (star_z * star_z); // leave squared for now for better performance
 
-    //
-    // extract color_temperature from combined field
-    //
-    color_temperature=star_record.intensity_and_temperature & 0x00000000fffffffful;
-
-    // 
     // only continue if star distance is within min-max range from selected point (0=camera, 1=target),
     // greater than zero, and color temperature is within allowed range
     //
@@ -455,19 +662,17 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
       render_distance2=star_r2; // star distance from camera
     } else { // selected point is target
       // leave squared
-      render_distance2=((star_record.icrs_x - bsr_config->target_icrs_x) * (star_record.icrs_x - bsr_config->target_icrs_x))\
-                     + ((star_record.icrs_y - bsr_config->target_icrs_y) * (star_record.icrs_y - bsr_config->target_icrs_y))\
-                     + ((star_record.icrs_z - bsr_config->target_icrs_z) * (star_record.icrs_z - bsr_config->target_icrs_z)); // important, use un-translated/rotated coordinates
+      render_distance2=((star_icrs_x - bsr_config->target_icrs_x) * (star_icrs_x - bsr_config->target_icrs_x))\
+                     + ((star_icrs_y - bsr_config->target_icrs_y) * (star_icrs_y - bsr_config->target_icrs_y))\
+                     + ((star_icrs_z - bsr_config->target_icrs_z) * (star_icrs_z - bsr_config->target_icrs_z)); // important, use un-translated/rotated coordinates
     } // end if render_distance_selector
     if ((star_r2 > 0.0)\
      && (render_distance2 >= bsr_state->render_distance_min2) && (render_distance2 <= bsr_state->render_distance_max2)\
      && (color_temperature >= bsr_config->star_color_min) && (color_temperature <= bsr_config->star_color_max)) {
       //
-      // extract star intensity from combined field and adjust for distance from camera
+      // adjust star linear 1pc intensity by distance
       //
-      star_record.intensity_and_temperature >>=32;
-      star_linear_1pc_intensity=*((float*)&star_record.intensity_and_temperature);
-      star_linear_intensity=star_linear_1pc_intensity / star_r2;
+      linear_intensity=linear_1pc_intensity / star_r2;
 
       //
       // rotate star with quaternion multiplication.
@@ -555,7 +760,7 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
           //
           // Airy disk mode, use Airy disk maps to find all pixel values for this star and send to dedup buffer
           //
-          Airymap_autoscale=(int)(sqrt(star_linear_intensity * 10.0 / bsr_state->camera_pixel_limit) * 2.0 * bsr_config->Airy_disk_first_null);
+          Airymap_autoscale=(int)(sqrt(linear_intensity * 10.0 / bsr_state->camera_pixel_limit) * 2.0 * bsr_config->Airy_disk_first_null);
           if (Airymap_autoscale < bsr_config->Airy_disk_min_extent) {
             Airymap_autoscale=bsr_config->Airy_disk_min_extent;
           } else if (Airymap_autoscale > bsr_config->Airy_disk_max_extent) {
@@ -571,9 +776,9 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
             Airymap_green_p=bsr_state->Airymap_green + Airymap_row_offset;
             Airymap_blue_p=bsr_state->Airymap_blue + Airymap_row_offset;
             for (Airymap_x=0; Airymap_x < Airymap_width; Airymap_x++) {
-              r=(star_linear_intensity * *Airymap_red_p * star_rgb_red);
-              g=(star_linear_intensity * *Airymap_green_p * star_rgb_green);
-              b=(star_linear_intensity * *Airymap_blue_p * star_rgb_blue);
+              r=(linear_intensity * *Airymap_red_p * star_rgb_red);
+              g=(linear_intensity * *Airymap_green_p * star_rgb_green);
+              b=(linear_intensity * *Airymap_blue_p * star_rgb_blue);
               // quadrant +x,+y
               Airymap_output_x=output_x + Airymap_x;
               Airymap_output_y=output_y + Airymap_y;
@@ -649,9 +854,9 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
           //
           // not Airy disk mode, send star pixel to anti-alias function or direct to dedup buffer
           //
-          r=(star_linear_intensity * bsr_state->rgb_red[color_temperature]);
-          g=(star_linear_intensity * bsr_state->rgb_green[color_temperature]);
-          b=(star_linear_intensity * bsr_state->rgb_blue[color_temperature]);
+          r=(linear_intensity * bsr_state->rgb_red[color_temperature]);
+          g=(linear_intensity * bsr_state->rgb_green[color_temperature]);
+          b=(linear_intensity * bsr_state->rgb_blue[color_temperature]);
           if (bsr_config->anti_alias_enable == 1) {
             antiAliasPixel(bsr_config, bsr_state, output_x_d, output_y_d, r, g, b);
           } else {
@@ -662,10 +867,7 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
       } // end if star is within image raster
     } // end if within distance ranges
 
-    //
-    // read next star record from input file
-    //
-    fread(&star_record, star_record_size, 1, input_file);
+    input_record_abs++;
   } // end input loop
 
   //
@@ -674,6 +876,11 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *input_f
   if (bsr_state->perthread->dedup_count > 0) {
     sendDedupBufferToMainThread(bsr_state);
   } // end if dedup buffer has remaining entries
+
+/*
+  printf("thread_id: %d, end, input_record_abs: %lld, input_record_rel: %lld\n", my_thread_id, input_record_abs, input_record_rel);
+  fflush(stdout);
+*/
 
   return(0);
 }
