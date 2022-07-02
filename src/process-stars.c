@@ -386,7 +386,7 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, input_file_t 
   long long input_record_rel;  // index of which star record we are at relative to beginning of this thread's part of input file
   char *input_file_p;          // pointer to an arbitrary byte in the input file
   int my_thread_id;
-  uint64_t source_id;
+//  uint64_t source_id;
   double star_icrs_x;
   double star_icrs_y;
   double star_icrs_z;
@@ -501,7 +501,7 @@ fflush(stdout);
     //
 #ifdef BSR_LITTLE_ENDIAN_COMPILE
     // source_id 
-    source_id=*(uint64_t *)input_file_p;
+//    source_id=*(uint64_t *)input_file_p;
     input_file_p+=5; // for little-endian, position 3 bytes before beginning of next field since we will be copying 5-byte truncated value to full size double
     // star_icrs_x
     tmp64_p=(uint64_t *)&star_icrs_x;
@@ -544,7 +544,7 @@ fflush(stdout);
     // Warning: big-endian processStars() has not been tested yet, pointer shifts may be wrong
     //
     // source_id
-    source_id=*(uint64_t *)input_file_p;
+//    source_id=*(uint64_t *)input_file_p;
     input_file_p+=11; // for big-endian, position 3 bytes after beginning of next field since we will be copying 5-byte truncated value to full size double
     // star_icrs_x
     tmp64_p=(uint64_t *)&star_icrs_x;
