@@ -385,7 +385,6 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, input_file_t 
   long long input_record_abs;  // index of which star record we are at over the entire input file
   long long input_record_rel;  // index of which star record we are at relative to beginning of this thread's part of input file
   char *input_file_p;          // pointer to an arbitrary byte in the input file
-  char *star_record_p;         // pointer to current star record variable byte being loaded with data from input file 
   int my_thread_id;
   uint64_t source_id;
   double star_icrs_x;
@@ -401,7 +400,7 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, input_file_t 
   double star_xy;
   quaternion_t star_q;
   quaternion_t rotated_star_q;
-  int color_temperature;
+  uint16_t color_temperature;
   float linear_1pc_intensity;
   double linear_intensity; // star linear intensity as viewed from camera
   double output_az;
@@ -435,6 +434,8 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, input_file_t 
   double g;
   double b;
   size_t star_record_size=(size_t)BSR_STAR_RECORD_SIZE;
+  uint64_t *tmp64_p;
+  uint32_t *tmp32_p;
 
   //
   // init shortcut variables
@@ -471,12 +472,6 @@ fflush(stdout);
 
   // process each star record
   for (input_record_rel=0; ((input_record_rel < input_records_per_thread) && (input_record_abs < total_input_records)); input_record_rel++) {
-
-/*
-  printf("thread_id: %d, input_record_abs: %lld, input_record_rel: %lld, input_file_p: %lu\n", my_thread_id, input_record_abs, input_record_rel, input_file_p);
-  fflush(stdout);
-*/
-
     //
     // Binary data file details
     //
@@ -504,143 +499,91 @@ fflush(stdout);
     //
     // unpack star record from 33 byte star_record into individual variables
     //
-
-    // load source_id 
-    source_id=0;
-    star_record_p=(char *)&source_id;
-    *star_record_p=*input_file_p;
-    input_file_p++;
-    star_record_p++;
-    *star_record_p=*input_file_p;
-    input_file_p++;
-    star_record_p++;
-    *star_record_p=*input_file_p;
-    input_file_p++;
-    star_record_p++;
-    *star_record_p=*input_file_p;
-    input_file_p++;
-    star_record_p++;
-    *star_record_p=*input_file_p;
-    input_file_p++;
-    star_record_p++;
-    *star_record_p=*input_file_p;
-    input_file_p++;
-    star_record_p++;
-    *star_record_p=*input_file_p;
-    input_file_p++;
-    star_record_p++;
-    *star_record_p=*input_file_p;
-    input_file_p++;
-    star_record_p++;
-
-    // load star_icrs_x
-    star_icrs_x=0.0;
-    star_record_p=(char *)&star_icrs_x;
-    star_record_p+=3; // skip 24 lsb
-    *star_record_p=*input_file_p;
-    input_file_p++;
-    star_record_p++;
-    *star_record_p=*input_file_p;
-    input_file_p++;
-    star_record_p++;
-    *star_record_p=*input_file_p;
-    input_file_p++;
-    star_record_p++;
-    *star_record_p=*input_file_p;
-    input_file_p++;
-    star_record_p++;
-    *star_record_p=*input_file_p;
-    input_file_p++;
-
-    // load star_icrs_y
-    star_icrs_y=0.0;
-    star_record_p=(char *)&star_icrs_y;
-    star_record_p+=3; // skip 24 lsb
-    *star_record_p=*input_file_p;
-    input_file_p++;
-    star_record_p++;
-    *star_record_p=*input_file_p;
-    input_file_p++;
-    star_record_p++;
-    *star_record_p=*input_file_p;
-    input_file_p++;
-    star_record_p++;
-    *star_record_p=*input_file_p;
-    input_file_p++;
-    star_record_p++;
-    *star_record_p=*input_file_p;
-    input_file_p++;
-
-    // load star_icrs_z
-    star_icrs_z=0.0;
-    star_record_p=(char *)&star_icrs_z;
-    star_record_p+=3; // skip 24 lsb
-    *star_record_p=*input_file_p;
-    input_file_p++;
-    star_record_p++;
-    *star_record_p=*input_file_p;
-    input_file_p++;
-    star_record_p++;
-    *star_record_p=*input_file_p;
-    input_file_p++;
-    star_record_p++;
-    *star_record_p=*input_file_p;
-    input_file_p++;
-    star_record_p++;
-    *star_record_p=*input_file_p;
-    input_file_p++;
-
+#ifdef BSR_LITTLE_ENDIAN_COMPILE
+    // source_id 
+    source_id=*(uint64_t *)input_file_p;
+    input_file_p+=5; // for little-endian, position 3 bytes before beginning of next field since we will be copying 5-byte truncated value to full size double
+    // star_icrs_x
+    tmp64_p=(uint64_t *)&star_icrs_x;
+    *tmp64_p=(*(uint64_t *)input_file_p & 0xffffffffff000000); // suppress 3 least significant bytes
+    input_file_p+=5; // for little-endian, position 3 bytes before beginning of next field since we will be copying 5-byte truncated value to full size double
+    // star_icrs_y
+    tmp64_p=(uint64_t *)&star_icrs_y;
+    *tmp64_p=(*(uint64_t *)input_file_p & 0xffffffffff000000); // suppress 3 least significant bytes
+    input_file_p+=5; // for little-endian, position 3 bytes before beginning of next field since we will be copying 5-byte truncated value to full size double
+    // star_icrs_z
+    tmp64_p=(uint64_t *)&star_icrs_z;
+    *tmp64_p=(*(uint64_t *)input_file_p & 0xffffffffff000000); // suppress 3 least significant bytes
     // load intensity
     if (bsr_config->extinction_dimming_undo == 1) {
       // undimmed intensity
-      input_file_p+=3; // skip over apparent intensity field
-      linear_1pc_intensity=0.0;
-      star_record_p=(char *)&linear_1pc_intensity;
-      star_record_p++; // skip 8 lsb
-      *star_record_p=*input_file_p;
-      input_file_p++;
-      star_record_p++;
-      *star_record_p=*input_file_p;
-      input_file_p++;
-      star_record_p++;
-      *star_record_p=*input_file_p;
-      input_file_p++;
+      input_file_p+=10; // skip over apparent intensity field and for little-endian, position 1 byte before beginning of field since we are copying 3-byte truncated value to full size float
+      tmp32_p=(uint32_t *)&linear_1pc_intensity;
+      *tmp32_p=(*(uint32_t *)input_file_p & 0xffffff00); // suppress least significant byte
+      input_file_p+=4; // position at next field
     } else {
       // apparent intensity
-      linear_1pc_intensity=0.0;
-      star_record_p=(char *)&linear_1pc_intensity;
-      star_record_p++; // skip 8 lsb
-      *star_record_p=*input_file_p;
-      input_file_p++;
-      star_record_p++;
-      *star_record_p=*input_file_p;
-      input_file_p++;
-      star_record_p++;
-      *star_record_p=*input_file_p;
-      input_file_p+=4; // skip over undimmed intensity field
+      input_file_p+=7; // for little-endian, position 1 byte before beginning of field since we are copying 3-byte truncated value to full size float
+      tmp32_p=(uint32_t *)&linear_1pc_intensity;
+      *tmp32_p=(*(uint32_t *)input_file_p & 0xffffff00); // suppress least significant byte 
+      input_file_p+=7; // skip over undimmed intensity and position at next field
     }
-
     // load color temperature
     if (bsr_config->extinction_reddening_undo == 1) {
       // unreddened color temperature
-      input_file_p+=2; // skip over apparent color temperature field
-      color_temperature=0;
-      star_record_p=(char *)&color_temperature;
-      *star_record_p=*input_file_p;
-      input_file_p++;
-      star_record_p++;
-      *star_record_p=*input_file_p;
-      input_file_p++;
+      input_file_p+=2; // skip over apparent temperature field
+      color_temperature=*(uint16_t *)input_file_p; 
+      input_file_p+=2; // position at next field
     } else {
       // apparent color temperature
-      color_temperature=0;
-      star_record_p=(char *)&color_temperature;
-      *star_record_p=*input_file_p;
-      input_file_p++;
-      star_record_p++;
-      *star_record_p=*input_file_p;
-      input_file_p+=3; // skip over apprent color temperature field
+      color_temperature=*(uint16_t *)input_file_p;
+      input_file_p+=4; // skip over unreddened temperature and position at next field (beginning of next star record)
     }
+#elif defined BSR_BIG_ENDIAN_COMPILE
+    //
+    // Warning: big-endian processStars() has not been tested yet, pointer shifts may be wrong
+    //
+    // source_id
+    source_id=*(uint64_t *)input_file_p;
+    input_file_p+=11; // for big-endian, position 3 bytes after beginning of next field since we will be copying 5-byte truncated value to full size double
+    // star_icrs_x
+    tmp64_p=(uint64_t *)&star_icrs_x;
+    *tmp64_p=(*(uint64_t *)input_file_p & 0xffffffffff000000); // suppress 3 least significant bytes
+    input_file_p+=5; // for big-endian, position 3 bytes after beginning of next field since we will be copying 5-byte truncated value to full size double
+    // star_icrs_y
+    tmp64_p=(uint64_t *)&star_icrs_y;
+    *tmp64_p=(*(uint64_t *)input_file_p & 0xffffffffff000000); // suppress 3 least significant bytes
+    input_file_p+=5; // for big-endian, position 3 bytes after beginning of next field since we will be copying 5-byte truncated value to full size double
+    // star_icrs_z
+    tmp64_p=(uint64_t *)&star_icrs_z;
+    *tmp64_p=(*(uint64_t *)input_file_p & 0xffffffffff000000); // suppress 3 least significant bytes
+    // load intensity
+    if (bsr_config->extinction_dimming_undo == 1) {
+      // undimmed intensity
+      input_file_p+=6; // skip over apparent intensity field and for big-endian, position 1 byte after beginning of field since we are copying 3-byte truncated value to full size float
+      tmp32_p=(uint32_t *)&linear_1pc_intensity;
+      *tmp32_p=(*(uint32_t *)input_file_p & 0xffffff00); // suppress least significant byte
+      input_file_p+=2; // position at next field
+    } else {
+      // apparent intensity
+      input_file_p+=3; // for big-endian, position 1 byte after beginning of field since we are copying 3-byte truncated value to full size float
+      tmp32_p=(uint32_t *)&linear_1pc_intensity;
+      *tmp32_p=(*(uint32_t *)input_file_p & 0xffffff00); // suppress least significant byte
+      input_file_p+=5; // skip over undimmed intensity and position at next field
+    }
+    // load color temperature
+    if (bsr_config->extinction_reddening_undo == 1) {
+      // unreddened color temperature
+      input_file_p+=2; // skip over apparent temperature field
+      color_temperature=*(uint16_t *)input_file_p;
+      input_file_p+=2; // position at next field
+    } else {
+      // apparent color temperature
+      color_temperature=*(uint16_t *)input_file_p;
+      input_file_p+=4; // skip over unreddened temperature and position at next field (beginning of next star record)
+    }
+#endif
+
 
 #ifdef DEBUG
     printf("debug, thread_id: %d, source_id: %lu, star_icrs_x: %.4e, star_icrs_y: %.4e, star_icrs_z: %.4e, linear_1pc_intensity: %.4e, color_temperature: %d\n", my_thread_id, source_id, star_icrs_x, star_icrs_y, star_icrs_z, linear_1pc_intensity, color_temperature);

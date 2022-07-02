@@ -39,7 +39,7 @@
 #ifndef BSRENDER_H
 #define BSRENDER_H
 
-#define BSR_VERSION "1.0-dev-14"
+#define BSR_VERSION "1.0-dev-15"
 
 //
 // Binary data file details

@@ -919,7 +919,7 @@ int main(int argc, char **argv) {
 #endif
 
     //
-    // dom_index,ra,dec,parallax,parallax_over_error,astrometric_params_solved,nu_eff_used_in_astrometry,pseudocolour,phot_g_mean_flux,phot_bp_mean_flux,phot_rp_mean_flux,ecl_lat,teff_gspphot,gspphot_distance,ag_gspphot
+    // source_id,ra,dec,parallax,parallax_over_error,astrometric_params_solved,nu_eff_used_in_astrometry,pseudocolour,phot_g_mean_flux,phot_bp_mean_flux,phot_rp_mean_flux,ecl_lat,teff_gspphot,distance_gspphot,ag_gspphot
     //
     if (input_line[0] != 'r') { // skip csv header lines
       input_count++;
@@ -1246,6 +1246,9 @@ int main(int argc, char **argv) {
 
           //
           // check for invalid parameters outside of allowable ranges
+          // these ranges were determined by looking at the values of the given ratios
+          // from 500K-32767K and adjusting limits emperically to minimize the
+          // number of stars hitting max low / max high temperature (indicating a likely invalid temperature match).
           //
           bp_over_G_invalid=0;
           rp_over_G_invalid=0;
@@ -1407,7 +1410,7 @@ int main(int argc, char **argv) {
           //
           if (same_endian == 1) {
             //
-            // output endianness is same as this arch
+            // output byte order is same as this arch
             //
 
             // source_id
@@ -1516,7 +1519,7 @@ int main(int argc, char **argv) {
             star_record[32]=*(char *)&tmp16;
           } else {
             //
-            // output endianness is opposite this arch
+            // output byte order is opposite this arch
             //
 
             // source_id
@@ -1626,7 +1629,7 @@ int main(int argc, char **argv) {
           }
 
           //
-          // output star_record to correct output dat file
+          // output star_record to correct output file
           //
           if (parallax_over_error >= 100.0) {
             fwrite(star_record, star_record_size, 1, output_file_pq100);
@@ -1827,5 +1830,6 @@ int main(int argc, char **argv) {
   fclose(output_file_pq030);
   fclose(output_file_pq050);
   fclose(output_file_pq100);
+
   return(0);
 }

@@ -888,7 +888,7 @@ camera_tilt=${navigation_form.camera_tilt.value}`;
             <legend>About</legend>
             <div id="centered">
               Sample web interface for
-              <h2><a href="https://github.com/kevinloch/bsrender">bsrender</a> 1.0-dev-14</h2>
+              <h2><a href="https://github.com/kevinloch/bsrender">bsrender</a> 1.0-dev-15</h2>
               using data from <a href="https://www.cosmos.esa.int/web/gaia/dr3">Gaia DR3</a>
               <br>and supplemental <a href="https://bsrender.io/sample_data/1.0-dev/external.csv">bright stars</a>
             </div>
@@ -954,10 +954,10 @@ s_url" size=30 value=""></td></tr>
             <input type="text" name="star_color_max" id="star_color_max" size="12" value="1.0E99">
           </fieldset>
           <fieldset>
-            <legend>Extinction Options</legend>
+            <legend>Extinction Removal</legend>
             <div id="centered">
-              <em>Caution: experimental Gaia DR3 GSPPhot processing,
-              <br>effects may be exaggerated for some stars</em>
+              <em>From Gaia DR3 <a href="https://gea.esac.esa.int/archive/documentation/GDR3/Data_analysis/chap_cu8par/sec_cu8par_apsis/ssec_cu8par_apsis_gspphot.html">GSP-Phot</a>
+              <br>Caution: effects may be exaggerated for some stars</em>
             </div>
             <br><label for "extinction_dimming_undo">Undo dimming</label>
             <select name="extinction_dimming_undo" id="extinction_dimming_undo">
@@ -977,9 +977,9 @@ s_url" size=30 value=""></td></tr>
             <br><label for "camera_res_y">Vertical resolution</label>
             <input type="text" id="camera_res_y" name="camera_res_y" size="12" value="2000">
             <br><label for "camera_fov">Field of view (deg)</label>
-            <input type="text" id="camera_fov" name="camera_fov" size="12" value="360">
+            <input type="text" id="camera_fov" name="camera_fov" size="12" value="360"> (Zoom)
             <br><label for "camera_pixel_limit_mag">Pixel intensity limit (mag)</label>
-            <input type="text" id="camera_pixel_limit_mag" name="camera_pixel_limit_mag" size="12" value="8.0">
+            <input type="text" id="camera_pixel_limit_mag" name="camera_pixel_limit_mag" size="12" value="8.0"> (Exposure)
             <br><label for "camera_pixel_limit_mode">Pixel intensity limit mode</label>
             <select name="camera_pixel_limit_mode" id="camera_pixel_limit_mode">
               <option value="0" selected>Saturate to white</option>
@@ -1012,7 +1012,7 @@ s_url" size=30 value=""></td></tr>
           <fieldset>
             <legend>Camera Bandpass Filters</legend>
             <div id="centered">
-              <em>wavelength in nm</em>
+              <em>Wavelength in nm</em>
             </div>
             <div id="centered">
               <table style="margin-left:auto;margin-right:auto;">
@@ -1125,7 +1125,11 @@ s_url" size=30 value=""></td></tr>
             <input type="text" id="Airy_disk_obstruction" name="Airy_disk_obstruction" size="12" value="0.0"> <em>0.0 - 0.99</em>
           </fieldset>
           <fieldset>
-            <legend>Anti-aliasing</legend>
+            <div id="centered">
+              <em>Useful when combining images into video
+              <br>or simulating cameras with AA filters</em>
+            </div>
+            <br><legend>Anti-aliasing</legend>
             <label for="anti_alias_enable">Enable anti-aliasing</label>
             <select name="anti_alias_enable" id="anti_alias_enable">
               <option value="no" selected>no</option>
@@ -1147,7 +1151,10 @@ s_url" size=30 value=""></td></tr>
             <input type="text" name="skyglow_per_pixel_mag" id="skyglow_per_pixel_mag" size="12" value="14.0">
           </fieldset>
           <fieldset>
-            <legend>Post-processing</legend>
+            <div id="centered">
+              <em>Recommended blur is 1 / (4 * scaling) when downscaling</em>
+            </div>
+            <br><legend>Post-processing</legend>
             <label for="Gaussian_blur_radius">Gaussian blur radius</label>
             <input type="text" name="Gaussian_blur_radius" id="Gaussian_blur_radius" size="12" value="0.0">
             <br><label for="output_scaling_factor">Output scaling factor</label>
@@ -1174,7 +1181,7 @@ s_url" size=30 value=""></td></tr>
             <br><label for "icc_profile">ICC profile</label>
             <select name="rgb_color_spce" id="icc_profile">
               <option value="0">None - linear gamma</option>
-              <option value="7">None - flat 2.0 gamma</option>
+              <option value="7">None - flat 2.0 gamma (for ffmpeg)</option>
               <option value="1" selected>sRGB</option>
               <option value="2">Display P3 (compatible Z)</option>
               <option value="3">Rec. 2020 (compatible Z)</option>
