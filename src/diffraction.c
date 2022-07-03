@@ -69,7 +69,7 @@ int makeAiryMap(bsr_state_t *bsr_state, double *Airymap, int max_extent, int hal
   // set shorthand variables
   //
   Airymap_max_width=max_extent + 1;
-  oversampling=(half_oversampling * 2) +1;
+  oversampling=(half_oversampling * 2) + 1;
   lines_per_thread=(int)ceil(((double)Airymap_max_width / ((double)bsr_state->num_worker_threads + 1)));
   if (lines_per_thread < 1) {
     lines_per_thread=1;
@@ -77,7 +77,7 @@ int makeAiryMap(bsr_state_t *bsr_state, double *Airymap, int max_extent, int hal
   if (obs_ratio > 0.0) {
     obs_I0_factor=1.0 / pow((1.0 - (obs_ratio * obs_ratio)), 2.0);
   }
-  oversampling_factor=1.0 / oversampling;
+  oversampling_factor=1.0 / (double)oversampling;
 
   //
   // generate Airy disk map

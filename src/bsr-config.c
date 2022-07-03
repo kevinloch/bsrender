@@ -70,6 +70,9 @@ void initConfig(bsr_config_t *bsr_config) {
   bsr_config->render_distance_min=0.0;
   bsr_config->render_distance_max=1.0E99;
   bsr_config->render_distance_selector=0;
+  bsr_config->star_intensity_min=1.0E99;
+  bsr_config->star_intensity_max=-1.0E99;
+  bsr_config->star_intensity_selector=0;
   bsr_config->star_color_min=0.0;
   bsr_config->star_color_max=1.0E99;
   bsr_config->extinction_dimming_undo=0;
@@ -236,6 +239,9 @@ void setOptionValue(bsr_config_t *bsr_config, char *option, char *value, int fro
   checkOptionDouble(&bsr_config->render_distance_min, option, value, "render_distance_min");
   checkOptionDouble(&bsr_config->render_distance_max, option, value, "render_distance_max");
   checkOptionInt(&bsr_config->render_distance_selector, option, value, "render_distance_selector");
+  checkOptionDouble(&bsr_config->star_intensity_min, option, value, "star_intensity_min");
+  checkOptionDouble(&bsr_config->star_intensity_max, option, value, "star_intensity_max");
+  checkOptionInt(&bsr_config->star_intensity_selector, option, value, "star_intensity_selector");
   checkOptionDouble(&bsr_config->star_color_min, option, value, "star_color_min");
   checkOptionDouble(&bsr_config->star_color_max, option, value, "star_color_max");
   checkOptionBool(&bsr_config->extinction_dimming_undo, option, value, "extinction_dimming_undo");

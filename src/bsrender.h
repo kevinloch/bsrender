@@ -39,8 +39,10 @@
 #ifndef BSRENDER_H
 #define BSRENDER_H
 
-#define BSR_VERSION "1.0-dev-15"
+#define BSR_VERSION "1.0-dev-16"
 
+#define BSR_32BIT_BUFFERS // use 32-bit floats in image composition, blur, and resize buffers. This reduces the size of these buffers by half which may
+                          // be useful for extremely large image resolutions at the expense of summation precision. This does not change the main thread, or dedup buffers.
 //
 // Binary data file details
 //
@@ -168,9 +170,15 @@ typedef struct {
 } dedup_index_t;
 
 typedef struct {
+#ifdef BSR_32BIT_BUFFERS
+  float r;
+  float g;
+  float b;
+#else
   double r;
   double g;
   double b;
+#endif
 } pixel_composition_t;
 
 typedef struct {
@@ -243,6 +251,8 @@ typedef struct {
   double render_distance_min2;
   double render_distance_max2;
   double camera_pixel_limit;
+  double linear_star_intensity_min;
+  double linear_star_intensity_max;
   double anti_alias_per_pixel;
   quaternion_t target_rotation;
   int little_endian;
@@ -291,6 +301,9 @@ typedef struct {
   double render_distance_min;
   double render_distance_max;
   int render_distance_selector;
+  double star_intensity_min;
+  double star_intensity_max;
+  int star_intensity_selector;
   double star_color_min;
   double star_color_max;
   int extinction_dimming_undo;

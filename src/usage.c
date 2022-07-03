@@ -85,6 +85,11 @@ Star filters:\n\
      --render_distance_min=FLOAT          Minimum star distance\n\
      --render_distance_max=FLOAT          Maximum star distance\n\
      --render_distance_selector=NUM       min/max star distance is measured from 0=camera, 1=target\n\
+     --star_intensity_min=FLOAT           Minimum star intensity (Vega scale magnitude). Note: this applies after\n\
+                                          extinction undimming if enabled\n\
+     --star_intensity_max=FLOAT           Maximum star intensity (Vega scale magnitude). Note: this applies after\n\
+                                          extinction undimming if enabled\n\
+     --star_intensity_selector=FLOAT      Min/max star intensity is measured from 0=camera, 1=Earth, 2=10 parsecs\n\
      --star_color_min=FLOAT               Minimum star apparent color temperature in Kelvin\n\
      --star_color_max=FLOAT               Maximum star apparent color temperature in Kelvin\n\
 \n\

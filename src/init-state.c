@@ -99,6 +99,8 @@ bsr_state_t *initState(bsr_config_t *bsr_config) {
   bsr_state->camera_pixel_limit=pow(100.0, (-bsr_config->camera_pixel_limit_mag / 5.0));
   bsr_state->render_distance_min2=bsr_config->render_distance_min * bsr_config->render_distance_min;
   bsr_state->render_distance_max2=bsr_config->render_distance_max * bsr_config->render_distance_max;
+  bsr_state->linear_star_intensity_min=pow(100.0, (-bsr_config->star_intensity_min / 5.0));
+  bsr_state->linear_star_intensity_max=pow(100.0, (-bsr_config->star_intensity_max / 5.0));
   bsr_state->pixels_per_radian=bsr_state->camera_half_res_x / bsr_state->camera_hfov;
   if (bsr_config->anti_alias_radius < 0.5) {
     bsr_config->anti_alias_radius=0.5;

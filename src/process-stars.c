@@ -436,6 +436,8 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, input_file_t 
   size_t star_record_size=(size_t)BSR_STAR_RECORD_SIZE;
   uint64_t *tmp64_p;
   uint32_t *tmp32_p;
+  double star_distance_from_earth2;
+  double intensity_test;
 
   //
   // init shortcut variables
@@ -584,7 +586,6 @@ fflush(stdout);
     }
 #endif
 
-
 #ifdef DEBUG
     printf("debug, thread_id: %d, source_id: %lu, star_icrs_x: %.4e, star_icrs_y: %.4e, star_icrs_z: %.4e, linear_1pc_intensity: %.4e, color_temperature: %d\n", my_thread_id, source_id, star_icrs_x, star_icrs_y, star_icrs_z, linear_1pc_intensity, color_temperature);
     fflush(stdout);
@@ -598,8 +599,24 @@ fflush(stdout);
     star_z=star_icrs_z - bsr_config->camera_icrs_z;
     star_r2=(star_x * star_x) + (star_y * star_y) + (star_z * star_z); // leave squared for now for better performance
 
-    // only continue if star distance is within min-max range from selected point (0=camera, 1=target),
-    // greater than zero, and color temperature is within allowed range
+    //
+    // determine star intensity test for intensity filter
+    //
+    linear_intensity=linear_1pc_intensity / star_r2;
+    if (bsr_config->star_intensity_selector == 0) {
+      // intensity as seen from camera position
+      intensity_test=linear_intensity;
+    } else if (bsr_config->star_intensity_selector == 1) {
+      // intensity as seen from Earth
+      star_distance_from_earth2=(star_icrs_x * star_icrs_x) + (star_icrs_y * star_icrs_y) + (star_icrs_z * star_icrs_z); // leave squared, used as squared on next line
+      intensity_test=linear_1pc_intensity / star_distance_from_earth2;
+    } else {
+      // absolute magnitude (intensity at 10pc)
+      intensity_test=linear_1pc_intensity * 0.01;
+    }
+
+    //
+    // determine render distance for distance filter
     //
     if (bsr_config->render_distance_selector == 0) { // selected point is camera
       render_distance2=star_r2; // star distance from camera
@@ -609,13 +626,14 @@ fflush(stdout);
                      + ((star_icrs_y - bsr_config->target_icrs_y) * (star_icrs_y - bsr_config->target_icrs_y))\
                      + ((star_icrs_z - bsr_config->target_icrs_z) * (star_icrs_z - bsr_config->target_icrs_z)); // important, use un-translated/rotated coordinates
     } // end if render_distance_selector
+
+    //
+    // only continue if star distance is greater than zero and filters are passed (distance, intensity, color)
+    //
     if ((star_r2 > 0.0)\
      && (render_distance2 >= bsr_state->render_distance_min2) && (render_distance2 <= bsr_state->render_distance_max2)\
+     && (intensity_test >= bsr_state->linear_star_intensity_min) && (intensity_test <= bsr_state->linear_star_intensity_max)\
      && (color_temperature >= bsr_config->star_color_min) && (color_temperature <= bsr_config->star_color_max)) {
-      //
-      // adjust star linear 1pc intensity by distance
-      //
-      linear_intensity=linear_1pc_intensity / star_r2;
 
       //
       // rotate star with quaternion multiplication.

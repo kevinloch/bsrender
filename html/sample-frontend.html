@@ -322,6 +322,9 @@ external_db_enable=${settings_form.external_db_enable.value}&\
 render_distance_min=${settings_form.render_distance_min.value}&\
 render_distance_max=${settings_form.render_distance_max.value}&\
 render_distance_selector=${settings_form.render_distance_selector.value}&\
+star_intensity_min=${settings_form.star_intensity_min.value}&\
+star_intensity_max=${settings_form.star_intensity_max.value}&\
+star_intensity_selector=${settings_form.star_intensity_selector.value}&\
 star_color_min=${settings_form.star_color_min.value}&\
 star_color_max=${settings_form.star_color_max.value}&\
 extinction_dimming_undo=${settings_form.extinction_dimming_undo.value}&\
@@ -388,6 +391,9 @@ external_db_enable=${settings_form.external_db_enable.value}&\
 render_distance_min=${settings_form.render_distance_min.value}&\
 render_distance_max=${settings_form.render_distance_max.value}&\
 render_distance_selector=${settings_form.render_distance_selector.value}&\
+star_intensity_min=${settings_form.star_intensity_min.value}&\
+star_intensity_max=${settings_form.star_intensity_max.value}&\
+star_intensity_selector=${settings_form.star_intensity_selector.value}&\
 star_color_min=${settings_form.star_color_min.value}&\
 star_color_max=${settings_form.star_color_max.value}&\
 extinction_dimming_undo=${settings_form.extinction_dimming_undo.value}&\
@@ -888,7 +894,7 @@ camera_tilt=${navigation_form.camera_tilt.value}`;
             <legend>About</legend>
             <div id="centered">
               Sample web interface for
-              <h2><a href="https://github.com/kevinloch/bsrender">bsrender</a> 1.0-dev-15</h2>
+              <h2><a href="https://github.com/kevinloch/bsrender">bsrender</a> 1.0-dev-16</h2>
               using data from <a href="https://www.cosmos.esa.int/web/gaia/dr3">Gaia DR3</a>
               <br>and supplemental <a href="https://bsrender.io/sample_data/1.0-dev/external.csv">bright stars</a>
             </div>
@@ -947,6 +953,16 @@ s_url" size=30 value=""></td></tr>
             <select name="render_distance_selector" id="render_distance_selector">
               <option value="0" selected>Camera</option>
               <option value="1">Target</option>
+            </select>
+            <br><br><label for="star_intensity_min">Min star intensity (mag)</label>
+            <input type="text" name="star_intensity_min" id="star_intensity_min" size="12" value="1.0E99">
+            <br><label for="star_intensity_max">Max star intensity (mag)</label>
+            <input type="text" name="star_intensity_max" id="star_intensity_max" size="12" value="-1.0E99">
+            <br><label for "star_intensity_selector">Intensity measured from</label>
+            <select name="star_intensity_selector" id="star_intensity_selector">
+              <option value="0" selected>Camera</option>
+              <option value="1">Earth</option>
+              <option value="2">10 parsecs</option>
             </select>
             <br><br><label for="star_color_min">Min star temperature (K)</label>
             <input type="text" name="star_color_min" id="star_color_min" size="12" value="0.0">
