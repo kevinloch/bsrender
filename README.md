@@ -7,7 +7,7 @@ bsrender is a 3D rendering engine for large star databases such as the ESA's mis
 Project website|[bsrender.io](https://bsrender.io/)
 Live demo|[bsrender.io/demo/](https://bsrender.io/demo/)
 Source code|[github.com/kevinloch/bsrender](https://github.com/kevinloch/bsrender)
-Sample binary data files|[bsrender.io/sample_data/0.9/](https://bsrender.io/sample_data/0.9/)
+Sample binary data files|[bsrender.io/sample_data/1.0/](https://bsrender.io/sample_data/1.0-dev/)
 
 Version 1.0 with support for the newly-released DR3 dataset is coming soon! It will feature dramatic improvements in rendering speed, support for experimental extinction removal (from DR3 GSPPHOT), and the ability to output a text list of stars within a selected field of view (including DR3 source_id, ra, dec, magnitude, and temperature for each star).
 
