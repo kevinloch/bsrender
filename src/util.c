@@ -234,29 +234,31 @@ int limitIntensityPreserveColor(bsr_config_t *bsr_config, double *pixel_r, doubl
   // limit pixel to range 0.0-1.0 while maintaining color (max channel=1.0)
   //
   if (*pixel_r < 0.0) {
-    *pixel_r=0;
+    *pixel_r=0.0;
   }
   if (*pixel_g < 0.0) {
-    *pixel_g=0;
+    *pixel_g=0.0;
   }
   if (*pixel_b < 0.0) {
-    *pixel_b=0;
+    *pixel_b=0.0;
   }
 
-  if ((*pixel_r > 1.0) || (*pixel_g > 1.0) || (*pixel_b > 1.0)) {
-    pixel_max=0;
-    if (*pixel_r > pixel_max) {
-      pixel_max=*pixel_r;
+  if (bsr_config->image_number_format != 1) { // don't limit max value if floating point format
+    if ((*pixel_r > 1.0) || (*pixel_g > 1.0) || (*pixel_b > 1.0)) {
+      pixel_max=0;
+      if (*pixel_r > pixel_max) {
+        pixel_max=*pixel_r;
+      }
+      if (*pixel_g > pixel_max) {
+        pixel_max=*pixel_g;
+      }
+      if (*pixel_b > pixel_max) {
+        pixel_max=*pixel_b;
+      }
+      *pixel_r=*pixel_r / pixel_max;
+      *pixel_g=*pixel_g / pixel_max;
+      *pixel_b=*pixel_b / pixel_max;
     }
-    if (*pixel_g > pixel_max) {
-      pixel_max=*pixel_g;
-    }
-    if (*pixel_b > pixel_max) {
-      pixel_max=*pixel_b;
-    }
-    *pixel_r=*pixel_r / pixel_max;
-    *pixel_g=*pixel_g / pixel_max;
-    *pixel_b=*pixel_b / pixel_max;
   }
 
   return(0);
