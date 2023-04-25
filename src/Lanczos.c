@@ -176,7 +176,7 @@ int resizeLanczos(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
     } // end for i_y
 
     //
-    // handle clipping
+    // handle negative clipping
     //
     if (L_y_r < 0.0) {
       L_y_r=0.0;

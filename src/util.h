@@ -45,7 +45,7 @@ int printVersion(bsr_config_t *bsr_config);
 int waitForWorkerThreads(bsr_state_t *bsr_state, int min_status);
 int waitForMainThread(bsr_state_t *bsr_state, int min_status);
 int checkExceptions(bsr_state_t *bsr_state);
-int limitIntensity(double *pixel_r, double *pixel_g, double *pixel_b);
-int limitIntensityPreserveColor(double *pixel_r, double *pixel_g, double *pixel_b);
+int limitIntensity(bsr_config_t *bsr_config, double *pixel_r, double *pixel_g, double *pixel_b);
+int limitIntensityPreserveColor(bsr_config_t *bsr_config, double *pixel_r, double *pixel_g, double *pixel_b);
 
 #endif // BSR_UTIL_H
