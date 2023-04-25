@@ -49,8 +49,8 @@ int outputPNG(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   FILE *output_file=NULL;
   png_structp png_ptr;
   png_infop info_ptr;
-  png_byte color_type=PNG_COLOR_TYPE_RGB;
-  png_byte bit_depth=8;
+  unsigned char color_type=PNG_COLOR_TYPE_RGB;
+  unsigned char bit_depth;
   struct timespec starttime;
   struct timespec endtime;
   double elapsed_time;

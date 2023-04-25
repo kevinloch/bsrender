@@ -45,6 +45,8 @@
 #include "usage.h"
 
 void initConfig(bsr_config_t *bsr_config) {
+  bsr_config->bsrender_cfg_version[0]=0;
+  bsr_config->QUERY_STRING_p=NULL;
   strncpy(bsr_config->config_file_name, "bsrender.cfg", 255);
   bsr_config->config_file_name[255]=0;
   strncpy(bsr_config->data_file_directory, "galaxydata", 255);
@@ -109,8 +111,10 @@ void initConfig(bsr_config_t *bsr_config) {
   bsr_config->output_scaling_factor=1.0;
   bsr_config->draw_crosshairs=0;
   bsr_config->draw_grid_lines=0;
+  bsr_config->image_format=0;
   bsr_config->icc_profile=1;
   bsr_config->bits_per_color=8;
+  bsr_config->image_number_format=0;
   bsr_config->camera_icrs_x=0.0;
   bsr_config->camera_icrs_y=0.0;
   bsr_config->camera_icrs_z=0.0;
@@ -177,124 +181,159 @@ void cleanupValueStr(char *value) {
   value[255]=0;
 }
 
-void checkOptionBool(int *config_int, char *option, char *value, char *matchstr) {
+int checkOptionBool(int *config_int, char *option, char *value, char *matchstr) {
+  int match=0;
+
   if ((strcasestr(option, matchstr) == option) && (strlen(option) == strlen(matchstr))) {
+    match=1;
     if (strcasestr(value, "yes") != NULL) {
       *config_int=1;
     } else {
       *config_int=0;
     }
   }
+
+  return(match);
 }
 
-void checkOptionInt(int *config_int, char *option, char *value, char *matchstr) {
+int checkOptionInt(int *config_int, char *option, char *value, char *matchstr) {
+  int match=0;
+
   if ((strcasestr(option, matchstr) == option) && (strlen(option) == strlen(matchstr))) {
+    match=1;
     *config_int=strtol(value, NULL, 10);
   }
+
+  return(match);
 }
 
-void checkOptionDouble(double *config_double, char *option, char *value, char *matchstr) {
+int checkOptionDouble(double *config_double, char *option, char *value, char *matchstr) {
+  int match=0;
+
   if ((strcasestr(option, matchstr) == option) && (strlen(option) == strlen(matchstr))) {
+    match=1;
     *config_double=strtod(value, NULL);
   }
+
+  return(match);
 }
 
-void checkOptionStr(char *config_str,  char *option, char *value, char *matchstr) {
+int checkOptionStr(char *config_str,  char *option, char *value, char *matchstr) {
+  int match=0;
+
   if ((strcasestr(option, matchstr) == option) && (strlen(option) == strlen(matchstr))) {
+    match=1;
     strncpy(config_str, value, 255);
     config_str[255]=0;
   }
+
+  return(match);
 }
 
 void setOptionValue(bsr_config_t *bsr_config, char *option, char *value, int from_cgi) {
+  int match_count=0;
+
   //
   // privileged values that can be set from config file or command line only (not CGI QUERY_STRING)
   // note: config file name is additionally privileged in that it can only be set from command line
   // so it is not even processed in this function.
   //
   if (from_cgi == 0) {
-    checkOptionStr(bsr_config->data_file_directory, option, value, "data_file_directory");
-    checkOptionStr(bsr_config->output_file_name, option, value, "output_file_name");
-    checkOptionBool(&bsr_config->print_status, option, value, "print_status");
-    checkOptionInt(&bsr_config->num_threads, option, value, "num_threads");
-    checkOptionInt(&bsr_config->per_thread_buffer, option, value, "per_thread_buffer");
-    checkOptionInt(&bsr_config->per_thread_buffer_Airy, option, value, "per_thread_buffer_Airy");
-    checkOptionBool(&bsr_config->cgi_mode, option, value, "cgi_mode");
-    checkOptionInt(&bsr_config->cgi_max_res_x, option, value, "cgi_max_res_x");
-    checkOptionInt(&bsr_config->cgi_max_res_y, option, value, "cgi_max_res_y");
-    checkOptionInt(&bsr_config->cgi_Gaia_min_parallax_quality, option, value, "cgi_Gaia_min_parallax_quality");
-    checkOptionBool(&bsr_config->cgi_allow_Airy_disk, option, value, "cgi_allow_Airy_disk");
-    checkOptionDouble(&bsr_config->cgi_min_Airy_disk_first_null, option, value, "cgi_min_Airy_disk_first_null");
-    checkOptionInt(&bsr_config->cgi_max_Airy_disk_max_extent, option, value, "cgi_max_Airy_disk_max_extent");
-    checkOptionInt(&bsr_config->cgi_max_Airy_disk_min_extent, option, value, "cgi_max_Airy_disk_min_extent");
-    checkOptionBool(&bsr_config->cgi_allow_anti_alias, option, value, "cgi_allow_anti_alias");
+    match_count+=checkOptionStr(bsr_config->bsrender_cfg_version, option, value, "bsrender_cfg_version");
+    match_count+=checkOptionStr(bsr_config->data_file_directory, option, value, "data_file_directory");
+    match_count+=checkOptionStr(bsr_config->output_file_name, option, value, "output_file_name");
+    match_count+=checkOptionBool(&bsr_config->print_status, option, value, "print_status");
+    match_count+=checkOptionInt(&bsr_config->num_threads, option, value, "num_threads");
+    match_count+=checkOptionInt(&bsr_config->per_thread_buffer, option, value, "per_thread_buffer");
+    match_count+=checkOptionInt(&bsr_config->per_thread_buffer_Airy, option, value, "per_thread_buffer_Airy");
+    match_count+=checkOptionBool(&bsr_config->cgi_mode, option, value, "cgi_mode");
+    match_count+=checkOptionInt(&bsr_config->cgi_max_res_x, option, value, "cgi_max_res_x");
+    match_count+=checkOptionInt(&bsr_config->cgi_max_res_y, option, value, "cgi_max_res_y");
+    match_count+=checkOptionInt(&bsr_config->cgi_Gaia_min_parallax_quality, option, value, "cgi_Gaia_min_parallax_quality");
+    match_count+=checkOptionBool(&bsr_config->cgi_allow_Airy_disk, option, value, "cgi_allow_Airy_disk");
+    match_count+=checkOptionDouble(&bsr_config->cgi_min_Airy_disk_first_null, option, value, "cgi_min_Airy_disk_first_null");
+    match_count+=checkOptionInt(&bsr_config->cgi_max_Airy_disk_max_extent, option, value, "cgi_max_Airy_disk_max_extent");
+    match_count+=checkOptionInt(&bsr_config->cgi_max_Airy_disk_min_extent, option, value, "cgi_max_Airy_disk_min_extent");
+    match_count+=checkOptionBool(&bsr_config->cgi_allow_anti_alias, option, value, "cgi_allow_anti_alias");
   }
 
   //
   // values that can be set from config file, command line, or CGI QUERY_STRING
   //
-  checkOptionBool(&bsr_config->Gaia_db_enable, option, value, "Gaia_db_enable");
-  checkOptionInt(&bsr_config->Gaia_min_parallax_quality, option, value, "Gaia_min_parallax_quality");
-  checkOptionBool(&bsr_config->external_db_enable, option, value, "external_db_enable");
-  checkOptionDouble(&bsr_config->render_distance_min, option, value, "render_distance_min");
-  checkOptionDouble(&bsr_config->render_distance_max, option, value, "render_distance_max");
-  checkOptionInt(&bsr_config->render_distance_selector, option, value, "render_distance_selector");
-  checkOptionDouble(&bsr_config->star_intensity_min, option, value, "star_intensity_min");
-  checkOptionDouble(&bsr_config->star_intensity_max, option, value, "star_intensity_max");
-  checkOptionInt(&bsr_config->star_intensity_selector, option, value, "star_intensity_selector");
-  checkOptionDouble(&bsr_config->star_color_min, option, value, "star_color_min");
-  checkOptionDouble(&bsr_config->star_color_max, option, value, "star_color_max");
-  checkOptionBool(&bsr_config->extinction_dimming_undo, option, value, "extinction_dimming_undo");
-  checkOptionBool(&bsr_config->extinction_reddening_undo, option, value, "extinction_reddening_undo");
-  checkOptionInt(&bsr_config->camera_res_x, option, value, "camera_res_x");
-  checkOptionInt(&bsr_config->camera_res_y, option, value, "camera_res_y");
-  checkOptionDouble(&bsr_config->camera_fov, option, value, "camera_fov");
-  checkOptionDouble(&bsr_config->camera_pixel_limit_mag, option, value, "camera_pixel_limit_mag");
-  checkOptionInt(&bsr_config->camera_pixel_limit_mode, option, value, "camera_pixel_limit_mode");
-  checkOptionBool(&bsr_config->camera_wb_enable, option, value, "camera_wb_enable");
-  checkOptionDouble(&bsr_config->camera_wb_temp, option, value, "camera_wb_temp");
-  checkOptionDouble(&bsr_config->camera_color_saturation, option, value, "camera_color_saturation");
-  checkOptionDouble(&bsr_config->camera_gamma, option, value, "camera_gamma");
-  checkOptionInt(&bsr_config->camera_projection, option, value, "camera_projection");
-  checkOptionInt(&bsr_config->spherical_orientation, option, value, "spherical_orientation");
-  checkOptionInt(&bsr_config->Mollewide_iterations, option, value, "Mollewide_iterations");
-  checkOptionDouble(&bsr_config->red_filter_long_limit, option, value, "red_filter_long_limit");
-  checkOptionDouble(&bsr_config->red_filter_short_limit, option, value, "red_filter_short_limit");
-  checkOptionDouble(&bsr_config->green_filter_long_limit, option, value, "green_filter_long_limit");
-  checkOptionDouble(&bsr_config->green_filter_short_limit, option, value, "green_filter_short_limit");
-  checkOptionDouble(&bsr_config->blue_filter_long_limit, option, value, "blue_filter_long_limit");
-  checkOptionDouble(&bsr_config->blue_filter_short_limit, option, value, "blue_filter_short_limit");
-  checkOptionBool(&bsr_config->Airy_disk_enable, option, value, "Airy_disk_enable");
-  checkOptionDouble(&bsr_config->Airy_disk_first_null, option, value, "Airy_disk_first_null");
-  checkOptionInt(&bsr_config->Airy_disk_max_extent, option, value, "Airy_disk_max_extent");
-  checkOptionInt(&bsr_config->Airy_disk_min_extent, option, value, "Airy_disk_min_extent");
-  checkOptionDouble(&bsr_config->Airy_disk_obstruction, option, value, "Airy_disk_obstruction");
-  checkOptionBool(&bsr_config->anti_alias_enable, option, value, "anti_alias_enable");
-  checkOptionDouble(&bsr_config->anti_alias_radius, option, value, "anti_alias_radius");
-  checkOptionBool(&bsr_config->skyglow_enable, option, value, "skyglow_enable");
-  checkOptionDouble(&bsr_config->skyglow_temp, option, value, "skyglow_temp");
-  checkOptionDouble(&bsr_config->skyglow_per_pixel_mag, option, value, "skyglow_per_pixel_mag");
-  checkOptionDouble(&bsr_config->Gaussian_blur_radius, option, value, "Gaussian_blur_radius");
-  checkOptionDouble(&bsr_config->output_scaling_factor, option, value, "output_scaling_factor");
-  checkOptionBool(&bsr_config->draw_crosshairs, option, value, "draw_crosshairs");
-  checkOptionBool(&bsr_config->draw_grid_lines, option, value, "draw_grid_lines");
-  checkOptionInt(&bsr_config->icc_profile, option, value, "icc_profile");
-  checkOptionInt(&bsr_config->bits_per_color, option, value, "bits_per_color");
-  checkOptionDouble(&bsr_config->camera_icrs_x, option, value, "camera_icrs_x");
-  checkOptionDouble(&bsr_config->camera_icrs_y, option, value, "camera_icrs_y");
-  checkOptionDouble(&bsr_config->camera_icrs_z, option, value, "camera_icrs_z");
-  checkOptionDouble(&bsr_config->camera_icrs_ra, option, value, "camera_icrs_ra");
-  checkOptionDouble(&bsr_config->camera_icrs_dec, option, value, "camera_icrs_dec");
-  checkOptionDouble(&bsr_config->camera_icrs_r, option, value, "camera_icrs_r");
-  checkOptionDouble(&bsr_config->target_icrs_x, option, value, "target_icrs_x");
-  checkOptionDouble(&bsr_config->target_icrs_y, option, value, "target_icrs_y");
-  checkOptionDouble(&bsr_config->target_icrs_z, option, value, "target_icrs_z");
-  checkOptionDouble(&bsr_config->target_icrs_ra, option, value, "target_icrs_ra");
-  checkOptionDouble(&bsr_config->target_icrs_dec, option, value, "target_icrs_dec");
-  checkOptionDouble(&bsr_config->target_icrs_r, option, value, "target_icrs_r");
-  checkOptionDouble(&bsr_config->camera_rotation, option, value, "camera_rotation");
-  checkOptionDouble(&bsr_config->camera_pan, option, value, "camera_pan");
-  checkOptionDouble(&bsr_config->camera_tilt, option, value, "camera_tilt");
+  match_count+=checkOptionBool(&bsr_config->Gaia_db_enable, option, value, "Gaia_db_enable");
+  match_count+=checkOptionInt(&bsr_config->Gaia_min_parallax_quality, option, value, "Gaia_min_parallax_quality");
+  match_count+=checkOptionBool(&bsr_config->external_db_enable, option, value, "external_db_enable");
+  match_count+=checkOptionDouble(&bsr_config->render_distance_min, option, value, "render_distance_min");
+  match_count+=checkOptionDouble(&bsr_config->render_distance_max, option, value, "render_distance_max");
+  match_count+=checkOptionInt(&bsr_config->render_distance_selector, option, value, "render_distance_selector");
+  match_count+=checkOptionDouble(&bsr_config->star_intensity_min, option, value, "star_intensity_min");
+  match_count+=checkOptionDouble(&bsr_config->star_intensity_max, option, value, "star_intensity_max");
+  match_count+=checkOptionInt(&bsr_config->star_intensity_selector, option, value, "star_intensity_selector");
+  match_count+=checkOptionDouble(&bsr_config->star_color_min, option, value, "star_color_min");
+  match_count+=checkOptionDouble(&bsr_config->star_color_max, option, value, "star_color_max");
+  match_count+=checkOptionBool(&bsr_config->extinction_dimming_undo, option, value, "extinction_dimming_undo");
+  match_count+=checkOptionBool(&bsr_config->extinction_reddening_undo, option, value, "extinction_reddening_undo");
+  match_count+=checkOptionInt(&bsr_config->camera_res_x, option, value, "camera_res_x");
+  match_count+=checkOptionInt(&bsr_config->camera_res_y, option, value, "camera_res_y");
+  match_count+=checkOptionDouble(&bsr_config->camera_fov, option, value, "camera_fov");
+  match_count+=checkOptionDouble(&bsr_config->camera_pixel_limit_mag, option, value, "camera_pixel_limit_mag");
+  match_count+=checkOptionInt(&bsr_config->camera_pixel_limit_mode, option, value, "camera_pixel_limit_mode");
+  match_count+=checkOptionBool(&bsr_config->camera_wb_enable, option, value, "camera_wb_enable");
+  match_count+=checkOptionDouble(&bsr_config->camera_wb_temp, option, value, "camera_wb_temp");
+  match_count+=checkOptionDouble(&bsr_config->camera_color_saturation, option, value, "camera_color_saturation");
+  match_count+=checkOptionDouble(&bsr_config->camera_gamma, option, value, "camera_gamma");
+  match_count+=checkOptionInt(&bsr_config->camera_projection, option, value, "camera_projection");
+  match_count+=checkOptionInt(&bsr_config->spherical_orientation, option, value, "spherical_orientation");
+  match_count+=checkOptionInt(&bsr_config->Mollewide_iterations, option, value, "Mollewide_iterations");
+  match_count+=checkOptionDouble(&bsr_config->red_filter_long_limit, option, value, "red_filter_long_limit");
+  match_count+=checkOptionDouble(&bsr_config->red_filter_short_limit, option, value, "red_filter_short_limit");
+  match_count+=checkOptionDouble(&bsr_config->green_filter_long_limit, option, value, "green_filter_long_limit");
+  match_count+=checkOptionDouble(&bsr_config->green_filter_short_limit, option, value, "green_filter_short_limit");
+  match_count+=checkOptionDouble(&bsr_config->blue_filter_long_limit, option, value, "blue_filter_long_limit");
+  match_count+=checkOptionDouble(&bsr_config->blue_filter_short_limit, option, value, "blue_filter_short_limit");
+  match_count+=checkOptionBool(&bsr_config->Airy_disk_enable, option, value, "Airy_disk_enable");
+  match_count+=checkOptionDouble(&bsr_config->Airy_disk_first_null, option, value, "Airy_disk_first_null");
+  match_count+=checkOptionInt(&bsr_config->Airy_disk_max_extent, option, value, "Airy_disk_max_extent");
+  match_count+=checkOptionInt(&bsr_config->Airy_disk_min_extent, option, value, "Airy_disk_min_extent");
+  match_count+=checkOptionDouble(&bsr_config->Airy_disk_obstruction, option, value, "Airy_disk_obstruction");
+  match_count+=checkOptionBool(&bsr_config->anti_alias_enable, option, value, "anti_alias_enable");
+  match_count+=checkOptionDouble(&bsr_config->anti_alias_radius, option, value, "anti_alias_radius");
+  match_count+=checkOptionBool(&bsr_config->skyglow_enable, option, value, "skyglow_enable");
+  match_count+=checkOptionDouble(&bsr_config->skyglow_temp, option, value, "skyglow_temp");
+  match_count+=checkOptionDouble(&bsr_config->skyglow_per_pixel_mag, option, value, "skyglow_per_pixel_mag");
+  match_count+=checkOptionDouble(&bsr_config->Gaussian_blur_radius, option, value, "Gaussian_blur_radius");
+  match_count+=checkOptionDouble(&bsr_config->output_scaling_factor, option, value, "output_scaling_factor");
+  match_count+=checkOptionBool(&bsr_config->draw_crosshairs, option, value, "draw_crosshairs");
+  match_count+=checkOptionBool(&bsr_config->draw_grid_lines, option, value, "draw_grid_lines");
+  match_count+=checkOptionInt(&bsr_config->image_format, option, value, "image_format");
+  match_count+=checkOptionInt(&bsr_config->icc_profile, option, value, "icc_profile");
+  match_count+=checkOptionInt(&bsr_config->bits_per_color, option, value, "bits_per_color");
+  match_count+=checkOptionInt(&bsr_config->image_number_format, option, value, "image_number_format");
+  match_count+=checkOptionDouble(&bsr_config->camera_icrs_x, option, value, "camera_icrs_x");
+  match_count+=checkOptionDouble(&bsr_config->camera_icrs_y, option, value, "camera_icrs_y");
+  match_count+=checkOptionDouble(&bsr_config->camera_icrs_z, option, value, "camera_icrs_z");
+  match_count+=checkOptionDouble(&bsr_config->camera_icrs_ra, option, value, "camera_icrs_ra");
+  match_count+=checkOptionDouble(&bsr_config->camera_icrs_dec, option, value, "camera_icrs_dec");
+  match_count+=checkOptionDouble(&bsr_config->camera_icrs_r, option, value, "camera_icrs_r");
+  match_count+=checkOptionDouble(&bsr_config->target_icrs_x, option, value, "target_icrs_x");
+  match_count+=checkOptionDouble(&bsr_config->target_icrs_y, option, value, "target_icrs_y");
+  match_count+=checkOptionDouble(&bsr_config->target_icrs_z, option, value, "target_icrs_z");
+  match_count+=checkOptionDouble(&bsr_config->target_icrs_ra, option, value, "target_icrs_ra");
+  match_count+=checkOptionDouble(&bsr_config->target_icrs_dec, option, value, "target_icrs_dec");
+  match_count+=checkOptionDouble(&bsr_config->target_icrs_r, option, value, "target_icrs_r");
+  match_count+=checkOptionDouble(&bsr_config->camera_rotation, option, value, "camera_rotation");
+  match_count+=checkOptionDouble(&bsr_config->camera_pan, option, value, "camera_pan");
+  match_count+=checkOptionDouble(&bsr_config->camera_tilt, option, value, "camera_tilt");
+
+  if ((bsr_config->QUERY_STRING_p == NULL) && (bsr_config->print_status == 1)) {
+    if (match_count == 0) {
+      printf("Unknown configuration option: %s\n", option);
+      fflush(stdout);
+    } else if (match_count > 1) {
+      printf("Warning, ambiguous configuration option: %s\n", option); // should never happen
+      fflush(stdout);
+    }
+  }
 }
 
 int processConfigSegment(bsr_config_t *bsr_config, char *segment, int from_cgi) {
@@ -345,6 +384,9 @@ int processConfigSegment(bsr_config_t *bsr_config, char *segment, int from_cgi) 
     // send to option value processing fucntion
     //
     setOptionValue(bsr_config, option, value, from_cgi);
+  } else if ((segment_length > 0) && (bsr_config->QUERY_STRING_p == NULL) && (bsr_config->print_status == 1)) {
+    printf("Unknown configuration option: %s\n", segment);
+    fflush(stdout);
   } // end symbol_p check
 
   return(0);
@@ -359,56 +401,17 @@ int loadConfigFromFile(bsr_config_t *bsr_config) {
   char input_line[256];
   char segment[256];
   size_t segment_length;
-  char *query_string;
-  int little_endian;
   
-  //
-  // until we load config, use QUERY_STRING to guess CGI mode and suppress status messages
-  //
-  query_string=NULL;
-  query_string=getenv("QUERY_STRING");
-
-  //
-  // print version and endianness
-  //
-  if ((query_string == NULL) && (bsr_config->print_status == 1)) {
-    printf("bsrender version %s\n", BSR_VERSION);
-    little_endian=littleEndianTest();
-#ifdef BSR_LITTLE_ENDIAN_COMPILE
-    if (little_endian == 1) {
-      printf("Compiled for little-endian, detected little-endian architecture\n");
-      fflush(stdout);
-    } else {
-      printf("Error: Compiled for little-endian, detected big-endian architecture, please re-compile\n");
-      fflush(stdout);
-      exit(1);
-    }
-#elif defined BSR_BIG_ENDIAN_COMPILE
-    if (little_endian == 0) {
-      printf("Compiled for big-endian, detected big-endian architecture\n");
-      fflush(stdout);
-    } else {
-      printf("Error: Compiled for big-endian, detected little-endian architecture, please re-compile\n");
-      fflush(stdout);
-      exit(1);
-    }
-#else
-    printf("Error: compiled for unknown endianness, please re-compile\n");
-    fflush(stdout);
-    exit(1);
-#endif
-  }
-
   //
   // attempt to open config file
   //
   config_file=fopen(bsr_config->config_file_name, "r");
-  if ((config_file == NULL) && (query_string == NULL)) {
+  if ((config_file == NULL) && (bsr_config->QUERY_STRING_p == NULL)) {
     printf("Warning: could not open %s\n", bsr_config->config_file_name);
     fflush(stdout);
     return(0);
   }
-  if ((query_string == NULL) && (bsr_config->print_status == 1)) {
+  if ((bsr_config->QUERY_STRING_p == NULL) && (bsr_config->print_status == 1)) {
     printf("Loading configuration file %s\n", bsr_config->config_file_name);
     fflush(stdout);
   }
@@ -417,7 +420,7 @@ int loadConfigFromFile(bsr_config_t *bsr_config) {
   // attempt to open config file
   //
   config_file=fopen(bsr_config->config_file_name, "r");
-  if ((config_file == NULL) && (query_string == NULL)) {
+  if ((config_file == NULL) && (bsr_config->QUERY_STRING_p == NULL)) {
     printf("Warning: could not open %s\n", bsr_config->config_file_name);
     fflush(stdout);
     return(0);
@@ -459,7 +462,7 @@ int loadConfigFromFile(bsr_config_t *bsr_config) {
   return(0);
 }
 
-int loadConfigFromQueryString(bsr_config_t *bsr_config, char *query_string) {
+int loadConfigFromQueryString(bsr_config_t *bsr_config, char *query_string_2048) {
   int done;
   int from_cgi;
   char *query_p;
@@ -468,10 +471,10 @@ int loadConfigFromQueryString(bsr_config_t *bsr_config, char *query_string) {
   char *symbol_p;
 
   //
-  // load first segment from query_string
+  // load first segment from query_string_2048
   //
   done=0;
-  query_p=query_string;
+  query_p=query_string_2048;
   if (query_p[0] == 0) {
     done=1;
   } else {
@@ -577,16 +580,34 @@ int processCmdArgs(bsr_config_t *bsr_config, int argc, char **argv) {
         // long config option
         from_cgi=0;
         processConfigSegment(bsr_config, (argv[i]+2), from_cgi);
+      } else if ((bsr_config->QUERY_STRING_p == NULL) && (bsr_config->print_status == 1)) {
+        printf("Unknown configuration option: %s\n", argv[i]);
+        fflush(stdout);
       } // end which option
     } // end for argc
   } // end if any options
   return(0);
 }
 
-int enforceConfigLimits(bsr_config_t *bsr_config) {
+int validateConfig(bsr_config_t *bsr_config) {
+  //
+  // minimum required threads is 2 (one main thread and one worker thread)
+  //
   if (bsr_config->num_threads < 2) {
     bsr_config->num_threads=2;
   }
+
+  //
+  // change output filename if still default "galaxy.png" and EXR format is selected
+  //
+  if ((bsr_config->image_format == 1)\
+       && ((strstr(bsr_config->output_file_name, "galaxy.png") == bsr_config->output_file_name))\
+       && (strlen(bsr_config->output_file_name) == strlen("galaxy.png"))) {
+    strncpy(bsr_config->output_file_name, "galaxy.exr", 255);
+    bsr_config->output_file_name[255]=0;
+  }
+
+  // many more checks should be added here
 
   return(0);
 }

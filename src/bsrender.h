@@ -39,10 +39,12 @@
 #ifndef BSRENDER_H
 #define BSRENDER_H
 
-#define BSR_VERSION "1.0-dev-16"
+#define BSR_VERSION "1.0-dev-19c"
 
 #define BSR_32BIT_BUFFERS // use 32-bit floats in image composition, blur, and resize buffers. This reduces the size of these buffers by half which may
-                          // be useful for extremely large image resolutions at the expense of summation precision. This does not change the main thread, or dedup buffers.
+                          // be useful for extremely large image resolutions at the expense of summation precision within these buffers. This does not
+                          // change the main thread, or dedup buffers which are relatively small and always double precision.
+
 //
 // Binary data file details
 //
@@ -110,7 +112,6 @@
 #include <stdint.h> // needed for uint64_t
 #include <unistd.h>
 #include <sys/stat.h>
-#include <png.h>
 
 //
 // For most things we detect endianness runtime with littleEndianTest(). For the inner loop of processStars() we
@@ -207,8 +208,8 @@ typedef struct {
   //
   thread_buffer_t *thread_buf;                // updated by all threads, globally mmaped
   pixel_composition_t *image_composition_buf; // updated by all threads, globally mmaped
-  png_byte *image_output_buf;                 // updated by all threads, globally mmaped
-  png_bytep *row_pointers;                    // updated by all threads, globally mmaped
+  unsigned char *image_output_buf;            // updated by all threads, globally mmaped
+  unsigned char **row_pointers;               // updated by all threads, globally mmaped
   pixel_composition_t *image_blur_buf;        // updated by all threads, globally mmaped
   pixel_composition_t *image_resize_buf;      // updated by all threads, globally mmaped
   dedup_buffer_t *dedup_buf;        // thread-specific buffer, malloc'ed so each thread get's it's own local buffer when fork()'ed
@@ -279,6 +280,8 @@ typedef struct {
 } mkg_config_t;
 
 typedef struct {
+  char bsrender_cfg_version[256];
+  char *QUERY_STRING_p;
   char config_file_name[256];
   char data_file_directory[256];
   char output_file_name[256];
@@ -340,8 +343,10 @@ typedef struct {
   double output_scaling_factor;
   int draw_crosshairs;
   int draw_grid_lines;
+  int image_format;
   int icc_profile;
   int bits_per_color;
+  int image_number_format;
   double camera_icrs_x;
   double camera_icrs_y;
   double camera_icrs_z;

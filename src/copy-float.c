@@ -36,20 +36,19 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef BSR_ICC_PROFILES_H
-#define BSR_ICC_PROFILES_H
+#include "bsrender.h" // needs to be first to get GNU_SOURCE define for strcasestr
+#include <stdio.h>
+#include <math.h>
+#include <time.h>
+#include "util.h"
 
-extern const unsigned char sRGB_v4_icc[];
-extern const unsigned int sRGB_v4_icc_len;
-extern const unsigned char DisplayP3Compat_v4_icc[];
-extern const unsigned int DisplayP3Compat_v4_icc_len;
-extern const unsigned char Rec2020Compat_v4_icc[];
-extern const unsigned int Rec2020Compat_v4_icc_len;
-extern const unsigned char Rec601NTSC_v4_icc[];
-extern const unsigned int Rec601NTSC_v4_icc_len;
-extern const unsigned char Rec601PAL_v4_icc[];
-extern const unsigned int Rec601PAL_v4_icc_len;
-extern const unsigned char Rec709_v4_icc[];
-extern const unsigned int Rec709_v4_icc_len;
+int copyFloat(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
+  struct timespec starttime;
+  struct timespec endtime;
+  double elapsed_time;
+  long long image_offset;
+  pixel_composition_t *current_image_p;
+  unsigned char *image_output_p;
 
-#endif // BSR_ICC_PROFILES_H
+  return(0);
+}

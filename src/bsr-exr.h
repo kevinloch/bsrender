@@ -36,20 +36,9 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef BSR_ICC_PROFILES_H
-#define BSR_ICC_PROFILES_H
+#ifndef BSR_EXR_H
+#define BSR_EXR_H
 
-extern const unsigned char sRGB_v4_icc[];
-extern const unsigned int sRGB_v4_icc_len;
-extern const unsigned char DisplayP3Compat_v4_icc[];
-extern const unsigned int DisplayP3Compat_v4_icc_len;
-extern const unsigned char Rec2020Compat_v4_icc[];
-extern const unsigned int Rec2020Compat_v4_icc_len;
-extern const unsigned char Rec601NTSC_v4_icc[];
-extern const unsigned int Rec601NTSC_v4_icc_len;
-extern const unsigned char Rec601PAL_v4_icc[];
-extern const unsigned int Rec601PAL_v4_icc_len;
-extern const unsigned char Rec709_v4_icc[];
-extern const unsigned int Rec709_v4_icc_len;
+int outputEXR(bsr_config_t *bsr_config, bsr_state_t *bsr_state);
 
-#endif // BSR_ICC_PROFILES_H
+#endif // BSR_EXR_H

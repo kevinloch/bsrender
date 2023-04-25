@@ -1,9 +1,11 @@
 CC = gcc
 CFLAGS = -I. -I/usr/local/include -Wall -Ofast
+# if compile failes with -Ofast, use -O3 instead
+#CFLAGS = -I. -I/usr/local/include -Wall -O3
 BSR_LIBS = -lm -lpng -L/usr/local/lib
 LIBS = -lm -L/usr/local/lib
-BSR_OBJ = quantize.o file.o memory.o image-composition.o Gaia-passbands.o Lanczos.o post-process.o Gaussian-blur.o rgb.o diffraction.o cgi.o init-state.o process-stars.o overlay.o bsr-png.o usage.o util.o bsr-config.o bsrender.o
-BSR_DEPS = quantize.h file.h memory.h image-composition.h Gaia-passbands.h Lanczos.h post-process.h Gaussian-blur.h rgb.h diffraction.h cgi.h init-state.h process-stars.h overlay.h bsr-png.h usage.h util.h bsr-config.h bsrender.h Bessel.h Gaia-DR3-transmissivity.h
+BSR_OBJ = quantize.o copy-float.o file.o memory.o image-composition.o Gaia-passbands.o Lanczos.o post-process.o Gaussian-blur.o rgb.o diffraction.o cgi.o init-state.o process-stars.o overlay.o icc-profiles.o bsr-png.o bsr-exr.o usage.o util.o bsr-config.o bsrender.o
+BSR_DEPS = quantize.h copy-float.h file.h memory.h image-composition.h Gaia-passbands.h Lanczos.h post-process.h Gaussian-blur.h rgb.h diffraction.h cgi.h init-state.h process-stars.h overlay.h icc-profiles.h bsr-png.h bsr-exr.h usage.h util.h bsr-config.h bsrender.h Bessel.h Gaia-DR3-transmissivity.h
 MKGALAXY_OBJ = util.o Gaia-passbands.o bandpass-ratio.o mkgalaxy.o
 MKGALAXY_DEPS = util.h Gaia-passbands.h bandpass-ratio.h Gaia-DR3-transmissivity.h
 MKEXTERNAL_OBJ = util.o mkexternal.o

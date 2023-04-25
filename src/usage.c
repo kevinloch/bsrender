@@ -40,14 +40,14 @@
 #include <stdio.h>
 
 void printUsage() {
-  printf("bsrender version %s, render PNG image from 3D star database\n", BSR_VERSION);
+  printf("bsrender version %s, render 2D image from 3D star database\n", BSR_VERSION);
   printf("\
 \n\
 Usage:\n\
      bsrender [OPTION]...\n\
 \n\
-     See sample conifguration file for default settings. Configuration options are applied in this order:\n\
-     built-in defaults, configuration file, command line flags, environment QUERY_STRING (if CGI mode)\n\
+     See sample conifguration file for default settings. Individual configuration options are applied in this order:\n\
+     1. built-in defaults, 2. configuration file, 3. command line flags, 4. environment QUERY_STRING (if CGI mode)\n\
 \n\
 Command line only options:\n\
      -c FILE                              Set configuration file name (default: bsrender.cfg)\n\
@@ -58,7 +58,7 @@ Privileged options - these cannot be changed by remote users in CGI mode:\n\
      --output_file_name=FILE, -o          Output filename, may include path, limit 255 characters\n\
      --print_status=BOOL, -q              yes = sppress non-error status messages (also -q)\n\
                                           no = will allow informational status messages\n\
-                                          Messages are always suppressed in CGI mode\n\
+                                          All messages are always suppressed in CGI mode\n\
      --num_threads=NUM                    Total number of threads including main thread and worker\n\
                                           threads (minimum 2)\n\
                                           For best performance set to number of vcpus\n\
@@ -93,11 +93,11 @@ Star filters:\n\
      --star_color_min=FLOAT               Minimum star apparent color temperature in Kelvin\n\
      --star_color_max=FLOAT               Maximum star apparent color temperature in Kelvin\n\
 \n\
-Extinction options:\n\
+Extinction:\n\
      --extinction_dimming_undo=BOOL       yes = undo extinction dimming (based on Gaia DR3 AG_GSPPHOT)\n\
      --extinction_reddening_undo=BOOL     yes = undo extinction reddening (based on Gaia DR3 TEFF_GSPPHOT)\n\
 \n\
-Camera options:\n\
+Camera:\n\
      --camera_res_x=NUM                   Horizontal resolution\n\
      --camera_res_y=NUM                   Vertical resolution\n\
      --camera_fov=FLOAT                   Field of vew in decimal degrees\n\
@@ -113,7 +113,7 @@ Camera options:\n\
                                           left, rear on right\n\
      --Mollewide_iterations=NUM           Number of iterations for Mollewide projection algorithm\n\
 \n\
-Camera bandpass filter options:\n\
+Camera bandpass filters:\n\
      --red_filter_long_limit=FLOAT        Red channel passpand long wavelength limit in nm\n\
      --red_filter_short_limit=FLOAT       Red channel passband short wavelength limit in nm\n\
      --green_filter_long_limit=FLOAT      Green channel passband long wavelength limit in nm\n\
@@ -135,7 +135,7 @@ Diffraction:\n\
                                           for unobstructed aperture. Hubble = 0.127\n\
 \n\
 Anti-aliasing:\n\
-     --anti_alias_enable=BOOL             yes = spread and pixel intensity to neighboring pixels\n\
+     --anti_alias_enable=BOOL             yes = spread pixel intensity to neighboring pixels\n\
                                           no = pixel intensity is mapped to nearest pixel\n\
                                           This also applies to each Airy disk pixel\n\
      --anti_alias_radius=FLOAT            Radius of anti-aliasing spread in pixels. Valid range 0.5 - 2.0\n\
@@ -155,12 +155,17 @@ Overlays:\n\
      --draw_grid_lines=BOOL               yes = Draw horizontal and vertical lines at 25%%, 50%%, and 75%% of\n\
                                           width and height\n\
 \n\
-PNG output:\n\
+Image output:\n\
+     --image_format=NUM                   0 = PNG, 1 = EXR\n\
      --icc_profile=NUM                    0 = None - linear gamma, 1 = sRGB, 2 = Display-P3 (compatible Z),\n\
                                           3 = Rec. 2020 (compatible Z), 4 = Rec. 601 NTSC, 5 = Rec. 601 PAL,\n\
                                           6 = Rec. 709, 7 = None - flat 2.0 gamma\n\
-                                          ICC profiles are v4 from https://github.com/saucecontrol/Compact-ICC-Profiles\n\
-     --bits_per_color=NUM                 8 or 16 bits per color\n\
+                                          ICC profiles are v4 from https://github.com/saucecontrol/Compact-ICC-Profiles.\n\
+                                          The EXR format does not support ICC profiles or encoding gamma. Instead, the\n\
+                                          chromacity associated with the selected profile is included in the header.\n\
+     --bits_per_color=NUM                 8, 16, or 32 bits per color. PNG supports 8 and 16 bit unsigned integers.\n\
+                                          EXR supports 16 and 32 bit floating point, and 32 bit unsigned integers.\n\
+     --image_number_format=NUM            0 = unsigned integer, 1 = floating point\n\
 \n\
 Camera position in Euclidian ICRS coordinates:\n\
      --camera_icrs_x=FLOAT                x coordinate in parsecs\n\

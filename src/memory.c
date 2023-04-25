@@ -248,7 +248,7 @@ int allocateMemory(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   }
 
   //
-  // allocate memory for image output buffer (8 or 16 bits per color rgb)
+  // allocate memory for image output buffer
   //
   if (bsr_config->output_scaling_factor != 1.0) {
     output_res_x=bsr_state->resize_res_x;
@@ -259,18 +259,26 @@ int allocateMemory(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   }
   mmap_protection=PROT_READ | PROT_WRITE;
   mmap_visibility=MAP_SHARED | MAP_ANONYMOUS;
-  if (bsr_config->bits_per_color == 8) {
-    bsr_state->output_buffer_size=(long long)output_res_x * (long long)output_res_y * (long long)3 * sizeof(png_byte);
-  } else if (bsr_config->bits_per_color == 16) {
-    bsr_state->output_buffer_size=(long long)output_res_x * (long long)output_res_y * (long long)6 * sizeof(png_byte);
+  if ((bsr_config->image_format == 0) && (bsr_config->bits_per_color == 8)) {
+    bsr_state->output_buffer_size=(long long)output_res_x * (long long)output_res_y * (long long)3 * sizeof(unsigned char);
+  } else if (((bsr_config->image_format == 0) || (bsr_config->image_format == 1)) && (bsr_config->bits_per_color == 16)) {
+    bsr_state->output_buffer_size=(long long)output_res_x * (long long)output_res_y * (long long)6 * sizeof(unsigned char);
+  } else if ((bsr_config->image_format == 1) && (bsr_config->bits_per_color == 32)) {
+    bsr_state->output_buffer_size=(long long)output_res_x * (long long)output_res_y * (long long)12 * sizeof(unsigned char);
+  } else {
+    if (bsr_config->cgi_mode != 1) {
+      printf("Error: invalid combination of image_format (%d) and bits_per_color: (%d)\n", bsr_config->image_format, bsr_config->bits_per_color);
+      fflush(stdout);
+    }
+    exit(1);
   }
-  bsr_state->image_output_buf=(png_byte *)mmap(NULL, bsr_state->output_buffer_size, mmap_protection, mmap_visibility, -1, 0);
+  bsr_state->image_output_buf=(unsigned char *)mmap(NULL, bsr_state->output_buffer_size, mmap_protection, mmap_visibility, -1, 0);
   if (bsr_state->image_output_buf == MAP_FAILED) {
     if (bsr_config->cgi_mode != 1) {
       printf("Error: could not allocate memory for image output buffer\n");
       fflush(stdout);
     }
-    return(1);
+    exit(1);
   }
 
   //
@@ -278,14 +286,14 @@ int allocateMemory(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   //
   mmap_protection=PROT_READ | PROT_WRITE;
   mmap_visibility=MAP_SHARED | MAP_ANONYMOUS;
-  bsr_state->row_pointers_size=(output_res_y * sizeof(png_bytep));
-  bsr_state->row_pointers=(png_bytep *)mmap(NULL, bsr_state->row_pointers_size, mmap_protection, mmap_visibility, -1, 0);
+  bsr_state->row_pointers_size=(output_res_y * sizeof(unsigned char *));
+  bsr_state->row_pointers=(unsigned char **)mmap(NULL, bsr_state->row_pointers_size, mmap_protection, mmap_visibility, -1, 0);
   if (bsr_state->row_pointers == MAP_FAILED) {
     if (bsr_config->cgi_mode != 1) {
       printf("Error: could not allocate memory for libpng row_pointers\n");
       fflush(stdout);
     }
-    return(1);
+    exit(1);
   }
 
   return(0);

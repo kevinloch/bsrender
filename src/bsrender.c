@@ -50,6 +50,7 @@
 #include "util.h"
 #include "rgb.h"
 #include "bsr-png.h"
+#include "bsr-exr.h"
 #include "process-stars.h"
 #include "init-state.h"
 #include "cgi.h"
@@ -58,6 +59,7 @@
 #include "memory.h"
 #include "file.h"
 #include "quantize.h"
+#include "copy-float.h"
 #include "diffraction.h"
 
 int main(int argc, char **argv) {
@@ -83,12 +85,23 @@ int main(int argc, char **argv) {
   initConfig(&bsr_config);
 
   //
-  // process command line arguments - first pass to get config file location
+  // get QUERY_STRING environment variable, used to suppress output before cgi_mode has been configured,
+  // and for loading CGI config options
+  //
+  getQueryString(&bsr_config);
+
+  //
+  // process command line arguments - first pass to get config file location, and to promptly execute -h, -q
   //
   processCmdArgs(&bsr_config, argc, argv);
 
   //
-  // load config file
+  // print version and endianness. we do this after processCmdArgs to allow for -q to suppress this
+  //
+  printVersion(&bsr_config);
+
+  //
+  // process config file
   //
   loadConfigFromFile(&bsr_config);
 
@@ -98,7 +111,7 @@ int main(int argc, char **argv) {
   processCmdArgs(&bsr_config, argc, argv);
 
   //
-  // if CGI mode, print CGI output header and read query string
+  // if CGI mode, print CGI header and proces QUERY_STRING
   //
   if (bsr_config.cgi_mode == 1) {
     printCGIheader();
@@ -107,9 +120,9 @@ int main(int argc, char **argv) {
   }
 
   //
-  // enforce config parameters
+  // validate config parameters are sane
   //
-  enforceConfigLimits(&bsr_config);
+  validateConfig(&bsr_config);
 
   //
   // allocate memory for and initialize bsr_state
@@ -346,18 +359,28 @@ int main(int argc, char **argv) {
   postProcess(&bsr_config, bsr_state);
 
   //
-  // all threads: convert image to 8 or 16 bits per pixel
+  // all threads: convert image to configured image_number_format and copy pixel data to image_output_buf
   //
-  quantize(&bsr_config, bsr_state);  
+  if ((bsr_config.image_format == 1) && (bsr_config.image_number_format == 1)) {
+    // floating point conversion/copy
+    copyFloat(&bsr_config, bsr_state);
+  } else {
+    // unsigned integer conversion/copy
+    quantize(&bsr_config, bsr_state);  
+  }
 
   //
-  // main thread: output png image and cleanup
+  // main thread: output image and cleanup
   //
   if (bsr_state->perthread->my_pid == bsr_state->master_pid) {
     //
-    // main thread: output png file
+    // main thread: output image file
     //
-    outputPNG(&bsr_config, bsr_state);
+    if (bsr_config.image_format == 1) {
+      outputEXR(&bsr_config, bsr_state);
+    } else {
+      outputPNG(&bsr_config, bsr_state);
+    }
 
     //
     // main thread: clean up memory allocations

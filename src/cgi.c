@@ -52,27 +52,25 @@ int printCGIheader(){
   return(0);
 }
 
-int sanitizeQueryString(char *query_string) {
+int sanitizeQueryString(char *query_string_2048) {
   int i;
   int tmpstr_len;
   char tmpstr[2048];
   char tmpchar;
-  char *output_str;
-  int output_len;
+  int sanitized_len;
   char hextmp[3];
 
   //
-  // make a working copy of query_string
+  // make a working copy of query_string_2048
   //
-  strncpy(tmpstr, query_string, 2047);
+  strncpy(tmpstr, query_string_2048, 2047);
   tmpstr[2047]=0;
   tmpstr_len=strlen(tmpstr);
-  output_str=query_string;
 
   //
-  // validate each character of query_string (tmpstr)
+  // validate each character of query_string_2048 (tmpstr)
   //
-  output_len=0;
+  sanitized_len=0;
   for (i=0; i < tmpstr_len; i++) {
     //
     // check for and convert hex encoded characters (common in CGI QUERY_STRING)
@@ -88,33 +86,30 @@ int sanitizeQueryString(char *query_string) {
     }
 
     //
-    // check if tmpchar is a valid symbol and copy to output_str
+    // check if tmpchar is a valid symbol and copy back to query_string_2048
     //
     if (strchr("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.-+&=_", tmpchar) == NULL) {
-      output_str[output_len]=32; // convert invalid character to space
+      query_string_2048[sanitized_len]=32; // convert invalid character to space
     } else {
-      output_str[output_len]=tmpchar;
+      query_string_2048[sanitized_len]=tmpchar;
     }
-    output_len++;
+    sanitized_len++;
   }
-  output_str[output_len]=0;
+  query_string_2048[sanitized_len]=0;
 
   return(0);
 }
 
 int getCGIOptions(bsr_config_t *bsr_config) {
-  char *tmpstr;
-  char query_string[2048];
+  char query_string_2048[2048];
 
-  tmpstr=NULL;
-  tmpstr=getenv("QUERY_STRING");
-  if (tmpstr == NULL) {
+  if (bsr_config->QUERY_STRING_p == NULL) {
     return(1);
   } else {
-    strncpy(query_string, tmpstr, 2047);
-    query_string[2047]=0;
-    sanitizeQueryString(query_string);
-    loadConfigFromQueryString(bsr_config, query_string);
+    strncpy(query_string_2048, bsr_config->QUERY_STRING_p, 2047);
+    query_string_2048[2047]=0;
+    sanitizeQueryString(query_string_2048);
+    loadConfigFromQueryString(bsr_config, query_string_2048);
   }
 
   return(0);

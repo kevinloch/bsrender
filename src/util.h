@@ -40,6 +40,8 @@
 #define BSR_UTIL_H
 
 int littleEndianTest();
+int getQueryString(bsr_config_t *bsr_config);
+int printVersion(bsr_config_t *bsr_config);
 int waitForWorkerThreads(bsr_state_t *bsr_state, int min_status);
 int waitForMainThread(bsr_state_t *bsr_state, int min_status);
 int checkExceptions(bsr_state_t *bsr_state);

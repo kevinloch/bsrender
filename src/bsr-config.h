@@ -44,6 +44,6 @@ int processConfigSegment(bsr_config_t *bsr_config, char *segment, int from_cgi);
 int loadConfigFromFile(bsr_config_t *bsr_config);
 int loadConfigFromQueryString(bsr_config_t *bsr_config, char *query_string);
 int processCmdArgs(bsr_config_t *bsr_config, int argc, char **argv);
-int enforceConfigLimits(bsr_config_t *bsr_config);
+int validateConfig(bsr_config_t *bsr_config);
 
 #endif // BSR_CONFIG_H

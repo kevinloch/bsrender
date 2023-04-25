@@ -62,6 +62,52 @@ int littleEndianTest() {
   return(little_endian);
 }
 
+int getQueryString(bsr_config_t *bsr_config) {
+  //
+  // used to suppress output before config file is loaded and to load config options from CGI users
+  //
+  bsr_config->QUERY_STRING_p=getenv("QUERY_STRING");
+
+  return(0);
+}
+
+int printVersion(bsr_config_t *bsr_config) {
+  int little_endian;
+
+  //
+  // print version and endianness
+  //
+  if ((bsr_config->QUERY_STRING_p == NULL) && (bsr_config->print_status == 1)) {
+    printf("bsrender version %s\n", BSR_VERSION);
+    little_endian=littleEndianTest();
+#ifdef BSR_LITTLE_ENDIAN_COMPILE
+    if (little_endian == 1) {
+      printf("Compiled for little-endian, detected little-endian architecture\n");
+      fflush(stdout);
+    } else {
+      printf("Error: Compiled for little-endian, detected big-endian architecture, please re-compile\n");
+      fflush(stdout);
+      exit(1);
+    }
+#elif defined BSR_BIG_ENDIAN_COMPILE
+    if (little_endian == 0) {
+      printf("Compiled for big-endian, detected big-endian architecture\n");
+      fflush(stdout);
+    } else {
+      printf("Error: Compiled for big-endian, detected little-endian architecture, please re-compile\n");
+      fflush(stdout);
+      exit(1);
+    }
+#else
+    printf("Error: compiled for unknown endianness, please re-compile\n");
+    fflush(stdout);
+    exit(1);
+#endif
+  }
+
+  return(0);
+}
+
 int checkExceptions(bsr_state_t *bsr_state) {
   int i;
 

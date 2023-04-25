@@ -40,6 +40,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <time.h>
+#include <png.h>
 #include "util.h"
 
 int quantize(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
@@ -48,7 +49,7 @@ int quantize(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   double elapsed_time;
   long long image_offset;
   pixel_composition_t *current_image_p;
-  png_byte *image_output_p;
+  unsigned char *image_output_p;
   const double one_over_2dot4=1.0 / 2.4;
   double pixel_r;
   double pixel_g;
@@ -67,9 +68,9 @@ int quantize(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   if ((bsr_state->perthread->my_pid == bsr_state->master_pid) && (bsr_config->cgi_mode != 1) && (bsr_config->print_status == 1)) {
     clock_gettime(CLOCK_REALTIME, &starttime);
     if (bsr_config->bits_per_color == 8) {
-      printf("Converting to 8 bits per color...");
+      printf("Converting to 8-bit unsigned integer per color...");
     } else if (bsr_config->bits_per_color == 16) {
-      printf("Converting to 16 bits per color...");
+      printf("Converting to 16-bit unsigned integer per color...");
     }
     fflush(stdout);
   }
