@@ -93,7 +93,7 @@ int allocateMemory(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   }
 
   //
-  // allocate shared memory for image composition buffer (floating point rgb)
+  // allocate shared memory for image composition buffer (floating-point rgb)
   //
   mmap_protection=PROT_READ | PROT_WRITE;
   mmap_visibility=MAP_SHARED | MAP_ANONYMOUS;
@@ -259,18 +259,12 @@ int allocateMemory(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   }
   mmap_protection=PROT_READ | PROT_WRITE;
   mmap_visibility=MAP_SHARED | MAP_ANONYMOUS;
-  if ((bsr_config->image_format == 0) && (bsr_config->bits_per_color == 8)) {
-    bsr_state->output_buffer_size=(long long)output_res_x * (long long)output_res_y * (long long)3 * sizeof(unsigned char);
-  } else if (((bsr_config->image_format == 0) || (bsr_config->image_format == 1)) && (bsr_config->bits_per_color == 16)) {
-    bsr_state->output_buffer_size=(long long)output_res_x * (long long)output_res_y * (long long)6 * sizeof(unsigned char);
-  } else if ((bsr_config->image_format == 1) && (bsr_config->bits_per_color == 32)) {
+  if (bsr_config->bits_per_color == 32) {
     bsr_state->output_buffer_size=(long long)output_res_x * (long long)output_res_y * (long long)12 * sizeof(unsigned char);
-  } else {
-    if (bsr_config->cgi_mode != 1) {
-      printf("Error: invalid combination of image_format (%d) and bits_per_color: (%d)\n", bsr_config->image_format, bsr_config->bits_per_color);
-      fflush(stdout);
-    }
-    exit(1);
+  } else if (bsr_config->bits_per_color == 16) {
+    bsr_state->output_buffer_size=(long long)output_res_x * (long long)output_res_y * (long long)6 * sizeof(unsigned char);
+  } else { // default 8 bits per color
+    bsr_state->output_buffer_size=(long long)output_res_x * (long long)output_res_y * (long long)3 * sizeof(unsigned char);
   }
   bsr_state->image_output_buf=(unsigned char *)mmap(NULL, bsr_state->output_buffer_size, mmap_protection, mmap_visibility, -1, 0);
   if (bsr_state->image_output_buf == MAP_FAILED) {

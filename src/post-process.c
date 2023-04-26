@@ -119,7 +119,7 @@ int postProcess(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
     }
 
     //
-    // limit pixel intensity to range [0..1] (> 0.0 if floating point output)
+    // limit pixel intensity to range [0..1] (> 0.0 if floating-point output)
     //
     if (bsr_config->camera_pixel_limit_mode == 0) {
       limitIntensity(bsr_config, &pixel_r, &pixel_g, &pixel_b);

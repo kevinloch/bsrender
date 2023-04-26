@@ -362,7 +362,7 @@ int main(int argc, char **argv) {
   // all threads: convert image to configured image_number_format and copy pixel data to image_output_buf
   //
   if ((bsr_config.image_format == 1) && (bsr_config.image_number_format == 1)) {
-    // floating point conversion/copy
+    // floating-point conversion/copy
     copyFloat(&bsr_config, bsr_state);
   } else {
     // unsigned integer conversion/copy

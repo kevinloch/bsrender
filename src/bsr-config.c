@@ -111,6 +111,7 @@ void initConfig(bsr_config_t *bsr_config) {
   bsr_config->output_scaling_factor=1.0;
   bsr_config->draw_crosshairs=0;
   bsr_config->draw_grid_lines=0;
+  bsr_config->output_format=0;
   bsr_config->image_format=0;
   bsr_config->icc_profile=1;
   bsr_config->bits_per_color=8;
@@ -305,10 +306,8 @@ void setOptionValue(bsr_config_t *bsr_config, char *option, char *value, int fro
   match_count+=checkOptionDouble(&bsr_config->output_scaling_factor, option, value, "output_scaling_factor");
   match_count+=checkOptionBool(&bsr_config->draw_crosshairs, option, value, "draw_crosshairs");
   match_count+=checkOptionBool(&bsr_config->draw_grid_lines, option, value, "draw_grid_lines");
-  match_count+=checkOptionInt(&bsr_config->image_format, option, value, "image_format");
+  match_count+=checkOptionInt(&bsr_config->output_format, option, value, "output_format");
   match_count+=checkOptionInt(&bsr_config->icc_profile, option, value, "icc_profile");
-  match_count+=checkOptionInt(&bsr_config->bits_per_color, option, value, "bits_per_color");
-  match_count+=checkOptionInt(&bsr_config->image_number_format, option, value, "image_number_format");
   match_count+=checkOptionDouble(&bsr_config->camera_icrs_x, option, value, "camera_icrs_x");
   match_count+=checkOptionDouble(&bsr_config->camera_icrs_y, option, value, "camera_icrs_y");
   match_count+=checkOptionDouble(&bsr_config->camera_icrs_z, option, value, "camera_icrs_z");
@@ -384,7 +383,7 @@ int processConfigSegment(bsr_config_t *bsr_config, char *segment, int from_cgi) 
     // send to option value processing fucntion
     //
     setOptionValue(bsr_config, option, value, from_cgi);
-  } else if ((segment_length > 0) && (bsr_config->QUERY_STRING_p == NULL) && (bsr_config->print_status == 1)) {
+  } else if ((segment_length > 0) && (segment[0] != 32) && (bsr_config->QUERY_STRING_p == NULL) && (bsr_config->print_status == 1)) {
     printf("Unknown configuration option: %s\n", segment);
     fflush(stdout);
   } // end symbol_p check
@@ -595,6 +594,42 @@ int validateConfig(bsr_config_t *bsr_config) {
   //
   if (bsr_config->num_threads < 2) {
     bsr_config->num_threads=2;
+  }
+
+  //
+  // translate output_format to internal config variables
+  // 0 = PNG 8-bit unsigned integer per color
+  // 1 = PNG 16-bit unsigned integer per color
+  // 2 = EXR 16-bit floating-point per color
+  // 3 = EXR 32-bit floating-point per color
+  // 4 = EXR 32-bit unsigned integer per color
+  //
+  if (bsr_config->output_format == 0) {
+    bsr_config->image_format=0;
+    bsr_config->image_number_format=0;
+    bsr_config->bits_per_color=8;
+  } else if (bsr_config->output_format == 1) {
+    bsr_config->image_format=0;
+    bsr_config->image_number_format=0;
+    bsr_config->bits_per_color=16;
+  } else if (bsr_config->output_format == 2) {
+    bsr_config->image_format=1;
+    bsr_config->image_number_format=1;
+    bsr_config->bits_per_color=16;
+  } else if (bsr_config->output_format == 3) {
+    bsr_config->image_format=1;
+    bsr_config->image_number_format=1;
+    bsr_config->bits_per_color=32;
+  } else if (bsr_config->output_format == 4) {
+    bsr_config->image_format=1;
+    bsr_config->image_number_format=0;
+    bsr_config->bits_per_color=32;
+  } else {
+    if ((bsr_config->QUERY_STRING_p == NULL) && (bsr_config->print_status == 1)) {
+      printf("Error: invalid output_format (%d). See --help (Output section) for output format codes.\n", bsr_config->output_format);
+      fflush(stdout);
+    }
+    exit(1);
   }
 
   //

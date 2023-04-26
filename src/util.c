@@ -212,7 +212,7 @@ int limitIntensity(bsr_config_t *bsr_config, double *pixel_r, double *pixel_g, d
     *pixel_b=0.0;
   }
 
-  if (bsr_config->image_number_format != 1) { // don't limit max value if floating point format
+  if (bsr_config->image_number_format != 1) { // don't limit max value if floating-point format
     if (*pixel_r > 1.0) {
       *pixel_r=1.0;
     }
@@ -243,7 +243,7 @@ int limitIntensityPreserveColor(bsr_config_t *bsr_config, double *pixel_r, doubl
     *pixel_b=0.0;
   }
 
-  if (bsr_config->image_number_format != 1) { // don't limit max value if floating point format
+  if (bsr_config->image_number_format != 1) { // don't limit max value if floating-point format
     if ((*pixel_r > 1.0) || (*pixel_g > 1.0) || (*pixel_b > 1.0)) {
       pixel_max=0;
       if (*pixel_r > pixel_max) {

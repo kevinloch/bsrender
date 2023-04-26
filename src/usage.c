@@ -155,17 +155,18 @@ Overlays:\n\
      --draw_grid_lines=BOOL               yes = Draw horizontal and vertical lines at 25%%, 50%%, and 75%% of\n\
                                           width and height\n\
 \n\
-Image output:\n\
-     --image_format=NUM                   0 = PNG, 1 = EXR\n\
+Output:\n\
+     --output_format=NUM                  0 = PNG 8-bit unsigned integer per color\n\
+                                          1 = PNG 16-bit unsigned integer per color\n\
+                                          2 = EXR 16-bit floating-point per color\n\
+                                          3 = EXR 32-bit floating-point per color\n\
+                                          4 = EXR 32-bit unsigned integer per color\n\
      --icc_profile=NUM                    0 = None - linear gamma, 1 = sRGB, 2 = Display-P3 (compatible Z),\n\
                                           3 = Rec. 2020 (compatible Z), 4 = Rec. 601 NTSC, 5 = Rec. 601 PAL,\n\
                                           6 = Rec. 709, 7 = None - flat 2.0 gamma\n\
                                           ICC profiles are v4 from https://github.com/saucecontrol/Compact-ICC-Profiles.\n\
                                           The EXR format does not support ICC profiles or encoding gamma. Instead, the\n\
                                           chromacity associated with the selected profile is included in the header.\n\
-     --bits_per_color=NUM                 8, 16, or 32 bits per color. PNG supports 8 and 16 bit unsigned integers.\n\
-                                          EXR supports 16 and 32 bit floating point, and 32 bit unsigned integers.\n\
-     --image_number_format=NUM            0 = unsigned integer, 1 = floating point\n\
 \n\
 Camera position in Euclidian ICRS coordinates:\n\
      --camera_icrs_x=FLOAT                x coordinate in parsecs\n\

@@ -207,7 +207,7 @@ int quantize(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
     pixel_b=current_image_p->b;
 
     //
-    // limit pixel intensity to range [0..1] (> 0.0 if floating point output)
+    // limit pixel intensity to range [0..1]
     //
     if (bsr_config->camera_pixel_limit_mode == 0) {
       limitIntensity(bsr_config, &pixel_r, &pixel_g, &pixel_b);
@@ -264,21 +264,13 @@ int quantize(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
     //
     if (bsr_config->image_format == 1) {
       // EXR format. Channels are in BGR order and stored little-endian
-      if (bsr_config->bits_per_color == 32) {
-        storeU32LE(image_output_p, (uint32_t)((pixel_b * 4294967295.0) + 0.5));
-        image_output_p+=4;
-        storeU32LE(image_output_p, (uint32_t)((pixel_g * 4294967295.0) + 0.5));
-        image_output_p+=4;
-        storeU32LE(image_output_p, (uint32_t)((pixel_r * 4294967295.0) + 0.5));
-        image_output_p+=4;
-      } else { // defualt 16 bits per color
-        storeU16LE(image_output_p, (uint16_t)((pixel_b * 65535.0) + 0.5));
-        image_output_p+=2;
-        storeU16LE(image_output_p, (uint16_t)((pixel_g * 65535.0) + 0.5));
-        image_output_p+=2;
-        storeU16LE(image_output_p, (uint16_t)((pixel_r * 65535.0) + 0.5));
-        image_output_p+=2;
-      } // end if bits_per_color
+      // 32-bit unsigned integer is the only supported integer format
+      storeU32LE(image_output_p, (uint32_t)((pixel_b * 4294967295.0) + 0.5));
+      image_output_p+=4;
+      storeU32LE(image_output_p, (uint32_t)((pixel_g * 4294967295.0) + 0.5));
+      image_output_p+=4;
+      storeU32LE(image_output_p, (uint32_t)((pixel_r * 4294967295.0) + 0.5));
+      image_output_p+=4;
     } else {
       // default PNG format. Channels are RGB order and stored big-endian
       if (bsr_config->bits_per_color == 16) {
