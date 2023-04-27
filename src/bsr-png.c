@@ -37,8 +37,8 @@
  */
 
 #include "bsrender.h" // needs to be first to get GNU_SOURCE define for strcasestr
+#include <stdio.h>
 #include <stdlib.h>
-#include <math.h>
 #define PNG_SETJMP_NOT_SUPPORTED
 #include <png.h>
 #include "util.h"
@@ -72,7 +72,7 @@ int outputPNG(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
     if (output_file == NULL) {
       printf("Error: could not open %s for writing\n", bsr_config->output_file_name);
       fflush(stdout);
-      return(1);
+      exit(1);
     }
   }
   
@@ -130,13 +130,15 @@ int outputPNG(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   png_write_end(png_ptr, NULL);
 
   //
-  // if not CGI mode display status message and close output file
+  // display status message and close output file if not CGI mode
   //
-  if ((bsr_config->cgi_mode != 1) && (bsr_config->print_status == 1)) {
-    clock_gettime(CLOCK_REALTIME, &endtime);
-    elapsed_time=((double)(endtime.tv_sec - 1500000000) + ((double)endtime.tv_nsec / 1.0E9)) - ((double)(starttime.tv_sec - 1500000000) + ((double)starttime.tv_nsec) / 1.0E9);
-    printf(" (%.3fs)\n", elapsed_time);
-    fflush(stdout);
+  if (bsr_config->cgi_mode != 1) {
+    if (bsr_config->print_status == 1) {
+      clock_gettime(CLOCK_REALTIME, &endtime);
+      elapsed_time=((double)(endtime.tv_sec - 1500000000) + ((double)endtime.tv_nsec / 1.0E9)) - ((double)(starttime.tv_sec - 1500000000) + ((double)starttime.tv_nsec) / 1.0E9);
+      printf(" (%.3fs)\n", elapsed_time);
+      fflush(stdout);
+    }
 
     // clean up
     fclose(output_file);

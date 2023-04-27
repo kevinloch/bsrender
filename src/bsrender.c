@@ -58,8 +58,7 @@
 #include "image-composition.h"
 #include "memory.h"
 #include "file.h"
-#include "quantize.h"
-#include "copy-float.h"
+#include "sequence-pixels.h"
 #include "diffraction.h"
 
 int main(int argc, char **argv) {
@@ -359,29 +358,24 @@ int main(int argc, char **argv) {
   postProcess(&bsr_config, bsr_state);
 
   //
-  // all threads: convert image to configured image_number_format and copy pixel data to image_output_buf
+  // all threads: convert image to byte sequence required by output image_format and store in image_output_buf.
+  // This is also where quantization happens for integer number formats
   //
-  if ((bsr_config.image_format == 1) && (bsr_config.image_number_format == 1)) {
-    // floating-point conversion/copy
-    copyFloat(&bsr_config, bsr_state);
-  } else {
-    // unsigned integer conversion/copy
-    quantize(&bsr_config, bsr_state);  
+  sequencePixels(&bsr_config, bsr_state);  
+
+  //
+  // all threads: output image file
+  //
+  if ((bsr_config.image_format == 0) && (bsr_state->perthread->my_pid == bsr_state->master_pid)) { // PNG encoder not yet multi-threadded
+    outputPNG(&bsr_config, bsr_state);
+  } else if (bsr_config.image_format == 1) {
+    outputEXR(&bsr_config, bsr_state);
   }
 
   //
-  // main thread: output image and cleanup
+  // main thread: cleanup
   //
   if (bsr_state->perthread->my_pid == bsr_state->master_pid) {
-    //
-    // main thread: output image file
-    //
-    if (bsr_config.image_format == 1) {
-      outputEXR(&bsr_config, bsr_state);
-    } else {
-      outputPNG(&bsr_config, bsr_state);
-    }
-
     //
     // main thread: clean up memory allocations
     //

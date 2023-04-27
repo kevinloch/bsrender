@@ -39,7 +39,7 @@
 #ifndef BSRENDER_H
 #define BSRENDER_H
 
-#define BSR_VERSION "1.0-dev-19f"
+#define BSR_VERSION "1.0-dev-19j"
 
 #define BSR_32BIT_BUFFERS // use 32-bit floats in image composition, blur, and resize buffers. This reduces the size of these buffers by half which may
                           // be useful for extremely large image resolutions at the expense of summation precision within these buffers. This does not
@@ -104,9 +104,12 @@
 #define THREAD_STATUS_LANCZOS_BEGIN 60
 #define THREAD_STATUS_LANCZOS_COMPLETE 61
 #define THREAD_STATUS_LANCZOS_CONTINUE 62
-#define THREAD_STATUS_QUANTIZE_BEGIN 70
-#define THREAD_STATUS_QUANTIZE_COMPLETE 71
-#define THREAD_STATUS_QUANTIZE_CONTINUE 72
+#define THREAD_STATUS_SEQUENCE_PIXELS_BEGIN 70
+#define THREAD_STATUS_SEQUENCE_PIXELS_COMPLETE 71
+#define THREAD_STATUS_SEQUENCE_PIXELS_CONTINUE 72
+#define THREAD_STATUS_IMAGE_OUTPUT_BEGIN 80
+#define THREAD_STATUS_IMAGE_OUTPUT_COMPLETE 81
+#define THREAD_STATUS_IMAGE_OUTPUT_CONTINUE 82
 
 #define _GNU_SOURCE // needed for strcasestr in string.h
 #include <stdint.h> // needed for uint64_t
@@ -114,9 +117,9 @@
 #include <sys/stat.h>
 
 //
-// For most things we detect endianness runtime with littleEndianTest(). For the inner loop of processStars() we
-// want to avoid any unnessary instructions so we attempt to detect at compile time.
-// A check in bsr-config.c will detect a mismatch from compiled and runtime modes
+// For most things we detect endianness runtime with littleEndianTest(). For certain expensive
+// operations we use these compile time conditionals instead.
+// A check in printVersion() will detect a mismatch from compiled and runtime modes
 //
 // from https://stackoverflow.com/questions/4239993/determining-endianness-at-compile-time
 //
@@ -214,6 +217,7 @@ typedef struct {
   pixel_composition_t *image_resize_buf;      // updated by all threads, globally mmaped
   dedup_buffer_t *dedup_buf;        // thread-specific buffer, malloc'ed so each thread get's it's own local buffer when fork()'ed
   dedup_index_t *dedup_index;       // thread-specific buffer, malloc'ed so each thread get's it's own local buffer when fork()'ed
+  int image_output_sync;
   input_file_t input_file_external;
   input_file_t input_file_pq100;
   input_file_t input_file_pq050;
