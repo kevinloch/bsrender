@@ -39,76 +39,18 @@
 #include "bsrender.h" // needs to be first to get GNU_SOURCE define for strcasestr
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include "util.h"
 #include "cgi.h"
 #include "icc-profiles.h"
 #include "bsr-exr.h"
 #include "sequence-pixels.h"
 
-int storeI32LE(unsigned char *dest, int32_t src) {
-  unsigned char *src_p;
-  unsigned char *dest_p;
-
-  dest_p=dest;
-#ifdef BSR_LITTLE_ENDIAN_COMPILE
-  src_p=(unsigned char *)&src;
-  *dest_p=*src_p;
-  dest_p++;
-  src_p++;
-  *dest_p=*src_p;
-  dest_p++;
-  src_p++;
-  *dest_p=*src_p;
-  dest_p++;
-  src_p++;
-  *dest_p=*src_p;
-#elif defined BSR_BIG_ENDIAN_COMPILE
-  src_p=(unsigned char *)&src;
-  src_p+=3;
-  *dest_p=*src_p;
-  dest_p++;
-  src_p--;
-  *dest_p=*src_p;
-  dest_p++;
-  src_p--;
-  *dest_p=*src_p;
-  dest_p++;
-  src_p--;
-  *dest_p=*src_p;
-#endif
-
-  // return number of bytes stored
-  return(4);
-}
-
-int storeU8(unsigned char *dest, unsigned char src) {
-  // seems silly but helps keep outputEXRHeader clean
-
-  *dest=src;
-
-  // return number of bytes stored
-  return(1);
-}
-
-int storeStr32(unsigned char *dest, char *src) {
-  int size;
-
-  snprintf((char *)dest, 32, "%s", src);
-
-  // return number of bytes stored
-  size=strlen(src) + 1;
-  if (size > 32) {
-    return(32);
-  } else {
-    return(size);
-  }
-}
-
-int outputEXRHeader(bsr_config_t *bsr_config, FILE *output_file) {
+int outputEXRHeader(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *output_file) {
   unsigned char header[4096];
   unsigned char *header_p;
   int pixel_type=EXR_PIXEL_FLOAT;
+  chromaticities_t chromaticities=Rec709_c;
+  int header_size;
 
   // pixel_type shortcut
   if (bsr_config->image_number_format == 0) {
@@ -126,10 +68,7 @@ int outputEXRHeader(bsr_config_t *bsr_config, FILE *output_file) {
   header_p=header;
 
   // magic number
-  header_p+=storeU8(header_p, 0x76);
-  header_p+=storeU8(header_p, 0x2f);
-  header_p+=storeU8(header_p, 0x31);
-  header_p+=storeU8(header_p, 0x01);
+  header_p+=storeU32LE(header_p, (uint32_t)0x1312F76);
 
   // version
   header_p+=storeU8(header_p, 0x02); // EXR version 2.0
@@ -172,30 +111,30 @@ int outputEXRHeader(bsr_config_t *bsr_config, FILE *output_file) {
     header_p+=storeU8(header_p, 0);
 
   // compression
-  header_p+=storeStr32(header_p, "compression");    // attribute name
-  header_p+=storeStr32(header_p, "compression");    // attribute type
-  header_p+=storeI32LE(header_p, (int32_t)1);       // attribute value length in bytes
-  //header_p+=storeU8(header_p, EXR_COMPRESSION_NONE); // for testing
-  //header_p+=storeU8(header_p, EXR_COMPRESSION_ZIPS); // deflate algorithm, 16 lines at a time
-  header_p+=storeU8(header_p, EXR_COMPRESSION_ZIP); // deflate algorithm, one line at a time
+  header_p+=storeStr32(header_p, "compression");       // attribute name
+  header_p+=storeStr32(header_p, "compression");       // attribute type
+  header_p+=storeI32LE(header_p, (int32_t)1);          // attribute value length in bytes
+  header_p+=storeU8(header_p, EXR_COMPRESSION_NONE); // for testing
+  //header_p+=storeU8(header_p, EXR_COMPRESSION_ZIPS); // deflate algorithm, one line at a time
+  //header_p+=storeU8(header_p, EXR_COMPRESSION_ZIP);    // deflate algorithm, 16 lines at a time
 
   // data window
-  header_p+=storeStr32(header_p, "dataWindow");                          // attribute name
-  header_p+=storeStr32(header_p, "box2i");                               // attribute type
-  header_p+=storeI32LE(header_p, (int32_t)16);                           // attribute value length in bytes
-  header_p+=storeI32LE(header_p, (int32_t)0);                            // xmin
-  header_p+=storeI32LE(header_p, (int32_t)0);                            // ymin
-  header_p+=storeI32LE(header_p, (int32_t)(bsr_config->camera_res_x-1)); // xmax
-  header_p+=storeI32LE(header_p, (int32_t)(bsr_config->camera_res_y-1)); // ymax
+  header_p+=storeStr32(header_p, "dataWindow");                                // attribute name
+  header_p+=storeStr32(header_p, "box2i");                                     // attribute type
+  header_p+=storeI32LE(header_p, (int32_t)16);                                 // attribute value length in bytes
+  header_p+=storeI32LE(header_p, (int32_t)0);                                  // xmin
+  header_p+=storeI32LE(header_p, (int32_t)0);                                  // ymin
+  header_p+=storeI32LE(header_p, (int32_t)(bsr_state->current_image_res_x-1)); // xmax
+  header_p+=storeI32LE(header_p, (int32_t)(bsr_state->current_image_res_y-1)); // ymax
 
   // display window
-  header_p+=storeStr32(header_p, "displayWindow");                       // attribute name
-  header_p+=storeStr32(header_p, "box2i");                               // attribute type
-  header_p+=storeI32LE(header_p, (int32_t)16);                           // attribute value length in bytes
-  header_p+=storeI32LE(header_p, (int32_t)0);                            // xmin
-  header_p+=storeI32LE(header_p, (int32_t)0);                            // ymin
-  header_p+=storeI32LE(header_p, (int32_t)(bsr_config->camera_res_x-1)); // xmax
-  header_p+=storeI32LE(header_p, (int32_t)(bsr_config->camera_res_y-1)); // ymax
+  header_p+=storeStr32(header_p, "displayWindow");                             // attribute name
+  header_p+=storeStr32(header_p, "box2i");                                     // attribute type
+  header_p+=storeI32LE(header_p, (int32_t)16);                                 // attribute value length in bytes
+  header_p+=storeI32LE(header_p, (int32_t)0);                                  // xmin
+  header_p+=storeI32LE(header_p, (int32_t)0);                                  // ymin
+  header_p+=storeI32LE(header_p, (int32_t)(bsr_state->current_image_res_x-1)); // xmax
+  header_p+=storeI32LE(header_p, (int32_t)(bsr_state->current_image_res_y-1)); // ymax
 
   // line order
   header_p+=storeStr32(header_p, "lineOrder");             // attribute name
@@ -219,22 +158,156 @@ int outputEXRHeader(bsr_config_t *bsr_config, FILE *output_file) {
   // screen window width
   header_p+=storeStr32(header_p, "screenWindowWidth"); // attribute name
   header_p+=storeStr32(header_p, "float");             // attribute type
-  header_p+=storeI32LE(header_p, (int32_t)8);          // attribute value length in bytes
+  header_p+=storeI32LE(header_p, (int32_t)4);          // attribute value length in bytes
   header_p+=storeFloatLE(header_p, 1.0f);              // window width
 
+  //
+  // EXR does not support ICC profiles but it does have a standard optional attribute
+  // for color space information. Default is no chromaticity header (client probably assumes Rec. 709)
+  //
+  if ((bsr_config->icc_profile >= 1) && (bsr_config->icc_profile <= 6)) {
+    if (bsr_config->icc_profile == 1) {
+      // sRGB
+      chromaticities=sRGB_c;
+    } else if (bsr_config->icc_profile == 2) {
+      // Display-P3
+      chromaticities=DisplayP3_c;
+    } else if (bsr_config->icc_profile == 3) {
+      // Rec. 2020
+      chromaticities=Rec2020_c;
+    } else if (bsr_config->icc_profile == 4) {
+      // Rec. 601 NTSC
+      chromaticities=Rec601NTSC_c;
+    } else if (bsr_config->icc_profile == 5) {
+      // Rec. 601 PAL
+      chromaticities=Rec601PAL_c;
+    } else if (bsr_config->icc_profile == 6) {
+      // Rec. 709
+      chromaticities=Rec709_c;
+    }
 
-//
-// incomplete - work in progress
-//
+    // chromaticities
+    header_p+=storeStr32(header_p, "chromaticities");        // attribute name
+    header_p+=storeStr32(header_p, "chromaticities");        // attribute type
+    header_p+=storeI32LE(header_p, (int32_t)32);             // attribute value length in bytes
+    header_p+=storeFloatLE(header_p, chromaticities.redX);   // redX
+    header_p+=storeFloatLE(header_p, chromaticities.redY);   // redY
+    header_p+=storeFloatLE(header_p, chromaticities.greenX); // greenX
+    header_p+=storeFloatLE(header_p, chromaticities.greenY); // greenY
+    header_p+=storeFloatLE(header_p, chromaticities.blueX);  // blueX
+    header_p+=storeFloatLE(header_p, chromaticities.blueY);  // blueY
+    header_p+=storeFloatLE(header_p, chromaticities.whiteX); // whiteX
+    header_p+=storeFloatLE(header_p, chromaticities.whiteY); // whiteY
+  }
 
-
+  // null byte to signal end of attributes
+  header_p+=storeU8(header_p, 0);
 
   // output header
+  header_size=(int)(header_p - header);
   if (bsr_config->cgi_mode == 1) {
-    fwrite(header, (header_p - header), 1, stdout);
+    fwrite(header, header_size, 1, stdout);
   } else {
-    fwrite(header, (header_p - header), 1, output_file);
+    fwrite(header, header_size, 1, output_file);
   }
+
+  // return number of bytes in header
+  return(header_size);
+}
+
+int outputEXROffsetTable(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *output_file, int header_size) {
+  int output_res_x;
+  int output_res_y;
+  uint64_t offset_table_size;
+  uint64_t bytes_per_line=0;
+  uint64_t chunk_start;
+  uint64_t offset;
+  unsigned char offset_buf[8];
+  const int chunk_header_size=8; // 8 bytes: y coordinate + pixel_data_size
+ 
+  int output_y;
+ 
+  output_res_x=bsr_state->current_image_res_x;
+  output_res_y=bsr_state->current_image_res_y;
+
+  if (bsr_config->bits_per_color == 8) {
+    bytes_per_line=(uint64_t)(chunk_header_size + (3 * output_res_x));
+  } else if (bsr_config->bits_per_color == 16) {
+    bytes_per_line=(uint64_t)(chunk_header_size + (6 * output_res_x));
+  } else if (bsr_config->bits_per_color == 32) {
+    bytes_per_line=(uint64_t)(chunk_header_size + (12 * output_res_x));
+  }
+
+  offset_table_size=(uint64_t)(8 * output_res_y);
+  chunk_start=(uint64_t)(header_size + offset_table_size); 
+  offset=chunk_start;
+  offset_buf[0]=0;
+  for (output_y=0; output_y < output_res_y; output_y++) {
+    storeU64LE(offset_buf, offset);
+
+    if (bsr_config->cgi_mode == 1) {
+      fwrite(offset_buf, 8, 1, stdout);
+    } else {
+      fwrite(offset_buf, 8, 1, output_file);
+    }
+    offset+=bytes_per_line;
+  }
+
+  return(0);
+}
+
+int outputEXRChunk(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *output_file) {
+  //
+  // uncompressed data only for now, will add ZIP/ZIPS compression support later
+  //
+  int output_res_x;
+  int output_res_y;
+  int pixel_data_size=0;
+  unsigned char pixel_data_size_buf[4];
+  int output_y;
+  unsigned char y_coordinate_buf[4];
+  unsigned char *image_output_p;
+  
+  output_res_x=bsr_state->current_image_res_x;
+  output_res_y=bsr_state->current_image_res_y;
+
+  if (bsr_config->bits_per_color == 8) {
+    pixel_data_size=(3 * output_res_x);
+  } else if (bsr_config->bits_per_color == 16) {
+    pixel_data_size=(6 * output_res_x);
+  } else if (bsr_config->bits_per_color == 32) {
+    pixel_data_size=(12 * output_res_x);
+  }
+  pixel_data_size_buf[0]=0;
+  storeI32LE(pixel_data_size_buf, pixel_data_size);
+
+  y_coordinate_buf[0]=0;
+  image_output_p=bsr_state->image_output_buf;
+  for (output_y=0; output_y < output_res_y; output_y++) {
+    // y coordinate
+    storeI32LE(y_coordinate_buf, output_y);
+    if (bsr_config->cgi_mode == 1) {
+      fwrite(y_coordinate_buf, 4, 1, stdout);
+    } else {
+      fwrite(y_coordinate_buf, 4, 1, output_file);
+    }
+
+    // pixel data size
+    if (bsr_config->cgi_mode == 1) {
+      fwrite(pixel_data_size_buf, 4, 1, stdout);
+    } else {
+      fwrite(pixel_data_size_buf, 4, 1, output_file);
+    }
+
+    // pixel data
+    if (bsr_config->cgi_mode == 1) {
+      fwrite(image_output_p, pixel_data_size, 1, stdout);
+    } else {
+      fwrite(image_output_p, pixel_data_size, 1, output_file);
+    }
+
+    image_output_p+=pixel_data_size;
+  } // end for output_y
 
   return(0);
 }
@@ -245,6 +318,7 @@ int outputEXR(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   struct timespec endtime;
   double elapsed_time;
   int i;
+  int header_size;
 
   //
   // main thread: display status update if not in CGI mode
@@ -268,34 +342,31 @@ int outputEXR(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
     }
   } // end if not main thread
 
-  //
-  // main thread: open output file if not CGI mode
-  //
-  if (bsr_state->perthread->my_pid == bsr_state->master_pid) {
-    output_file=fopen(bsr_config->output_file_name, "wb");
-    if (output_file == NULL) {
-      printf("Error: could not open %s for writing\n", bsr_config->output_file_name);
-      fflush(stdout);
-      exit(1);
-    }
-  }
-
-
-
-
 //
 // incomplete - work in progress
+// multi-thread compression step goes here
 //
 
-
-
-
-
   //
-  // main thread: construct and output EXR file header
+  // main thread: output EXR image to file or stdout 
   //
   if (bsr_state->perthread->my_pid == bsr_state->master_pid) {
-    outputEXRHeader(bsr_config, output_file);
+    if (bsr_config->cgi_mode != 1) {
+      output_file=fopen(bsr_config->output_file_name, "wb");
+      if (output_file == NULL) {
+        printf("Error: could not open %s for writing\n", bsr_config->output_file_name);
+        fflush(stdout);
+        exit(1);
+      }
+    } // end if not cgi_mode
+
+    header_size=outputEXRHeader(bsr_config, bsr_state, output_file);
+    outputEXROffsetTable(bsr_config, bsr_state, output_file, header_size);
+    outputEXRChunk(bsr_config, bsr_state, output_file);
+
+    if (bsr_config->cgi_mode != 1) {
+      fclose(output_file);
+    }
   } // end if main thread
 
   //
@@ -325,9 +396,6 @@ int outputEXR(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
       printf(" (%.3fs)\n", elapsed_time);
       fflush(stdout);
     }
-
-    // clean up
-    fclose(output_file);
   }
 
   return(0);

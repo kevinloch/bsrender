@@ -175,7 +175,7 @@ int allocateMemory(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   //
   // allocate non-shared memory for dedup index and initialize
   //
-  if ((long long)bsr_config->camera_res_x * (long long)bsr_config->camera_res_y <= 16777216) {
+  if ((uint64_t)bsr_config->camera_res_x * (uint64_t)bsr_config->camera_res_y <= 16777216) {
     bsr_state->dedup_index_mode=0; // use image_offset for dedup index
     dedup_index_count=bsr_config->camera_res_x * bsr_config->camera_res_y;
     bsr_state->dedup_index_size=dedup_index_count * sizeof(dedup_index_t);
@@ -260,11 +260,11 @@ int allocateMemory(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   mmap_protection=PROT_READ | PROT_WRITE;
   mmap_visibility=MAP_SHARED | MAP_ANONYMOUS;
   if (bsr_config->bits_per_color == 32) {
-    bsr_state->output_buffer_size=(long long)output_res_x * (long long)output_res_y * (long long)12 * sizeof(unsigned char);
+    bsr_state->output_buffer_size=(uint64_t)output_res_x * (uint64_t)output_res_y * (uint64_t)12 * sizeof(unsigned char);
   } else if (bsr_config->bits_per_color == 16) {
-    bsr_state->output_buffer_size=(long long)output_res_x * (long long)output_res_y * (long long)6 * sizeof(unsigned char);
+    bsr_state->output_buffer_size=(uint64_t)output_res_x * (uint64_t)output_res_y * (uint64_t)6 * sizeof(unsigned char);
   } else { // default 8 bits per color
-    bsr_state->output_buffer_size=(long long)output_res_x * (long long)output_res_y * (long long)3 * sizeof(unsigned char);
+    bsr_state->output_buffer_size=(uint64_t)output_res_x * (uint64_t)output_res_y * (uint64_t)3 * sizeof(unsigned char);
   }
   bsr_state->image_output_buf=(unsigned char *)mmap(NULL, bsr_state->output_buffer_size, mmap_protection, mmap_visibility, -1, 0);
   if (bsr_state->image_output_buf == MAP_FAILED) {

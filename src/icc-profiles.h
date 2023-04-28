@@ -39,6 +39,12 @@
 #ifndef BSR_ICC_PROFILES_H
 #define BSR_ICC_PROFILES_H
 
+const chromaticities_t sRGB_c;
+const chromaticities_t DisplayP3_c;
+const chromaticities_t Rec2020_c;
+const chromaticities_t Rec601NTSC_c;
+const chromaticities_t Rec601PAL_c;
+const chromaticities_t Rec709_c;
 extern const unsigned char sRGB_v4_icc[];
 extern const unsigned int sRGB_v4_icc_len;
 extern const unsigned char DisplayP3Compat_v4_icc[];

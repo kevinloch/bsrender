@@ -39,6 +39,7 @@
 #include "bsrender.h" // needs to be first to get GNU_SOURCE define for strcasestr
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/wait.h>
 
 int littleEndianTest() {
@@ -60,6 +61,299 @@ int littleEndianTest() {
   }
 
   return(little_endian);
+}
+
+int storeStr32(unsigned char *dest, char *src) {
+  int size;
+
+  snprintf((char *)dest, 32, "%s", src);
+
+  // return number of bytes stored
+  size=strlen(src) + 1;
+  if (size > 32) {
+    return(32);
+  } else {
+    return(size);
+  }
+}
+
+int storeU8(unsigned char *dest, unsigned char src) {
+  *dest=src;
+
+  // return number of bytes stored
+  return(1);
+}
+
+int storeU16LE(unsigned char *dest, uint16_t src) {
+  unsigned char *src_p;
+  unsigned char *dest_p;
+  
+  dest_p=dest;
+#ifdef BSR_LITTLE_ENDIAN_COMPILE
+  src_p=(unsigned char *)&src;
+  *dest_p=*src_p;
+  dest_p++;
+  src_p++;
+  *dest_p=*src_p;
+#elif defined BSR_BIG_ENDIAN_COMPILE
+  src_p=(unsigned char *)&src;
+  src_p++;
+  *dest_p=*src_p;
+  dest_p++;
+  src_p--;
+  *dest_p=*src_p;
+#endif
+  
+  // return number of bytes stored
+  return(2);
+}
+
+int storeU16BE(unsigned char *dest, uint16_t src) {
+  unsigned char *src_p;
+  unsigned char *dest_p;
+
+  dest_p=dest;
+#ifdef BSR_BIG_ENDIAN_COMPILE
+  src_p=(unsigned char *)&src;
+  *dest_p=*src_p;
+  dest_p++;
+  src_p++;
+  *dest_p=*src_p;
+#elif defined BSR_LITTLE_ENDIAN_COMPILE
+  src_p=(unsigned char *)&src;
+  src_p++;
+  *dest_p=*src_p;
+  dest_p++;
+  src_p--;
+  *dest_p=*src_p;
+#endif
+
+  // return number of bytes stored
+  return(2);
+}
+
+int storeI32LE(unsigned char *dest, int32_t src) {
+  unsigned char *src_p;
+  unsigned char *dest_p;
+
+  dest_p=dest;
+#ifdef BSR_LITTLE_ENDIAN_COMPILE
+  src_p=(unsigned char *)&src;
+  *dest_p=*src_p;
+  dest_p++;
+  src_p++;
+  *dest_p=*src_p;
+  dest_p++;
+  src_p++;
+  *dest_p=*src_p;
+  dest_p++;
+  src_p++;
+  *dest_p=*src_p;
+#elif defined BSR_BIG_ENDIAN_COMPILE
+  src_p=(unsigned char *)&src;
+  src_p+=3;
+  *dest_p=*src_p;
+  dest_p++;
+  src_p--;
+  *dest_p=*src_p;
+  dest_p++;
+  src_p--;
+  *dest_p=*src_p;
+  dest_p++;
+  src_p--;
+  *dest_p=*src_p;
+#endif
+
+  // return number of bytes stored
+  return(4);
+}
+
+int storeU32LE(unsigned char *dest, uint32_t src) {
+  unsigned char *src_p;
+  unsigned char *dest_p;
+
+  dest_p=dest;
+#ifdef BSR_LITTLE_ENDIAN_COMPILE
+  src_p=(unsigned char *)&src;
+  *dest_p=*src_p;
+  dest_p++;
+  src_p++;
+  *dest_p=*src_p;
+  dest_p++;
+  src_p++;
+  *dest_p=*src_p;
+  dest_p++;
+  src_p++;
+  *dest_p=*src_p;
+#elif defined BSR_BIG_ENDIAN_COMPILE
+  src_p=(unsigned char *)&src;
+  src_p+=3;
+  *dest_p=*src_p;
+  dest_p++;
+  src_p--;
+  *dest_p=*src_p;
+  dest_p++;
+  src_p--;
+  *dest_p=*src_p;
+  dest_p++;
+  src_p--;
+  *dest_p=*src_p;
+#endif
+
+  // return number of bytes stored
+  return(4);
+}
+
+
+int storeU64LE(unsigned char *dest, uint64_t src) {
+  unsigned char *src_p;
+  unsigned char *dest_p;
+
+  dest_p=dest;
+#ifdef BSR_LITTLE_ENDIAN_COMPILE
+  src_p=(unsigned char *)&src;
+  *dest_p=*src_p;
+  dest_p++;
+  src_p++;
+  *dest_p=*src_p;
+  dest_p++;
+  src_p++;
+  *dest_p=*src_p;
+  dest_p++;
+  src_p++;
+  *dest_p=*src_p;
+  dest_p++;
+  src_p++;
+  *dest_p=*src_p;
+  dest_p++;
+  src_p++;
+  *dest_p=*src_p;
+  dest_p++;
+  src_p++;
+  *dest_p=*src_p;
+  dest_p++;
+  src_p++;
+  *dest_p=*src_p;
+#elif defined BSR_BIG_ENDIAN_COMPILE
+  src_p=(unsigned char *)&src;
+  src_p+=7;
+  *dest_p=*src_p;
+  dest_p++;
+  src_p--;
+  *dest_p=*src_p;
+  dest_p++;
+  src_p--;
+  *dest_p=*src_p;
+  dest_p++; 
+  src_p--;
+  *dest_p=*src_p;
+  dest_p++;
+  src_p--;
+  *dest_p=*src_p;
+  dest_p++;
+  src_p--;
+  *dest_p=*src_p;
+  dest_p++;
+  src_p--;
+  *dest_p=*src_p;
+  dest_p++;
+  src_p--;
+  *dest_p=*src_p;
+#endif
+
+  // return number of bytes stored
+  return(8);
+}
+
+int storeHalfLE(unsigned char *dest, float src) {
+  unsigned char *src_p;
+  unsigned char *dest_p;
+  uint32_t *src32_p;
+  uint32_t tmp32;
+  int32_t float_exponent;
+  uint32_t float_fraction;
+  int16_t half_exponent;
+  uint16_t half_fraction;
+  uint16_t half;
+
+  //
+  // convert float to half first
+  //
+
+  // convert to uint32 for general bit manipulation
+  src32_p=(uint32_t *)&src;
+
+  // float fraction
+  float_fraction=*src32_p & 0x7fffff;
+  half_fraction=(float_fraction >> 13);
+
+  // float exponent
+  tmp32=*src32_p & 0x7f800000;
+  float_exponent=(tmp32 >>= 23);
+  half_exponent=float_exponent - 0x70;
+  if (half_exponent < 1) { // what to do with subnormal?
+    half_exponent=1;
+  } else if (half_exponent > 14) { // we don't need infinity or NaN 
+    half_exponent=14;
+  }
+
+  // note: sign bit is always 0 in bsrender
+  half=(half_exponent << 10) | half_fraction;;
+
+  dest_p=dest;
+#ifdef BSR_LITTLE_ENDIAN_COMPILE
+  src_p=(unsigned char *)&half;
+  *dest_p=*src_p;
+  dest_p++;
+  src_p++;
+  *dest_p=*src_p;
+#elif defined BSR_BIG_ENDIAN_COMPILE
+  src_p=(unsigned char *)&half;
+  src_p++;
+  *dest_p=*src_p;
+  dest_p++;
+  src_p--;
+  *dest_p=*src_p;
+#endif
+
+  // return number of bytes stored
+  return(2);
+}
+
+int storeFloatLE(unsigned char *dest, float src) {
+  unsigned char *src_p;
+  unsigned char *dest_p;
+
+  dest_p=dest;
+#ifdef BSR_LITTLE_ENDIAN_COMPILE
+  src_p=(unsigned char *)&src;
+  *dest_p=*src_p;
+  dest_p++;
+  src_p++;
+  *dest_p=*src_p;
+  dest_p++;
+  src_p++;
+  *dest_p=*src_p;
+  dest_p++;
+  src_p++;
+  *dest_p=*src_p;
+#elif defined BSR_BIG_ENDIAN_COMPILE
+  src_p=(unsigned char *)&src;
+  src_p+=3;
+  *dest_p=*src_p;
+  dest_p++;
+  src_p--;
+  *dest_p=*src_p;
+  dest_p++;
+  src_p--;
+  *dest_p=*src_p;
+  dest_p++;
+  src_p--;
+  *dest_p=*src_p;
+#endif
+
+  // return number of bytes stored
+  return(4);
 }
 
 int getQueryString(bsr_config_t *bsr_config) {
@@ -212,7 +506,7 @@ int limitIntensity(bsr_config_t *bsr_config, double *pixel_r, double *pixel_g, d
     *pixel_b=0.0;
   }
 
-  if (bsr_config->image_number_format != 1) { // don't limit max value if floating-point format
+//  if (bsr_config->image_number_format != 1) { // don't limit max value if floating-point format
     if (*pixel_r > 1.0) {
       *pixel_r=1.0;
     }
@@ -222,7 +516,7 @@ int limitIntensity(bsr_config_t *bsr_config, double *pixel_r, double *pixel_g, d
     if (*pixel_b > 1.0) {
       *pixel_b=1.0;
     }
-  }
+//  }
 
   return(0);
 }
@@ -243,7 +537,7 @@ int limitIntensityPreserveColor(bsr_config_t *bsr_config, double *pixel_r, doubl
     *pixel_b=0.0;
   }
 
-  if (bsr_config->image_number_format != 1) { // don't limit max value if floating-point format
+//  if (bsr_config->image_number_format != 1) { // don't limit max value if floating-point format
     if ((*pixel_r > 1.0) || (*pixel_g > 1.0) || (*pixel_b > 1.0)) {
       pixel_max=0;
       if (*pixel_r > pixel_max) {
@@ -259,7 +553,7 @@ int limitIntensityPreserveColor(bsr_config_t *bsr_config, double *pixel_r, doubl
       *pixel_g=*pixel_g / pixel_max;
       *pixel_b=*pixel_b / pixel_max;
     }
-  }
+//  }
 
   return(0);
 }

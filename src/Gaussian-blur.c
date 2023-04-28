@@ -53,7 +53,7 @@ int GaussianBlur(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   int half_sample_width;
   int blur_res_x;
   int blur_res_y;
-  long long blur_i;
+  uint64_t blur_i;
   int blur_x;
   int blur_y;
   int source_x;
@@ -61,7 +61,7 @@ int GaussianBlur(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   int kernel_i;
   int current_image_res_x;
   int current_image_res_y;
-  long long current_image_offset;
+  uint64_t current_image_offset;
   double *G_kernel_array;
   double *G_kernel_p;
   double G_kernel_sum;
@@ -155,8 +155,8 @@ int GaussianBlur(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   //
   blur_x=0;
   blur_y=bsr_state->perthread->my_thread_id * lines_per_thread;
-  image_blur_p=bsr_state->image_blur_buf + ((long long)blur_res_x * (long long)blur_y);
-  for (blur_i=0; ((blur_i < ((long long)blur_res_x * (long long)lines_per_thread)) && (blur_y < blur_res_y)); blur_i++) {
+  image_blur_p=bsr_state->image_blur_buf + ((uint64_t)blur_res_x * (uint64_t)blur_y);
+  for (blur_i=0; ((blur_i < ((uint64_t)blur_res_x * (uint64_t)lines_per_thread)) && (blur_y < blur_res_y)); blur_i++) {
     //
     // apply Gaussian kernel to this pixel horizontally
     //
@@ -167,7 +167,7 @@ int GaussianBlur(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
     for (kernel_i=-half_sample_width + 1; kernel_i < half_sample_width; kernel_i++) {
       source_x=blur_x + kernel_i;
       if ((source_x >= 0) && (source_x < current_image_res_x)) {
-        current_image_offset=((long long)blur_y * (long long)blur_res_x) + (long long)source_x;
+        current_image_offset=((uint64_t)blur_y * (uint64_t)blur_res_x) + (uint64_t)source_x;
         current_image_p=bsr_state->current_image_buf + current_image_offset;
         G_r+=(current_image_p->r * *G_kernel_p);
         G_g+=(current_image_p->g * *G_kernel_p);
@@ -214,8 +214,8 @@ int GaussianBlur(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   //
   blur_x=0;
   blur_y=bsr_state->perthread->my_thread_id * lines_per_thread;
-  image_blur_p=bsr_state->current_image_buf + ((long long)blur_res_x * (long long)blur_y);
-  for (blur_i=0; ((blur_i < ((long long)blur_res_x * (long long)lines_per_thread)) && (blur_y < blur_res_y)); blur_i++) {
+  image_blur_p=bsr_state->current_image_buf + ((uint64_t)blur_res_x * (uint64_t)blur_y);
+  for (blur_i=0; ((blur_i < ((uint64_t)blur_res_x * (uint64_t)lines_per_thread)) && (blur_y < blur_res_y)); blur_i++) {
     //
     // apply Gaussian kernel to this pixel vertically
     //
@@ -226,7 +226,7 @@ int GaussianBlur(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
     for (kernel_i=-half_sample_width + 1; kernel_i < half_sample_width; kernel_i++) {
       source_y=blur_y + kernel_i;
       if ((source_y >= 0) && (source_y < current_image_res_y)) {
-        current_image_offset=((long long)source_y * (long long)blur_res_x) + (long long)blur_x;
+        current_image_offset=((uint64_t)source_y * (uint64_t)blur_res_x) + (uint64_t)blur_x;
         current_image_p=bsr_state->image_blur_buf + current_image_offset;
         G_r+=(current_image_p->r * *G_kernel_p);
         G_g+=(current_image_p->g * *G_kernel_p);

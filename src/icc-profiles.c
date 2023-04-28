@@ -36,6 +36,77 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "bsrender.h" // needs to be first to get GNU_SOURCE define for strcasestr
+
+//
+// Basic chomaticities for image formats that do not support ICC profiles
+//
+const chromaticities_t sRGB_c = { // https://en.wikipedia.org/wiki/SRGB
+  .redX  = 0.6400f,
+  .redY  = 0.3300f,
+  .greenX= 0.3000f,
+  .greenY= 0.6000f,
+  .blueX = 0.1500f,
+  .blueY = 0.0600f,
+  .whiteX= 0.3127f,
+  .whiteY= 0.3290f
+};
+
+const chromaticities_t DisplayP3_c = { // https://en.wikipedia.org/wiki/DCI-P3
+  .redX  = 0.6800f,
+  .redY  = 0.3200f,
+  .greenX= 0.2650f,
+  .greenY= 0.6900f,
+  .blueX = 0.1500f,
+  .blueY = 0.0600f,
+  .whiteX= 0.3127f,
+  .whiteY= 0.3290f
+};
+
+const chromaticities_t Rec2020_c = { // https://en.wikipedia.org/wiki/Rec._2020
+  .redX  = 0.7080f,
+  .redY  = 0.3290f,
+  .greenX= 0.1700f,
+  .greenY= 0.7970f,
+  .blueX = 0.1310f,
+  .blueY = 0.0460f,
+  .whiteX= 0.3127f,
+  .whiteY= 0.3290f
+};
+
+const chromaticities_t Rec601NTSC_c = { // https://en.wikipedia.org/wiki/Rec._601
+  .redX  = 0.6300f,
+  .redY  = 0.3400f,
+  .greenX= 0.3100f,
+  .greenY= 0.5950f,
+  .blueX = 0.1550f,
+  .blueY = 0.0700f,
+  .whiteX= 0.3127f,
+  .whiteY= 0.3290f
+};
+
+const chromaticities_t Rec601PAL_c = { // https://en.wikipedia.org/wiki/Rec._601
+  .redX  = 0.6400f,
+  .redY  = 0.3300f,
+  .greenX= 0.2900f,
+  .greenY= 0.6000f,
+  .blueX = 0.1500f,
+  .blueY = 0.0600f,
+  .whiteX= 0.3127f,
+  .whiteY= 0.3290f
+};
+
+const chromaticities_t Rec709_c = { // https://en.wikipedia.org/wiki/Rec._709
+  .redX  = 0.6400f,
+  .redY  = 0.3300f,
+  .greenX= 0.3000f,
+  .greenY= 0.6000f,
+  .blueX = 0.1500f,
+  .blueY = 0.0600f,
+  .whiteX= 0.3127f,
+  .whiteY= 0.3290f
+};
+
 //
 // ICC Profiles from https://github.com/saucecontrol/Compact-ICC-Profiles
 //

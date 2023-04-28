@@ -121,8 +121,8 @@ int main(int argc, char **argv) {
   char *field_end;
   size_t field_length;
   char tmpstr[32];
-  long long input_count;
-  long long output_count;
+  uint64_t input_count;
+  uint64_t output_count;
   float linear_1pc_intensity;
   float linear_1pc_intensity_undimmed;
   uint64_t color_temperature;
@@ -389,13 +389,19 @@ int main(int argc, char **argv) {
         color_temperature_unreddened=32767ul;
       }
 
-      // As of v1.0, bsrender data files have a fixed-length 256-bit ascii header (including the file identifier in the first 11 bytes),
-      // followed by a variable number of 33-byte star records. The ascii header can be viewed with 'head -1 <filename>'.
+      //
+      // Binary data file details
+      //
+      // As of v1.0, bsrender data files have a fixed-length 256 byte header. The header contains a single line of ascii text terminated with
+      // LF (0x0a) and NULL (0x0). The remaining unused bytes in the header must be set to 0x0. The first 11 bytes of the header must contain
+      // the appropriate magic number file identifier (BSRENDER_LE or BSRENDER_BE). The header contents can be viewed with 'tail -1 <filename>'
+      //
+      // The header is followed by a variable number of 33 byte star records.
       //
       // Each star record includes a 64-bit unsigned integer for Gaia DR3 'source_id', three 40-bit truncaed doubles for x,y,z,
       // a 24-bit truncated float for linear_1pc_intensity, a 24-bit truncated float for linear_1pc_intensity_undimmed,
       // a 16-bit unsigned int for color_temperature, and a 16-bit unsigned int for color_temperature_unreddened.
-      // these are packed into a 33 byte star record with each field encoded in the selected byte order.
+      // these are closely packed into a 33 byte star record with each field encoded in the selected byte order.
       //
       // +---------------+---------+---------+---------+-----+-----+---+---+
       // |   source_id   |    x    |    y    |    z    | li  |li-u | c |c-u|
@@ -614,7 +620,7 @@ int main(int argc, char **argv) {
     // periodic status
     //
     if ((input_count > 0) && ((input_count % 1000000) == 0)) {
-      printf("Input records: %9lld, %s: %8lld\n", input_count, file_name, output_count);
+      printf("Input records: %9lu, %s: %8lu\n", input_count, file_name, output_count);
     }
 
     input_line_p=fgets(input_line, 256, input_file);
@@ -623,7 +629,7 @@ int main(int argc, char **argv) {
   //
   // print final status 
   //
-  printf("Input records: %9lld, %s: %8lld\n", input_count, file_name, output_count);
+  printf("Input records: %9lu, %s: %8lu\n", input_count, file_name, output_count);
 
   //
   // clean up

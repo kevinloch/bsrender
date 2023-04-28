@@ -39,11 +39,6 @@
 #ifndef BSR_SEQUENCE_PIXELS_H
 #define BSR_SEQUENCE_PIXELS_H
 
-int storeU16BE(unsigned char *dest, uint16_t src);
-int storeU16LE(unsigned char *dest, uint16_t src);
-int storeU32LE(unsigned char *dest, uint32_t src);
-int storeHalfLE(unsigned char *dest, float src);
-int storeFloatLE(unsigned char *dest, float src);
 int sequencePixels(bsr_config_t *bsr_config, bsr_state_t *bsr_state);
 
 #endif // BSR_SEQUENCE_PIXELS_H

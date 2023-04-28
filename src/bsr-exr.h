@@ -103,9 +103,6 @@ typedef enum
     EXR_PERCEPTUALLY_LINEAR   = 1
 } exr_perceptual_treatment_t;
 
-int storeI32LE(unsigned char *dest, int32_t src);
-int storeU8(unsigned char *dest, unsigned char src);
-int storeStr32(unsigned char *dest, char *src);
 int outputEXR(bsr_config_t *bsr_config, bsr_state_t *bsr_state);
 
 #endif // BSR_EXR_H

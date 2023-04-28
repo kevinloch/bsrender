@@ -219,10 +219,5 @@ bsr_state_t *initState(bsr_config_t *bsr_config) {
   //
   bsr_state->little_endian=littleEndianTest();
 
-  //
-  // initialize image_output_sync, used to synchronize multi-threaded image encoding/output
-  //
-  bsr_state->image_output_sync=0;
-
   return(bsr_state);
 }

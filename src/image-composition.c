@@ -50,7 +50,7 @@ int initImageCompositionBuffer(bsr_config_t *bsr_config, bsr_state_t *bsr_state)
   struct timespec starttime;
   struct timespec endtime;
   double elapsed_time;
-  long long image_offset;
+  uint64_t image_offset;
   int current_image_x;
   int current_image_y;
   pixel_composition_t *current_image_p;
@@ -129,8 +129,8 @@ int initImageCompositionBuffer(bsr_config_t *bsr_config, bsr_state_t *bsr_state)
   //
   current_image_x=0;
   current_image_y=bsr_state->perthread->my_thread_id * lines_per_thread;
-  current_image_p=bsr_state->current_image_buf + ((long long)current_image_res_x * (long long)current_image_y);
-  for (image_offset=0; ((image_offset < ((long long)bsr_state->current_image_res_x * (long long)lines_per_thread)) && (current_image_y < current_image_res_y)); image_offset++) {
+  current_image_p=bsr_state->current_image_buf + ((uint64_t)current_image_res_x * (uint64_t)current_image_y);
+  for (image_offset=0; ((image_offset < ((uint64_t)bsr_state->current_image_res_x * (uint64_t)lines_per_thread)) && (current_image_y < current_image_res_y)); image_offset++) {
     //
     // check if pixel is inside a valid rendering area for the selected raster projection
     //

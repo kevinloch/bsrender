@@ -113,7 +113,7 @@ void initConfig(bsr_config_t *bsr_config) {
   bsr_config->draw_grid_lines=0;
   bsr_config->output_format=0;
   bsr_config->image_format=0;
-  bsr_config->icc_profile=1;
+  bsr_config->icc_profile=-1;
   bsr_config->bits_per_color=8;
   bsr_config->image_number_format=0;
   bsr_config->camera_icrs_x=0.0;

@@ -49,7 +49,7 @@ int resizeLanczos(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   double elapsed_time;
   pixel_composition_t *current_image_p;
   pixel_composition_t *image_resize_p;
-  long long current_image_offset;
+  uint64_t current_image_offset;
   int resize_res_x;
   int resize_res_y;
   double source_w;
@@ -69,7 +69,7 @@ int resizeLanczos(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   double L_y_b;
   double L_distance_x;
   double L_distance_y;
-  long long resize_i;
+  uint64_t resize_i;
   int i_x;
   int i_y;
   int Lanczos_order;
@@ -120,8 +120,8 @@ int resizeLanczos(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   Lanczos_order=2;
   resize_x=0;
   resize_y=bsr_state->perthread->my_thread_id * lines_per_thread;
-  image_resize_p=bsr_state->image_resize_buf + ((long long)resize_res_x * (long long)resize_y);
-  for (resize_i=0; ((resize_i < ((long long)resize_res_x * (long long)lines_per_thread)) && (resize_y < resize_res_y)); resize_i++) {
+  image_resize_p=bsr_state->image_resize_buf + ((uint64_t)resize_res_x * (uint64_t)resize_y);
+  for (resize_i=0; ((resize_i < ((uint64_t)resize_res_x * (uint64_t)lines_per_thread)) && (resize_y < resize_res_y)); resize_i++) {
     source_x_center=((double)resize_x * source_w) + half_source_w - 0.5;
     source_y_center=((double)resize_y * source_w) + half_source_w - 0.5;
     L_y_r=0.0;
@@ -138,7 +138,7 @@ int resizeLanczos(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
       L_x_b=0.0;
       for (i_x=((int)source_x_center - Lanczos_order + 1); i_x <= ((int)source_x_center + Lanczos_order); i_x++) {
         source_x=i_x;
-        current_image_offset=((long long)source_y * (long long)current_image_res_x) + (long long)source_x;
+        current_image_offset=((uint64_t)source_y * (uint64_t)current_image_res_x) + (uint64_t)source_x;
         current_image_p=bsr_state->current_image_buf + current_image_offset;
         if ((source_x >= 0) && (source_x < current_image_res_x) && (source_y >= 0) && (source_y < current_image_res_y)) {
           L_distance_x=source_x_center - (double)i_x;

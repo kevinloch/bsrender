@@ -42,166 +42,6 @@
 #include <time.h>
 #include "util.h"
 
-int storeU16BE(unsigned char *dest, uint16_t src) {
-  unsigned char *src_p;
-  unsigned char *dest_p;
-
-  dest_p=dest;
-#ifdef BSR_BIG_ENDIAN_COMPILE
-  src_p=(unsigned char *)&src;
-  *dest_p=*src_p;
-  dest_p++;
-  src_p++;
-  *dest_p=*src_p;
-#elif defined BSR_LITTLE_ENDIAN_COMPILE
-  src_p=(unsigned char *)&src;
-  src_p++;
-  *dest_p=*src_p;
-  dest_p++;
-  src_p--;
-  *dest_p=*src_p;
-#endif
-
-  // return number of bytes stored
-  return(2);
-}
-
-int storeU16LE(unsigned char *dest, uint16_t src) {
-  unsigned char *src_p;
-  unsigned char *dest_p;
-
-  dest_p=dest;
-#ifdef BSR_LITTLE_ENDIAN_COMPILE
-  src_p=(unsigned char *)&src;
-  *dest_p=*src_p;
-  dest_p++;
-  src_p++;
-  *dest_p=*src_p;
-#elif defined BSR_BIG_ENDIAN_COMPILE
-  src_p=(unsigned char *)&src;
-  src_p++;
-  *dest_p=*src_p;
-  dest_p++;
-  src_p--;
-  *dest_p=*src_p;
-#endif
-
-  // return number of bytes stored
-  return(2);
-}
-
-int storeU32LE(unsigned char *dest, uint32_t src) {
-  unsigned char *src_p;
-  unsigned char *dest_p;
-
-  dest_p=dest;
-#ifdef BSR_LITTLE_ENDIAN_COMPILE
-  src_p=(unsigned char *)&src;
-  *dest_p=*src_p;
-  dest_p++;
-  src_p++;
-  *dest_p=*src_p;
-  dest_p++;
-  src_p++;
-  *dest_p=*src_p;
-  dest_p++;
-  src_p++;
-  *dest_p=*src_p;
-#elif defined BSR_BIG_ENDIAN_COMPILE
-  src_p=(unsigned char *)&src;
-  src_p+=3;
-  *dest_p=*src_p;
-  dest_p++;
-  src_p--;
-  *dest_p=*src_p;
-  dest_p++;
-  src_p--;
-  *dest_p=*src_p;
-  dest_p++;
-  src_p--;
-  *dest_p=*src_p;
-#endif
-
-  // return number of bytes stored
-  return(4);
-}
-
-int storeHalfLE(unsigned char *dest, float src) {
-  unsigned char *src_p;
-  unsigned char *dest_p;
-  unsigned char tmp8;
-
-  //
-  // convert binary32 to binary16 and store little-endian
-  //
-#ifdef BSR_LITTLE_ENDIAN_COMPILE
-  // start at least significant byte of src and dest
-  src_p=(unsigned char *)&src;
-  dest_p=dest;
-
-  src_p++; // move to second source byte
-  tmp8=*src_p;
-  tmp8 >>= 5; // 3 msb of second source byte becomes 3 lsb of binary16 significand
-  *dest_p=tmp8;
-
-  src_p++; // move to third source byte
-  tmp8=*src_p;
-  tmp8 <<= 3; // 5 lsb of third source byte becomes next 5 sb of binary16 significand
-  *dest_p |= tmp8;
-  dest_p++; // move to second dest byte
-  tmp8=*src_p;
-  tmp8 &= 0x7f; // suppress msb = least significant binary32 exponent bit
-  tmp8 >>= 5; // bits 6,7 of third source byte are 2 msb of binary16 significand
-  *dest_p=tmp8;
-
-  src_p++; // move to fourth source byte
-  tmp8=*src_p;
-  tmp8 &= 0xfc; // 6 msb of fourth source byte has sign and all 5 binary16 exponent bits
-  *dest_p |= tmp8;
-#elif defined BSR_BIG_ENDIAN_COMPILE
-  // tbd
-#endif
-
-  // return number of bytes stored
-  return(2);
-}
-
-int storeFloatLE(unsigned char *dest, float src) {
-  unsigned char *src_p;
-  unsigned char *dest_p;
-
-  dest_p=dest;
-#ifdef BSR_LITTLE_ENDIAN_COMPILE
-  src_p=(unsigned char *)&src;
-  *dest_p=*src_p;
-  dest_p++;
-  src_p++;
-  *dest_p=*src_p;
-  dest_p++;
-  src_p++;
-  *dest_p=*src_p;
-  dest_p++;
-  src_p++;
-  *dest_p=*src_p;
-#elif defined BSR_BIG_ENDIAN_COMPILE
-  src_p=(unsigned char *)&src;
-  src_p+=3;
-  *dest_p=*src_p;
-  dest_p++;
-  src_p--;
-  *dest_p=*src_p;
-  dest_p++;
-  src_p--;
-  *dest_p=*src_p;
-  dest_p++;
-  src_p--;
-  *dest_p=*src_p;
-#endif
-
-  // return number of bytes stored
-  return(4);
-}
-
 int sequencePixels(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   //
   // This function takes pixel data from the current_image_buf after image generation and post processing
@@ -213,9 +53,12 @@ int sequencePixels(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   struct timespec starttime;
   struct timespec endtime;
   double elapsed_time;
-  long long image_offset;
+  uint64_t image_offset;
   pixel_composition_t *current_image_p;
   unsigned char *image_output_p;
+  unsigned char *image_output_R_p=NULL; // used by EXR since it groups same-channel pixel data together
+  unsigned char *image_output_G_p=NULL; // used by EXR since it groups same-channel pixel data together
+  unsigned char *image_output_B_p=NULL; // used by EXR since it groups same-channel pixel data together
   const double one_over_2dot4=1.0 / 2.4;
   double pixel_r;
   double pixel_g;
@@ -227,6 +70,7 @@ int sequencePixels(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   int output_x;
   int output_y;
   int bytes_per_pixel=0;
+  int bytes_per_color=0;
 
   //
   // main thread: display status message if not in CGI mode
@@ -279,20 +123,29 @@ int sequencePixels(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   // in image_output_buf. Also update row_pointers
   //
   if (bsr_config->bits_per_color == 8) {
+    bytes_per_color=1;
     bytes_per_pixel=3;
   } else if (bsr_config->bits_per_color == 16) {
+    bytes_per_color=2;
     bytes_per_pixel=6;
   } else if (bsr_config->bits_per_color == 32) {
+    bytes_per_color=4;
     bytes_per_pixel=12;
   }
   output_x=0;
   output_y=bsr_state->perthread->my_thread_id * lines_per_thread;
-  image_output_p=bsr_state->image_output_buf + ((long long)output_res_x * (long long)output_y * (long long)bytes_per_pixel);
-  current_image_p=bsr_state->current_image_buf + ((long long)output_res_x * (long long)output_y);
+  image_output_p=bsr_state->image_output_buf + ((uint64_t)output_res_x * (uint64_t)output_y * (uint64_t)bytes_per_pixel);
+  if (bsr_config->image_format == 1) {
+    // EXR groups same channel pixel data together
+    image_output_B_p=image_output_p;
+    image_output_G_p=image_output_p + ((uint64_t)bytes_per_color * (uint64_t)output_res_x);
+    image_output_R_p=image_output_p + (2ll * (uint64_t)bytes_per_color * (uint64_t)output_res_x);
+  }
+  current_image_p=bsr_state->current_image_buf + ((uint64_t)output_res_x * (uint64_t)output_y);
   if (output_y < output_res_y) {
     bsr_state->row_pointers[output_y]=image_output_p;
   }
-  for (image_offset=0; ((image_offset < ((long long)output_res_x * (long long)lines_per_thread)) && (output_y < output_res_y)); image_offset++) {
+  for (image_offset=0; ((image_offset < ((uint64_t)output_res_x * (uint64_t)lines_per_thread)) && (output_y < output_res_y)); image_offset++) {
     //
     // copy pixel data from current_image_buf
     //
@@ -301,7 +154,7 @@ int sequencePixels(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
     pixel_b=current_image_p->b;
 
     //
-    // limit pixel intensity to range [0..1] (> 0.0 for floating point)
+    // limit pixel intensity to range [0..1]
     //
     if (bsr_config->camera_pixel_limit_mode == 0) {
       limitIntensity(bsr_config, &pixel_r, &pixel_g, &pixel_b);
@@ -313,7 +166,7 @@ int sequencePixels(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
     // apply encoding gamma for image formats and color spaces that use it
     //
     if (bsr_config->image_format != 1) { // EXR does not use encoding gamma
-      if ((bsr_config->icc_profile == 1) || (bsr_config->icc_profile == 2)) { // sRGB and Display-P3
+      if ((bsr_config->icc_profile == -1) || (bsr_config->icc_profile == 1) || (bsr_config->icc_profile == 2)) { // PNG default, sRGB and Display-P3
         if (pixel_r <= 0.0031308) {
           pixel_r=pixel_r * 12.92;
         } else {
@@ -357,49 +210,52 @@ int sequencePixels(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
     // convert r,g,b to output byte sequence and store in output buffer
     //
     if (bsr_config->image_format == 0) {
-      // PNG format. Channels are RGB order and stored big-endian
+      // PNG format. Channels are RGB RGB RGB order and stored big-endian
       if (bsr_config->bits_per_color == 8) {
         *image_output_p=(unsigned char)((pixel_r * 255.0) + 0.5);
-        image_output_p++;
+        image_output_p+=bytes_per_color;
         *image_output_p=(unsigned char)((pixel_g * 255.0) + 0.5);
-        image_output_p++;
+        image_output_p+=bytes_per_color;
         *image_output_p=(unsigned char)((pixel_b * 255.0) + 0.5);
-        image_output_p++;
+        image_output_p+=bytes_per_color;
       } else if (bsr_config->bits_per_color == 16) {
         storeU16BE(image_output_p,  (uint16_t)((pixel_r * 65535.0) + 0.5));
-        image_output_p+=2;
+        image_output_p+=bytes_per_color;
         storeU16BE(image_output_p,  (uint16_t)((pixel_g * 65535.0) + 0.5));
-        image_output_p+=2;
+        image_output_p+=bytes_per_color;
         storeU16BE(image_output_p,  (uint16_t)((pixel_b * 65535.0) + 0.5));
-        image_output_p+=2;
+        image_output_p+=bytes_per_color;
       } // end if bits_per_color
     } else if (bsr_config->image_format == 1) {
-      // EXR format. Channels are in BGR order and stored little-endian
-      if (bsr_config->image_number_format == 0) {
-        // unsigned integer
-        storeU32LE(image_output_p, (uint32_t)((pixel_b * 4294967295.0) + 0.5));
-        image_output_p+=4;
-        storeU32LE(image_output_p, (uint32_t)((pixel_g * 4294967295.0) + 0.5));
-        image_output_p+=4;
-        storeU32LE(image_output_p, (uint32_t)((pixel_r * 4294967295.0) + 0.5));
-        image_output_p+=4;
-      } else if (bsr_config->image_number_format == 1) {
+      // EXR format. Channels are in BBB GGG RRR order and stored little-endian
+      if (bsr_config->image_number_format == 1) {
         // floating-point
         if (bsr_config->bits_per_color == 16) {
-          storeHalfLE(image_output_p, (float)pixel_b);
-          image_output_p+=2;
-          storeHalfLE(image_output_p, (float)pixel_g);
-          image_output_p+=2;
-          storeHalfLE(image_output_p, (float)pixel_r);
-          image_output_p+=2;
+          storeHalfLE(image_output_B_p, (float)pixel_b);
+          image_output_B_p+=bytes_per_color;
+          storeHalfLE(image_output_G_p, (float)pixel_g);
+          image_output_G_p+=bytes_per_color;
+          storeHalfLE(image_output_R_p, (float)pixel_r);
+          image_output_R_p+=bytes_per_color;
+          image_output_p+=bytes_per_pixel; // to keep beginning of row in sync
         } else if (bsr_config->bits_per_color == 32) {
-          storeFloatLE(image_output_p, (float)pixel_b);
-          image_output_p+=4;
-          storeFloatLE(image_output_p, (float)pixel_g);
-          image_output_p+=4;
-          storeFloatLE(image_output_p, (float)pixel_r);
-          image_output_p+=4;
+          storeFloatLE(image_output_B_p, (float)pixel_b);
+          image_output_B_p+=bytes_per_color;
+          storeFloatLE(image_output_G_p, (float)pixel_g);
+          image_output_G_p+=bytes_per_color;
+          storeFloatLE(image_output_R_p, (float)pixel_r);
+          image_output_R_p+=bytes_per_color;
+          image_output_p+=bytes_per_pixel; // to keep beginning of row in sync
         } // end if bits_per_color
+      } else if (bsr_config->image_number_format == 0) {
+        // unsigned integer 
+        storeU32LE(image_output_B_p, (uint32_t)((pixel_b * 4294967295.0) + 0.5));
+        image_output_B_p+=bytes_per_color;
+        storeU32LE(image_output_G_p, (uint32_t)((pixel_g * 4294967295.0) + 0.5));
+        image_output_G_p+=bytes_per_color;
+        storeU32LE(image_output_R_p, (uint32_t)((pixel_r * 4294967295.0) + 0.5));
+        image_output_R_p+=bytes_per_color;
+        image_output_p+=bytes_per_pixel; // to keep beginning of row in sync
       } // end if image_number_format
     } // end if image_format
 
@@ -410,10 +266,17 @@ int sequencePixels(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
     if (output_x == output_res_x) {
       output_x=0;
       output_y++;
-      if (((image_offset + (long long)1) < ((long long)output_res_x * (long long)lines_per_thread)) && (output_y < output_res_y)) {
+      if (((image_offset + (uint64_t)1) < ((uint64_t)output_res_x * (uint64_t)lines_per_thread)) && (output_y < output_res_y)) {
         bsr_state->row_pointers[output_y]=image_output_p;
       }
-    }
+      if (bsr_config->image_format == 1) {
+        // update EXR output pointers
+        image_output_B_p=image_output_p;
+        image_output_G_p=image_output_p + ((uint64_t)bytes_per_color * (uint64_t)output_res_x);
+        image_output_R_p=image_output_p + (2ll * (uint64_t)bytes_per_color * (uint64_t)output_res_x);
+      } // end if image_format
+    } //end if output_x
+
     current_image_p++;
   } // end for i
 

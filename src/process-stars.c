@@ -130,7 +130,7 @@ quaternion_t quaternion_rotate(quaternion_t rotation, quaternion_t vector) {
   return(result);
 }
 
-int sendPixelToMainThread(bsr_state_t *bsr_state, long long image_offset, double r, double g, double b) {
+int sendPixelToMainThread(bsr_state_t *bsr_state, uint64_t image_offset, double r, double g, double b) {
   //
   // This function inserts a single pixel (image_offset, r, g, b) into this thread's section of the main threaad buffer.
   // If the current slot of the main thread buffer is occupied it will wait until it is free, periodically checking if
@@ -187,7 +187,7 @@ int sendDedupBufferToMainThread(bsr_state_t *bsr_state) {
   dedup_buffer_t *dedup_buf_p;
   dedup_index_t *dedup_index_p;
   int dedup_buf_i;
-  long long dedup_index_offset;
+  uint64_t dedup_index_offset;
 
   dedup_buf_p=bsr_state->dedup_buf; // start at beginning of dedup buffer
   for (dedup_buf_i=0; dedup_buf_i < bsr_state->perthread->dedup_count; dedup_buf_i++) {
@@ -231,7 +231,7 @@ int sendDedupBufferToMainThread(bsr_state_t *bsr_state) {
   return(0);
 }
 
-int sendPixelToDedupBuffer(bsr_state_t *bsr_state, long long image_offset, double r, double g, double b) {
+int sendPixelToDedupBuffer(bsr_state_t *bsr_state, uint64_t image_offset, double r, double g, double b) {
   //
   // This function attempts to insert a pixel into the dedup buffer. If a record for this image_offset does not
   // exist yet, then the insert is made. If a record for this image_offset already exists then the record is
@@ -241,7 +241,7 @@ int sendPixelToDedupBuffer(bsr_state_t *bsr_state, long long image_offset, doubl
   //
   dedup_buffer_t *dedup_buf_p;
   dedup_index_t *dedup_index_p;
-  long long dedup_index_offset;
+  uint64_t dedup_index_offset;
 
   //
   // set dedup index depending on dedup index mode
@@ -291,7 +291,7 @@ int antiAliasPixel(bsr_config_t *bsr_config, bsr_state_t *bsr_state, double outp
   // This function takes an output pixel and spreads it across several pixels. Pixels are spread in a square pattern similar to horizontal+vertical
   // LPF's commonly found in DSLR's. This spread uses floating-point position variables for accurate interpolation.
   //
-  long long image_offset;
+  uint64_t image_offset;
   double left_edge;
   double right_edge;
   double top_edge;
@@ -357,7 +357,7 @@ int antiAliasPixel(bsr_config_t *bsr_config, bsr_state_t *bsr_state, double outp
       // send to dedup buffer if within raster bounds
       //
       if ((spread_x >= 0) && (spread_x < bsr_config->camera_res_x) && (spread_y >= 0) && (spread_y < bsr_config->camera_res_y)) {
-        image_offset=((long long)bsr_config->camera_res_x * (long long)spread_y) + (long long)spread_x;
+        image_offset=((uint64_t)bsr_config->camera_res_x * (uint64_t)spread_y) + (uint64_t)spread_x;
         sendPixelToDedupBuffer(bsr_state, image_offset, output_r, output_g, output_b);
       }
     } // end for spread_x
@@ -380,10 +380,10 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, input_file_t 
   // - sends pixels to main thread for integration into the image composition buffer
   //
   int i;
-  long long total_input_records;
-  long long input_records_per_thread;
-  long long input_record_abs;  // index of which star record we are at over the entire input file
-  long long input_record_rel;  // index of which star record we are at relative to beginning of this thread's part of input file
+  uint64_t total_input_records;
+  uint64_t input_records_per_thread;
+  uint64_t input_record_abs;  // index of which star record we are at over the entire input file
+  uint64_t input_record_rel;  // index of which star record we are at relative to beginning of this thread's part of input file
   char *input_file_p;          // pointer to an arbitrary byte in the input file
   int my_thread_id;
 //  uint64_t source_id;
@@ -429,7 +429,7 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, input_file_t 
   double star_rgb_red;
   double star_rgb_green;
   double star_rgb_blue;
-  long long image_offset;
+  uint64_t image_offset;
   double r;
   double g;
   double b;
@@ -445,7 +445,7 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, input_file_t 
   Airymap_max_width=bsr_config->Airy_disk_max_extent + 1;
   my_thread_id=bsr_state->perthread->my_thread_id;
   total_input_records=(input_file->buf_size - 256) / star_record_size;
-  input_records_per_thread=(long long)ceil(((float)total_input_records / (float)bsr_state->num_worker_threads));
+  input_records_per_thread=(uint64_t)ceil(((float)total_input_records / (float)bsr_state->num_worker_threads));
   if (input_records_per_thread < 1) {
     input_records_per_thread=1;
   }
@@ -465,7 +465,7 @@ fflush(stdout);
   input_file_p+=256;
 
   // skip to beginning of this thread's section of input file
-  input_file_p+=((long long)star_record_size * (long long)input_record_abs);
+  input_file_p+=((uint64_t)star_record_size * (uint64_t)input_record_abs);
 
 /*
   printf("thread_id: %d, begin, input_record_abs: %lld, input_file_p: %lu\n", my_thread_id, input_record_abs, input_file_p);
@@ -477,13 +477,16 @@ fflush(stdout);
     //
     // Binary data file details
     //
-    // As of v1.0, bsrender data files have a fixed-length 256-bit ascii header (including the file identifier in the first 11 bytes), 
-    // followed by a variable number of 33-byte star records. The ascii header can be viewed with 'head -1 <filename>'.
+    // As of v1.0, bsrender data files have a fixed-length 256 byte header. The header contains a single line of ascii text terminated with
+    // LF (0x0a) and NULL (0x0). The remaining unused bytes in the header must be set to 0x0. The first 11 bytes of the header must contain
+    // the appropriate magic number file identifier (BSRENDER_LE or BSRENDER_BE). The header contents can be viewed with 'tail -1 <filename>'
+    //
+    // The header is followed by a variable number of 33 byte star records.
     //
     // Each star record includes a 64-bit unsigned integer for Gaia DR3 'source_id', three 40-bit truncaed doubles for x,y,z,
     // a 24-bit truncated float for linear_1pc_intensity, a 24-bit truncated float for linear_1pc_intensity_undimmed,
     // a 16-bit unsigned int for color_temperature, and a 16-bit unsigned int for color_temperature_unreddened.
-    // these are packed into a 33 byte star record with each field encoded in the selected byte order.
+    // these are closely packed into a 33 byte star record with each field encoded in the selected byte order.
     //
     // +---------------+---------+---------+---------+-----+-----+---+---+
     // |   source_id   |    x    |    y    |    z    | li  |li-u | c |c-u|
@@ -751,7 +754,7 @@ fflush(stdout);
                 if (bsr_config->anti_alias_enable == 1) {
                   antiAliasPixel(bsr_config, bsr_state, (output_x_d + (double)Airymap_x), (output_y_d + (double)Airymap_y), r, g, b);
                 } else {
-                  image_offset=((long long)bsr_config->camera_res_x * (long long)Airymap_output_y) + (long long)Airymap_output_x;
+                  image_offset=((uint64_t)bsr_config->camera_res_x * (uint64_t)Airymap_output_y) + (uint64_t)Airymap_output_x;
                   sendPixelToDedupBuffer(bsr_state, image_offset, r, g, b);
                 }
               } // end if Airymap pixel is within image raster
@@ -767,7 +770,7 @@ fflush(stdout);
                   if (bsr_config->anti_alias_enable == 1) {
                     antiAliasPixel(bsr_config, bsr_state, (output_x_d - (double)Airymap_x), (output_y_d + (double)Airymap_y), r, g, b);
                   } else {
-                    image_offset=((long long)bsr_config->camera_res_x * (long long)Airymap_output_y) + (long long)Airymap_output_x;
+                    image_offset=((uint64_t)bsr_config->camera_res_x * (uint64_t)Airymap_output_y) + (uint64_t)Airymap_output_x;
                     sendPixelToDedupBuffer(bsr_state, image_offset, r, g, b);
                   }
                 } // end if Airymap pixel is within image raster
@@ -784,7 +787,7 @@ fflush(stdout);
                   if (bsr_config->anti_alias_enable == 1) {
                     antiAliasPixel(bsr_config, bsr_state, (output_x_d + (double)Airymap_x), (output_y_d - (double)Airymap_y), r, g, b);
                   } else {
-                    image_offset=((long long)bsr_config->camera_res_x * (long long)Airymap_output_y) + (long long)Airymap_output_x;
+                    image_offset=((uint64_t)bsr_config->camera_res_x * (uint64_t)Airymap_output_y) + (uint64_t)Airymap_output_x;
                     sendPixelToDedupBuffer(bsr_state, image_offset, r, g, b);
                   }
                 } // end if Airymap pixel is within image raster
@@ -801,7 +804,7 @@ fflush(stdout);
                   if (bsr_config->anti_alias_enable == 1) {
                     antiAliasPixel(bsr_config, bsr_state, (output_x_d - (double)Airymap_x), (output_y_d - (double)Airymap_y), r, g, b);
                   } else {
-                    image_offset=((long long)bsr_config->camera_res_x * (long long)Airymap_output_y) + (long long)Airymap_output_x;
+                    image_offset=((uint64_t)bsr_config->camera_res_x * (uint64_t)Airymap_output_y) + (uint64_t)Airymap_output_x;
                     sendPixelToDedupBuffer(bsr_state, image_offset, r, g, b);
                   }
                 } // end if Airymap pixel is within image raster
@@ -821,7 +824,7 @@ fflush(stdout);
           if (bsr_config->anti_alias_enable == 1) {
             antiAliasPixel(bsr_config, bsr_state, output_x_d, output_y_d, r, g, b);
           } else {
-            image_offset=((long long)bsr_config->camera_res_x * (long long)output_y) + (long long)output_x;
+            image_offset=((uint64_t)bsr_config->camera_res_x * (uint64_t)output_y) + (uint64_t)output_x;
             sendPixelToDedupBuffer(bsr_state, image_offset, r, g, b);
           }
         } // end if Airy disk mode

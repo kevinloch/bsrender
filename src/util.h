@@ -40,6 +40,15 @@
 #define BSR_UTIL_H
 
 int littleEndianTest();
+int storeStr32(unsigned char *dest, char *src);
+int storeU8(unsigned char *dest, unsigned char src);
+int storeU16LE(unsigned char *dest, uint16_t src);
+int storeU16BE(unsigned char *dest, uint16_t src);
+int storeI32LE(unsigned char *dest, int32_t src);
+int storeU32LE(unsigned char *dest, uint32_t src);
+int storeU64LE(unsigned char *dest, uint64_t src);
+int storeHalfLE(unsigned char *dest, float src);
+int storeFloatLE(unsigned char *dest, float src);
 int getQueryString(bsr_config_t *bsr_config);
 int printVersion(bsr_config_t *bsr_config);
 int waitForWorkerThreads(bsr_state_t *bsr_state, int min_status);

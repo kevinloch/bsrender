@@ -39,7 +39,7 @@
 #ifndef BSRENDER_H
 #define BSRENDER_H
 
-#define BSR_VERSION "1.0-dev-19j"
+#define BSR_VERSION "1.0-dev-19n"
 
 #define BSR_32BIT_BUFFERS // use 32-bit floats in image composition, blur, and resize buffers. This reduces the size of these buffers by half which may
                           // be useful for extremely large image resolutions at the expense of summation precision within these buffers. This does not
@@ -48,13 +48,16 @@
 //
 // Binary data file details
 //
-// As of v1.0, bsrender data files have a fixed-length 256-bit ascii header (including the file identifier in the first 11 bytes),
-// followed by a variable number of 33-byte star records. The ascii header can be viewed with 'head -1 <filename>'.
+// As of v1.0, bsrender data files have a fixed-length 256 byte header. The header contains a single line of ascii text terminated with
+// LF (0x0a) and NULL (0x0). The remaining unused bytes in the header must be set to 0x0. The first 11 bytes of the header must contain
+// the appropriate magic number file identifier (BSRENDER_LE or BSRENDER_BE). The header contents can be viewed with 'tail -1 <filename>'
+//
+// The header is followed by a variable number of 33 byte star records.
 //
 // Each star record includes a 64-bit unsigned integer for Gaia DR3 'source_id', three 40-bit truncaed doubles for x,y,z,
 // a 24-bit truncated float for linear_1pc_intensity, a 24-bit truncated float for linear_1pc_intensity_undimmed,
 // a 16-bit unsigned int for color_temperature, and a 16-bit unsigned int for color_temperature_unreddened.
-// these are packed into a 33 byte star record with each field encoded in the selected byte order.
+// these are closely packed into a 33 byte star record with each field encoded in the selected byte order.
 //
 // +---------------+---------+---------+---------+-----+-----+---+---+
 // |   source_id   |    x    |    y    |    z    | li  |li-u | c |c-u|
@@ -68,6 +71,7 @@
 // or '-be' to indicate byte order. Byte order is also indicated with the file identifier in the first 11 bytes of the header:
 // BSRENDER_LE for little-endian and BSRENDER_BE for big-endian.
 //
+
 #define BSR_EXTERNAL_PREFIX "galaxy-external"
 #define BSR_GDR3_PREFIX "galaxy-gdr3"
 #define BSR_LE_SUFFIX "le" // filename suffix for little-endian files
@@ -142,6 +146,17 @@
 #endif
 
 typedef struct {
+  float redX;
+  float redY;
+  float greenX;
+  float greenY;
+  float blueX;
+  float blueY;
+  float whiteX;
+  float whiteY;
+} chromaticities_t;
+
+typedef struct {
   double r;
   double i;
   double j;
@@ -155,7 +170,7 @@ typedef struct {
 
 typedef struct {
   int status_left;
-  long long image_offset;
+  uint64_t image_offset;
   double r;
   double g;
   double b;
@@ -163,7 +178,7 @@ typedef struct {
 } thread_buffer_t;
 
 typedef struct {
-  long long image_offset;
+  uint64_t image_offset;
   double r;
   double g;
   double b;
@@ -217,7 +232,6 @@ typedef struct {
   pixel_composition_t *image_resize_buf;      // updated by all threads, globally mmaped
   dedup_buffer_t *dedup_buf;        // thread-specific buffer, malloc'ed so each thread get's it's own local buffer when fork()'ed
   dedup_index_t *dedup_index;       // thread-specific buffer, malloc'ed so each thread get's it's own local buffer when fork()'ed
-  int image_output_sync;
   input_file_t input_file_external;
   input_file_t input_file_pq100;
   input_file_t input_file_pq050;
