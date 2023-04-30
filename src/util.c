@@ -204,7 +204,6 @@ int storeU32LE(unsigned char *dest, uint32_t src) {
   return(4);
 }
 
-
 int storeU64LE(unsigned char *dest, uint64_t src) {
   unsigned char *src_p;
   unsigned char *dest_p;
@@ -270,9 +269,10 @@ int storeHalfLE(unsigned char *dest, float src) {
   unsigned char *dest_p;
   uint32_t *src32_p;
   uint32_t tmp32;
-  int32_t float_exponent;
+  int32_t tmp32i;
+  uint32_t float_exponent;
   uint32_t float_fraction;
-  int16_t half_exponent;
+  uint16_t half_exponent;
   uint16_t half_fraction;
   uint16_t half;
 
@@ -290,15 +290,25 @@ int storeHalfLE(unsigned char *dest, float src) {
   // float exponent
   tmp32=*src32_p & 0x7f800000;
   float_exponent=(tmp32 >>= 23);
-  half_exponent=float_exponent - 0x70;
-  if (half_exponent < 1) { // what to do with subnormal?
-    half_exponent=1;
-  } else if (half_exponent > 14) { // we don't need infinity or NaN 
-    half_exponent=14;
+  tmp32i=float_exponent - 0x70;
+  half_exponent=(uint16_t)tmp32i;
+  if (tmp32i <= 0) {
+    half_exponent=0;
+    if (float_fraction == 0) { // zero case
+      half_fraction=0;
+      }  else if (tmp32i >= -9) { // subnormal (in half) case
+        half_fraction |= 0x400; // add leading 1
+        half_fraction >>= (-tmp32i + 1);
+      } else {
+        half_fraction=0; // too small for subnormal half
+    }
+  } else if (half_exponent > 30) { // inf
+    half_exponent=31;
+    half_fraction=0; 
   }
 
   // note: sign bit is always 0 in bsrender
-  half=(half_exponent << 10) | half_fraction;;
+  half=(half_exponent << 10) | half_fraction;
 
   dest_p=dest;
 #ifdef BSR_LITTLE_ENDIAN_COMPILE
@@ -506,17 +516,15 @@ int limitIntensity(bsr_config_t *bsr_config, double *pixel_r, double *pixel_g, d
     *pixel_b=0.0;
   }
 
-//  if (bsr_config->image_number_format != 1) { // don't limit max value if floating-point format
-    if (*pixel_r > 1.0) {
-      *pixel_r=1.0;
-    }
-    if (*pixel_g > 1.0) {
-      *pixel_g=1.0;
-    }
-    if (*pixel_b > 1.0) {
-      *pixel_b=1.0;
-    }
-//  }
+  if (*pixel_r > 1.0) {
+    *pixel_r=1.0;
+  }
+  if (*pixel_g > 1.0) {
+    *pixel_g=1.0;
+  }
+  if (*pixel_b > 1.0) {
+    *pixel_b=1.0;
+  }
 
   return(0);
 }
@@ -537,23 +545,21 @@ int limitIntensityPreserveColor(bsr_config_t *bsr_config, double *pixel_r, doubl
     *pixel_b=0.0;
   }
 
-//  if (bsr_config->image_number_format != 1) { // don't limit max value if floating-point format
-    if ((*pixel_r > 1.0) || (*pixel_g > 1.0) || (*pixel_b > 1.0)) {
-      pixel_max=0;
-      if (*pixel_r > pixel_max) {
-        pixel_max=*pixel_r;
-      }
-      if (*pixel_g > pixel_max) {
-        pixel_max=*pixel_g;
-      }
-      if (*pixel_b > pixel_max) {
-        pixel_max=*pixel_b;
-      }
-      *pixel_r=*pixel_r / pixel_max;
-      *pixel_g=*pixel_g / pixel_max;
-      *pixel_b=*pixel_b / pixel_max;
+  if ((*pixel_r > 1.0) || (*pixel_g > 1.0) || (*pixel_b > 1.0)) {
+    pixel_max=0;
+    if (*pixel_r > pixel_max) {
+      pixel_max=*pixel_r;
     }
-//  }
+    if (*pixel_g > pixel_max) {
+      pixel_max=*pixel_g;
+    }
+    if (*pixel_b > pixel_max) {
+      pixel_max=*pixel_b;
+    }
+    *pixel_r=*pixel_r / pixel_max;
+    *pixel_g=*pixel_g / pixel_max;
+    *pixel_b=*pixel_b / pixel_max;
+  }
 
   return(0);
 }
