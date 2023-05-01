@@ -620,7 +620,7 @@ int main(int argc, char **argv) {
     // periodic status
     //
     if ((input_count > 0) && ((input_count % 1000000) == 0)) {
-      printf("Input records: %9lu, %s: %8lu\n", input_count, file_name, output_count);
+      printf("Input records: %9lu, %s: %9lu\n", input_count, file_name, output_count);
     }
 
     input_line_p=fgets(input_line, 256, input_file);
@@ -629,7 +629,7 @@ int main(int argc, char **argv) {
   //
   // print final status 
   //
-  printf("Input records: %9lu, %s: %8lu\n", input_count, file_name, output_count);
+  printf("Input records: %9lu, %s: %9lu\n", input_count, file_name, output_count);
 
   //
   // clean up

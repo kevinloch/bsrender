@@ -39,7 +39,7 @@
 #ifndef BSRENDER_H
 #define BSRENDER_H
 
-#define BSR_VERSION "1.0-dev-19n"
+#define BSR_VERSION "1.0-dev-19q"
 
 #define BSR_32BIT_BUFFERS // use 32-bit floats in image composition, blur, and resize buffers. This reduces the size of these buffers by half which may
                           // be useful for extremely large image resolutions at the expense of summation precision within these buffers. This does not
@@ -81,39 +81,8 @@
 #define BSR_MAGIC_NUMBER_LE "BSRENDER_LE" // file identifier for little-endian files, included in file header size
 #define BSR_MAGIC_NUMBER_BE "BSRENDER_BE" // file identifier for big-endian files, included in file header size
 #define BSR_STAR_RECORD_SIZE 33  // bytes
-
-//
-// these checkpoints are used to monitor and control worker thread progress
-// they need to be in correct numerical order corresponding to the order in which each
-// step might be executed.
-//
-#define THREAD_STATUS_INVALID -1
-#define THREAD_STATUS_AIRY_MAP_BEGIN 10
-#define THREAD_STATUS_AIRY_MAP_COMPLETE 11
-#define THREAD_STATUS_AIRY_MAP_CONTINUE 12
-#define THREAD_STATUS_INIT_IMAGECOMP_BEGIN 20
-#define THREAD_STATUS_INIT_IMAGECOMP_COMPLETE 21
-#define THREAD_STATUS_INIT_IMAGECOMP_CONTINUE 22
-#define THREAD_STATUS_PROCESS_STARS_BEGIN 30
-#define THREAD_STATUS_PROCESS_STARS_COMPLETE 31
-#define THREAD_STATUS_PROCESS_STARS_CONTINUE 32
-#define THREAD_STATUS_POST_PROCESS_BEGIN 40
-#define THREAD_STATUS_POST_PROCESS_COMPLETE 41
-#define THREAD_STATUS_POST_PROCESS_CONTINUE 42
-#define THREAD_STATUS_GAUSSIAN_BLUR_HORIZONTAL_BEGIN 50
-#define THREAD_STATUS_GAUSSIAN_BLUR_HORIZONTAL_COMPLETE 51
-#define THREAD_STATUS_GAUSSIAN_BLUR_VERTICAL_BEGIN 52
-#define THREAD_STATUS_GAUSSIAN_BLUR_VERTICAL_COMPLETE 53
-#define THREAD_STATUS_GAUSSIAN_BLUR_CONTINUE 54
-#define THREAD_STATUS_LANCZOS_BEGIN 60
-#define THREAD_STATUS_LANCZOS_COMPLETE 61
-#define THREAD_STATUS_LANCZOS_CONTINUE 62
-#define THREAD_STATUS_SEQUENCE_PIXELS_BEGIN 70
-#define THREAD_STATUS_SEQUENCE_PIXELS_COMPLETE 71
-#define THREAD_STATUS_SEQUENCE_PIXELS_CONTINUE 72
-#define THREAD_STATUS_IMAGE_OUTPUT_BEGIN 80
-#define THREAD_STATUS_IMAGE_OUTPUT_COMPLETE 81
-#define THREAD_STATUS_IMAGE_OUTPUT_CONTINUE 82
+#define BSR_BLUR_RESCALE 16777216.0 // pixel values are divided by this number before Gaussian blur to help keep values between [0..1]
+#define BSR_RESIZE_LOG_OFFSET 1.0E-6 // pixel values are converted to log(BSR_LOG_OFFSET + pixel value) before Lanczos scaline to minimize clipping artifacts
 
 #define _GNU_SOURCE // needed for strcasestr in string.h
 #include <stdint.h> // needed for uint64_t
@@ -144,6 +113,41 @@
 // It's a little-endian target architecture
 #define BSR_LITTLE_ENDIAN_COMPILE
 #endif
+
+//
+// these checkpoints are used to monitor and control worker thread progress
+// they need to be in correct numerical order corresponding to the order in which each
+// step might be executed.
+//
+typedef enum {
+  THREAD_STATUS_INVALID                           = -1,
+  THREAD_STATUS_AIRY_MAP_BEGIN                    = 10,
+  THREAD_STATUS_AIRY_MAP_COMPLETE                 = 11,
+  THREAD_STATUS_AIRY_MAP_CONTINUE                 = 12,
+  THREAD_STATUS_INIT_IMAGECOMP_BEGIN              = 20,
+  THREAD_STATUS_INIT_IMAGECOMP_COMPLETE           = 21,
+  THREAD_STATUS_INIT_IMAGECOMP_CONTINUE           = 22,
+  THREAD_STATUS_PROCESS_STARS_BEGIN               = 30,
+  THREAD_STATUS_PROCESS_STARS_COMPLETE            = 31,
+  THREAD_STATUS_PROCESS_STARS_CONTINUE            = 32,
+  THREAD_STATUS_POST_PROCESS_BEGIN                = 40,
+  THREAD_STATUS_POST_PROCESS_COMPLETE             = 41,
+  THREAD_STATUS_POST_PROCESS_CONTINUE             = 42,
+  THREAD_STATUS_GAUSSIAN_BLUR_HORIZONTAL_BEGIN    = 50,
+  THREAD_STATUS_GAUSSIAN_BLUR_HORIZONTAL_COMPLETE = 51,
+  THREAD_STATUS_GAUSSIAN_BLUR_VERTICAL_BEGIN      = 52,
+  THREAD_STATUS_GAUSSIAN_BLUR_VERTICAL_COMPLETE   = 53,
+  THREAD_STATUS_GAUSSIAN_BLUR_CONTINUE            = 54,
+  THREAD_STATUS_LANCZOS_BEGIN                     = 60,
+  THREAD_STATUS_LANCZOS_COMPLETE                  = 61,
+  THREAD_STATUS_LANCZOS_CONTINUE                  = 62,
+  THREAD_STATUS_SEQUENCE_PIXELS_BEGIN             = 70,
+  THREAD_STATUS_SEQUENCE_PIXELS_COMPLETE          = 71,
+  THREAD_STATUS_SEQUENCE_PIXELS_CONTINUE          = 72,
+  THREAD_STATUS_IMAGE_OUTPUT_BEGIN                = 80,
+  THREAD_STATUS_IMAGE_OUTPUT_COMPLETE             = 81,
+  THREAD_STATUS_IMAGE_OUTPUT_CONTINUE             = 82,
+} bsr_thread_status_t;
 
 typedef struct {
   float redX;

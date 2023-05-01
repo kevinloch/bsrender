@@ -61,7 +61,10 @@ int GaussianBlur(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   int kernel_i;
   int current_image_res_x;
   int current_image_res_y;
+  int current_image_x;
+  int current_image_y;
   uint64_t current_image_offset;
+  uint64_t image_offset;
   double *G_kernel_array;
   double *G_kernel_p;
   double G_kernel_sum;
@@ -87,7 +90,7 @@ int GaussianBlur(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   //
   if ((bsr_state->perthread->my_pid == bsr_state->master_pid) && (bsr_config->cgi_mode != 1) && (bsr_config->print_status == 1)) {
     clock_gettime(CLOCK_REALTIME, &starttime);
-    printf("Applying Gaussian blur with radius %.3e...", radius);
+    printf("Applying Gaussian blur with radius %.3f...", radius);
     fflush(stdout);
   }
 
@@ -151,6 +154,38 @@ int GaussianBlur(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   }
 
   //
+  // all threads: temporarily re-scale image as GaussianBlur() requires values in the range [0..1].
+  // /this is undone at the end of GaussianBlur()
+  //
+  current_image_x=0;
+  lines_per_thread=(int)ceil(((float)current_image_res_y / (float)(bsr_state->num_worker_threads + 1)));
+  if (lines_per_thread < 1) {
+    lines_per_thread=1;
+  }
+  current_image_y=bsr_state->perthread->my_thread_id * lines_per_thread;
+  current_image_p=bsr_state->current_image_buf + ((uint64_t)current_image_res_x * (uint64_t)current_image_y);
+  for (image_offset=0; ((image_offset < ((uint64_t)bsr_state->current_image_res_x * (uint64_t)lines_per_thread)) && (current_image_y < current_image_res_y)); image_offset++) {
+    G_r=current_image_p->r;
+    G_g=current_image_p->g;
+    G_b=current_image_p->b;
+    G_r /= BSR_BLUR_RESCALE;
+    G_g /= BSR_BLUR_RESCALE;
+    G_b /= BSR_BLUR_RESCALE;
+    limitIntensity(bsr_config, &G_r, &G_g, &G_b);
+    current_image_p->r=G_r;
+    current_image_p->g=G_g;
+    current_image_p->b=G_b;
+
+    // if end of this line, move to next line
+    current_image_x++;
+    if (current_image_x == bsr_state->current_image_res_x) {
+      current_image_x=0;
+      current_image_y++;
+    }
+    current_image_p++;
+  } // end for i
+
+  //
   // all threads: apply Gaussian 1D kernel to each pixel horizontally and put output in blur buffer
   //
   blur_x=0;
@@ -183,6 +218,9 @@ int GaussianBlur(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
     image_blur_p->g=G_g;
     image_blur_p->b=G_b;
 
+    //
+    // if end of this line, move to next line
+    //
     blur_x++;
     if (blur_x == blur_res_x) {
       blur_x=0;
@@ -234,6 +272,13 @@ int GaussianBlur(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
       } // end if within current image bounds
       G_kernel_p++;
     } // end for kernel
+
+    //
+    // undo scaling
+    //
+    G_r *= BSR_BLUR_RESCALE;
+    G_g *= BSR_BLUR_RESCALE;
+    G_b *= BSR_BLUR_RESCALE;
 
     //
     // copy blurred pixel to blur buffer

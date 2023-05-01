@@ -149,13 +149,13 @@
         if (tmpvalue != null) {
           settings_form.output_scaling_factor.value = tmpvalue;
         }
+        tmpvalue = search.get("output_format");
+        if (tmpvalue != null) {
+          settings_form.output_format.value = tmpvalue;
+        }
         tmpvalue = search.get("icc_profile");
         if (tmpvalue != null) {
           settings_form.icc_profile.value = tmpvalue;
-        }
-        tmpvalue = search.get("bits_per_color");
-        if (tmpvalue != null) {
-          settings_form.bits_per_color.value = tmpvalue;
         }
         tmpvalue = search.get("camera_res_x");
         if (tmpvalue != null) {
@@ -336,8 +336,8 @@ skyglow_temp=${settings_form.skyglow_temp.value}&\
 skyglow_per_pixel_mag=${settings_form.skyglow_per_pixel_mag.value}&\
 Gaussian_blur_radius=${settings_form.Gaussian_blur_radius.value}&\
 output_scaling_factor=${settings_form.output_scaling_factor.value}&\
+output_format=${settings_form.output_format.value}&\
 icc_profile=${settings_form.icc_profile.value}&\
-bits_per_color=${settings_form.bits_per_color.value}&\
 camera_res_x=${settings_form.camera_res_x.value}&\
 camera_res_y=${settings_form.camera_res_y.value}&\
 camera_fov=${settings_form.camera_fov.value}&\
@@ -405,8 +405,8 @@ skyglow_temp=${settings_form.skyglow_temp.value}&\
 skyglow_per_pixel_mag=${settings_form.skyglow_per_pixel_mag.value}&\
 Gaussian_blur_radius=${settings_form.Gaussian_blur_radius.value}&\
 output_scaling_factor=${settings_form.output_scaling_factor.value}&\
+bits_per_color=${settings_form.output_format.value}&\
 icc_profile=${settings_form.icc_profile.value}&\
-bits_per_color=${settings_form.bits_per_color.value}&\
 camera_res_x=${settings_form.camera_res_x.value}&\
 camera_res_y=${settings_form.camera_res_y.value}&\
 camera_fov=${settings_form.camera_fov.value}&\
@@ -894,7 +894,7 @@ camera_tilt=${navigation_form.camera_tilt.value}`;
             <legend>About</legend>
             <div id="centered">
               Sample web interface for
-              <h2><a href="https://github.com/kevinloch/bsrender">bsrender</a> 1.0-dev-16</h2>
+              <h2><a href="https://github.com/kevinloch/bsrender">bsrender</a> 1.0-dev-19</h2>
               using data from <a href="https://www.cosmos.esa.int/web/gaia/dr3">Gaia DR3</a>
               <br>and supplemental <a href="https://bsrender.io/sample_data/1.0-dev/external.csv">bright stars</a>
             </div>
@@ -951,8 +951,8 @@ s_url" size=30 value=""></td></tr>
             <input type="text" name="render_distance_max" id="render_distance_max" size="12" value="1.0E99">
             <br><label for "render_distance_selector">Render distance from</label>
             <select name="render_distance_selector" id="render_distance_selector">
-              <option value="0" selected>Camera</option>
-              <option value="1">Target</option>
+              <option value="0" selected>camera</option>
+              <option value="1">target</option>
             </select>
             <br><br><label for="star_intensity_min">Min star intensity (mag)</label>
             <input type="text" name="star_intensity_min" id="star_intensity_min" size="12" value="1.0E99">
@@ -960,7 +960,7 @@ s_url" size=30 value=""></td></tr>
             <input type="text" name="star_intensity_max" id="star_intensity_max" size="12" value="-1.0E99">
             <br><label for "star_intensity_selector">Intensity measured from</label>
             <select name="star_intensity_selector" id="star_intensity_selector">
-              <option value="0" selected>Camera</option>
+              <option value="0" selected>camera</option>
               <option value="1">Earth</option>
               <option value="2">10 parsecs</option>
             </select>
@@ -987,7 +987,7 @@ s_url" size=30 value=""></td></tr>
             </select>
           </fieldset>
           <fieldset>
-            <legend>Camera Options</legend>
+            <legend>camera Options</legend>
             <label for "camera_res_x">Horizontal resolution</label>
             <input type="text" id="camera_res_x" name="camera_res_x" size="12" value="4000">
             <br><label for "camera_res_y">Vertical resolution</label>
@@ -998,8 +998,10 @@ s_url" size=30 value=""></td></tr>
             <input type="text" id="camera_pixel_limit_mag" name="camera_pixel_limit_mag" size="12" value="8.0"> (Exposure)
             <br><label for "camera_pixel_limit_mode">Pixel intensity limit mode</label>
             <select name="camera_pixel_limit_mode" id="camera_pixel_limit_mode">
-              <option value="0" selected>Saturate to white</option>
+              <option value="-1" selected>default</option>
+              <option value="0">saturate to white</option>
               <option value="1">Preserve color</option>
+              <option value="2">none (fp only)</option>
             </select>
             <br><label for "camera_wb_enable">Enable white balance</label>
             <select name="camera_wb_enable" id="camera_wb_enable">
@@ -1190,25 +1192,29 @@ s_url" size=30 value=""></td></tr>
             </select>
           </fieldset>
           <fieldset>
-            <legend>PNG Output</legend>
+            <legend>Output</legend>
             <div id="centered">
               <em>Note: ICC profiles are compact <a href="https://github.com/saucecontrol/Compact-ICC-Profiles">open source</a> version 4</em>
             </div>
+           <br><label for "output_format">Output format</label>
+            <select name="output_format" id="output_format">
+              <option value="0" selected>PNG 8-bit integer</option>
+              <option value="1">PNG 16-bit integer</option>
+              <option value="2">EXR 16-bit half</option>
+              <option value="3">EXR 32-bit float</option>
+              <option value="4">EXR 32-bit integer</option>
+            </select>
             <br><label for "icc_profile">ICC profile</label>
             <select name="rgb_color_spce" id="icc_profile">
-              <option value="0">None - linear gamma</option>
-              <option value="7">None - flat 2.0 gamma (for ffmpeg)</option>
-              <option value="1" selected>sRGB</option>
+              <option value="-1" selected>default</option>
+              <option value="1">sRGB</option>
               <option value="2">Display P3 (compatible Z)</option>
               <option value="3">Rec. 2020 (compatible Z)</option>
               <option value="4">Rec. 601 NTSC</option>
               <option value="5">Rec. 601 PAL</option>
               <option value="6">Rec. 709</option>
-            </select>
-            <br><label for "bits_per_color">Bits per color</label>
-            <select name="bits_per_color" id="bits_per_color">
-              <option value="8" selected>8</option>
-              <option value="16">16</option>
+              <option value="0">none - linear gamma</option>
+              <option value="7">none - 2.0 gamma</option>
             </select>
           </fieldset>
         </form>

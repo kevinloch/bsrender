@@ -102,7 +102,9 @@ Camera:\n\
      --camera_res_y=NUM                   Vertical resolution\n\
      --camera_fov=FLOAT                   Field of vew in decimal degrees\n\
      --camera_pixel_limit_mag=FLOAT       Pixel exposure limit in Vega scale magnitude\n\
-     --camera_pixel_limit_mode=NUM        How to handle overexposed pixels: 0=saturate to white, 1=preserve color\n\
+     --camera_pixel_limit_mode=-1         How to handle overexposed pixels: -1=default: integer=0, floating-point=2\n\
+                                          0=saturate to white, 1=preserve color\n\
+                                          2=don't limit (floating-point formats only)\n\
      --camera_wb_enable=BOOL              yes = Enable white balance correction\n\
      --camera_wb_temp=FLOAT               White balance color temperature in Kelvin\n\
      --camera_color_saturation=FLOAT      Chroma saturation level (4.0 = 4x crhoma)\n\
@@ -161,7 +163,7 @@ Output:\n\
                                           2 = EXR 16-bit floating-point per color\n\
                                           3 = EXR 32-bit floating-point per color\n\
                                           4 = EXR 32-bit unsigned integer per color\n\
-     --icc_profile=NUM                    -1 = default: PNG=sRGB, EXR=None (EXR clients assume Rec. 709 colorspace)\n\
+     --icc_profile=NUM                    -1 = default: PNG=sRGB, EXR=None\n\
                                           0 = None - linear gamma, 1 = sRGB, 2 = Display-P3 (compatible Z),\n\
                                           3 = Rec. 2020 (compatible Z), 4 = Rec. 601 NTSC, 5 = Rec. 601 PAL,\n\
                                           6 = Rec. 709, 7 = None - flat 2.0 gamma\n\

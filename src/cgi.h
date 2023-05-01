@@ -39,7 +39,7 @@
 #ifndef BSR_CGI_H
 #define BSR_CGI_H
 
-int printCGIheader();
+int printCGIHeader();
 int getCGIOptions(bsr_config_t *bsr_config);
 int enforceCGILimits(bsr_config_t *bsr_config);
 

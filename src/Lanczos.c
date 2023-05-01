@@ -77,6 +77,9 @@ int resizeLanczos(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   int current_image_res_y;
   int lines_per_thread;
   int i;
+  int current_image_x;
+  int current_image_y;
+  uint64_t image_offset;
 
   //
   // worker threads:  wait for main thread to say go
@@ -100,10 +103,6 @@ int resizeLanczos(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   resize_res_y=bsr_state->resize_res_y;
   source_w=1.0 / bsr_config->output_scaling_factor;
   half_source_w=source_w / 2.0;
-  lines_per_thread=(int)ceil(((float)resize_res_y / (float)(bsr_state->num_worker_threads + 1)));
-  if (lines_per_thread < 1) {
-    lines_per_thread=1;
-  }
 
   //
   // main thread: display status message if not in CGI mode
@@ -115,10 +114,45 @@ int resizeLanczos(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   }
 
   //
+  // all threads: convert to log scale to reduce clipping artifacts. This will be undone
+  // at the end of resizeLanczos()
+  //
+  current_image_x=0;
+  lines_per_thread=(int)ceil(((float)current_image_res_y / (float)(bsr_state->num_worker_threads + 1)));
+  if (lines_per_thread < 1) {
+    lines_per_thread=1;
+  }
+  current_image_y=bsr_state->perthread->my_thread_id * lines_per_thread;
+  current_image_p=bsr_state->current_image_buf + ((uint64_t)current_image_res_x * (uint64_t)current_image_y);
+  for (image_offset=0; ((image_offset < ((uint64_t)bsr_state->current_image_res_x * (uint64_t)lines_per_thread)) && (current_image_y < current_image_res_y)); image_offset++) {
+    L_x_r=current_image_p->r;
+    L_x_g=current_image_p->g;
+    L_x_b=current_image_p->b;
+    L_x_r=log(BSR_RESIZE_LOG_OFFSET + L_x_r); 
+    L_x_g=log(BSR_RESIZE_LOG_OFFSET + L_x_g);
+    L_x_b=log(BSR_RESIZE_LOG_OFFSET + L_x_b);
+    current_image_p->r=L_x_r;
+    current_image_p->g=L_x_g;
+    current_image_p->b=L_x_b;
+
+    // if end of this line, move to next line
+    current_image_x++;
+    if (current_image_x == bsr_state->current_image_res_x) {
+      current_image_x=0;
+      current_image_y++;
+    }
+    current_image_p++;
+  } // end for i
+
+  //
   // all threads: copy rendered image to resize buffer using Lanczos interpolation
   //
   Lanczos_order=2;
   resize_x=0;
+  lines_per_thread=(int)ceil(((float)resize_res_y / (float)(bsr_state->num_worker_threads + 1)));
+  if (lines_per_thread < 1) {
+    lines_per_thread=1;
+  }
   resize_y=bsr_state->perthread->my_thread_id * lines_per_thread;
   image_resize_p=bsr_state->image_resize_buf + ((uint64_t)resize_res_x * (uint64_t)resize_y);
   for (resize_i=0; ((resize_i < ((uint64_t)resize_res_x * (uint64_t)lines_per_thread)) && (resize_y < resize_res_y)); resize_i++) {
@@ -176,7 +210,14 @@ int resizeLanczos(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
     } // end for i_y
 
     //
-    // handle negative clipping
+    // undo log scaling
+    //
+    L_y_r=exp(L_y_r) - BSR_RESIZE_LOG_OFFSET;
+    L_y_g=exp(L_y_g) - BSR_RESIZE_LOG_OFFSET;
+    L_y_b=exp(L_y_b) - BSR_RESIZE_LOG_OFFSET;
+
+    //
+    // handle negative clipping, which is common
     //
     if (L_y_r < 0.0) {
       L_y_r=0.0;
@@ -195,6 +236,7 @@ int resizeLanczos(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
     image_resize_p->g=L_y_g;
     image_resize_p->b=L_y_b;
 
+    // if end of this line, move to next line
     resize_x++;
     if (resize_x == resize_res_x) {
       resize_x=0;

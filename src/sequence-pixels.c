@@ -154,7 +154,7 @@ int sequencePixels(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
     pixel_b=current_image_p->b;
 
     //
-    // limit pixel intensity to range [0..1]
+    // limit pixel intensity to range [0..1] if pixel imit mode is 0 or 1 (required for integer formats)
     //
     if (bsr_config->camera_pixel_limit_mode == 0) {
       limitIntensity(bsr_config, &pixel_r, &pixel_g, &pixel_b);
@@ -166,7 +166,7 @@ int sequencePixels(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
     // apply encoding gamma for image formats and color spaces that use it
     //
     if (bsr_config->image_format != 1) { // EXR does not use encoding gamma
-      if ((bsr_config->icc_profile == -1) || (bsr_config->icc_profile == 1) || (bsr_config->icc_profile == 2)) { // PNG default, sRGB and Display-P3
+      if ((bsr_config->icc_profile == 1) || (bsr_config->icc_profile == 2)) { // PNG default, sRGB and Display-P3
         if (pixel_r <= 0.0031308) {
           pixel_r=pixel_r * 12.92;
         } else {

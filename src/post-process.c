@@ -96,14 +96,14 @@ int postProcess(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   inv_camera_pixel_limit = 1.0 / bsr_state->camera_pixel_limit;
 
   //
-  // all threads: apply cmaera_gamma and intensity limiting
+  // all threads: normalize pixels to 1.0 reference, and apply cmaera_gamma
   //
   current_image_x=0;
   current_image_y=bsr_state->perthread->my_thread_id * lines_per_thread;
   current_image_p=bsr_state->current_image_buf + ((uint64_t)current_image_res_x * (uint64_t)current_image_y);
   for (image_offset=0; ((image_offset < ((uint64_t)bsr_state->current_image_res_x * (uint64_t)lines_per_thread)) && (current_image_y < current_image_res_y)); image_offset++) {
     //
-    // convert pixel values to output range ~0-1.0 with camera saturation reference level = 1.0
+    // normalize pixel values to camera saturation reference level = 1.0
     //
     pixel_r=current_image_p->r * inv_camera_pixel_limit;
     pixel_g=current_image_p->g * inv_camera_pixel_limit;
@@ -119,21 +119,13 @@ int postProcess(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
     }
 
     //
-    // limit pixel intensity to range [0..1] (> 0.0 if floating-point output)
-    //
-    if (bsr_config->camera_pixel_limit_mode == 0) {
-      limitIntensity(bsr_config, &pixel_r, &pixel_g, &pixel_b);
-    } else if (bsr_config->camera_pixel_limit_mode == 1) {
-      limitIntensityPreserveColor(bsr_config, &pixel_r, &pixel_g, &pixel_b);
-    }
-
-    //
     // copy back to current image buf
     //
     current_image_p->r=pixel_r;
     current_image_p->g=pixel_g;
     current_image_p->b=pixel_b;
 
+    // if end of this line, move to next line
     current_image_x++;
     if (current_image_x == bsr_state->current_image_res_x) {
       current_image_x=0;

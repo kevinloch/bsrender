@@ -83,7 +83,7 @@ void initConfig(bsr_config_t *bsr_config) {
   bsr_config->camera_res_y=2000;
   bsr_config->camera_fov=360.0;
   bsr_config->camera_pixel_limit_mag=8.0;
-  bsr_config->camera_pixel_limit_mode=0;
+  bsr_config->camera_pixel_limit_mode=-1;
   bsr_config->camera_wb_enable=1;
   bsr_config->camera_wb_temp=4300.0;
   bsr_config->camera_color_saturation=1.0;
@@ -640,6 +640,37 @@ int validateConfig(bsr_config_t *bsr_config) {
        && (strlen(bsr_config->output_file_name) == strlen("galaxy.png"))) {
     strncpy(bsr_config->output_file_name, "galaxy.exr", 255);
     bsr_config->output_file_name[255]=0;
+  }
+
+  //
+  // check camera_pixel_limit_mode
+  //
+  if (bsr_config->camera_pixel_limit_mode == -1) {
+    // process default setting
+    if (bsr_config->image_number_format == 0) { // integer format
+      bsr_config->camera_pixel_limit_mode=0;
+    } else if (bsr_config->image_number_format == 1) { // floating-point format
+      bsr_config->camera_pixel_limit_mode=2;
+    } 
+  } else if ((bsr_config->camera_pixel_limit_mode == 2) && (bsr_config->image_number_format == 0)) {
+    // integer formats must be limited to range [0..1]
+    if ((bsr_config->QUERY_STRING_p == NULL) && (bsr_config->print_status == 1)) {
+      printf("Warning: integer image formats require clipping pixel values above 1.0. Setting camera_pixel_limit_mode=0\n");
+      fflush(stdout);
+    }
+    bsr_config->camera_pixel_limit_mode=0;
+  }
+
+  //
+  // check icc_profile
+  //
+  if (bsr_config->icc_profile == -1) {
+    // process default setting
+    if (bsr_config->image_format == 0) {
+      bsr_config->icc_profile=1;  // PNG=sRGB default
+    } else if (bsr_config->image_format == 1) {
+      bsr_config->icc_profile=0;  // EXR=NONE default
+    }
   }
 
   // many more checks should be added here

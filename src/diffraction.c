@@ -39,6 +39,7 @@
 #include "bsrender.h" // needs to be first to get GNU_SOURCE define for strcasestr
 #include <stdio.h>
 #include <math.h>
+#include <time.h>
 #include "Bessel.h"
 #include "util.h"
 

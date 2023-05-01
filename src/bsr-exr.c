@@ -39,6 +39,7 @@
 #include "bsrender.h" // needs to be first to get GNU_SOURCE define for strcasestr
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 #include "util.h"
 #include "cgi.h"
 #include "icc-profiles.h"
@@ -163,7 +164,7 @@ int outputEXRHeader(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *outp
 
   //
   // EXR does not support ICC profiles but it does have a standard optional attribute
-  // for color space information. Default is no chromaticity header (client probably assumes Rec. 709)
+  // for color space information. Default is no chromaticity header
   //
   if ((bsr_config->icc_profile >= 1) && (bsr_config->icc_profile <= 6)) {
     if (bsr_config->icc_profile == 1) {
@@ -244,7 +245,6 @@ int outputEXROffsetTable(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE 
   offset_buf[0]=0;
   for (output_y=0; output_y < output_res_y; output_y++) {
     storeU64LE(offset_buf, offset);
-
     if (bsr_config->cgi_mode == 1) {
       fwrite(offset_buf, 8, 1, stdout);
     } else {

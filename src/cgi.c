@@ -42,8 +42,12 @@
 #include <string.h>
 #include "bsr-config.h"
 
-int printCGIheader(){
-  printf("Content-type: image/png\n");
+int printCGIHeader(bsr_config_t *bsr_config) {
+  if (bsr_config->image_format == 0) {
+    printf("Content-type: image/png\n");
+  } else if (bsr_config->image_format == 1) {
+    printf("Content-type: image/x-exr\n");
+  }
 //  printf("Expires: 0\n");
 //  printf("Cache-control: no-cache\n");
 //  printf("Pragma: no-cache\n");

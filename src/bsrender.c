@@ -110,10 +110,9 @@ int main(int argc, char **argv) {
   processCmdArgs(&bsr_config, argc, argv);
 
   //
-  // if CGI mode, print CGI header and proces QUERY_STRING
+  // if CGI mode, proces QUERY_STRING and print CGI header
   //
   if (bsr_config.cgi_mode == 1) {
-    printCGIheader();
     getCGIOptions(&bsr_config);
     enforceCGILimits(&bsr_config);
   }
@@ -122,6 +121,13 @@ int main(int argc, char **argv) {
   // validate config parameters are sane
   //
   validateConfig(&bsr_config);
+
+  //
+  // if CGI mode, print CGI header (must be done after validate to translate output_format
+  //
+  if (bsr_config.cgi_mode == 1) {
+    printCGIHeader(bsr_config);
+  }
 
   //
   // allocate memory for and initialize bsr_state
