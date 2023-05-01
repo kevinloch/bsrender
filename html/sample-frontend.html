@@ -64,8 +64,9 @@
     </style>
     <title>bsrender</title>
     <script>
-      var loading_text = document.createTextNode("Rendering image, please wait...");
-      var error_text = document.createTextNode("Error: rendering failed");
+      var loading_text = "Rendering image, please wait...";
+      var error_text = "Error: rendering failed";
+      var exr_text = "Browser does not support viewing EXR images inline, use download link";
       function loadSettingsFromURL() {
         let url = new URL(window.location.href);
         let search = url.searchParams;
@@ -308,14 +309,8 @@
         let blank = "";
         document.getElementById("render_image").src = blank;
       };
-      function updateImage() {
-        if (rendering_style.firstChild == error_text) {
-          document.getElementById("rendering_style").removeChild(error_text);
-        }
-        document.getElementById("rendering_style").prepend(loading_text);
-        let blank = "";
-        document.getElementById("render_image").src = blank;
-        let src = `${settings_form.rendering_server.value}?\
+      function getSettingsStr() {
+        let settings_str = `?\
 Gaia_db_enable=${settings_form.Gaia_db_enable.value}&\
 Gaia_min_parallax_quality=${settings_form.Gaia_min_parallax_quality.value}&\
 external_db_enable=${settings_form.external_db_enable.value}&\
@@ -371,81 +366,39 @@ target_icrs_r=${navigation_form.target_icrs_r.value}&\
 camera_rotation=${navigation_form.camera_rotation.value}&\
 camera_pan=${navigation_form.camera_pan.value}&\
 camera_tilt=${navigation_form.camera_tilt.value}`;
-        document.getElementById("render_image").src = src;
-        document.getElementById("render_image").onload = function(remove_loading_text) {
-          document.getElementById("rendering_style").removeChild(loading_text);
-        };
-        document.getElementById("render_image").onerror = function(display_error_text) {
-          document.getElementById("rendering_style").removeChild(loading_text);
-          document.getElementById("rendering_style").prepend(error_text);
-        };
-        generate_settings_url();
+        return settings_str;
       };
-      function generate_settings_url() {
+      function updateSettings() {
         current_href = window.location.href;
-        let settings_url = `${current_href}?\
-rendering_server=${settings_form.rendering_server.value}&\
-Gaia_db_enable=${settings_form.Gaia_db_enable.value}&\
-Gaia_min_parallax_quality=${settings_form.Gaia_min_parallax_quality.value}&\
-external_db_enable=${settings_form.external_db_enable.value}&\
-render_distance_min=${settings_form.render_distance_min.value}&\
-render_distance_max=${settings_form.render_distance_max.value}&\
-render_distance_selector=${settings_form.render_distance_selector.value}&\
-star_intensity_min=${settings_form.star_intensity_min.value}&\
-star_intensity_max=${settings_form.star_intensity_max.value}&\
-star_intensity_selector=${settings_form.star_intensity_selector.value}&\
-star_color_min=${settings_form.star_color_min.value}&\
-star_color_max=${settings_form.star_color_max.value}&\
-extinction_dimming_undo=${settings_form.extinction_dimming_undo.value}&\
-extinction_reddening_undo=${settings_form.extinction_reddening_undo.value}&\
-draw_crosshairs=${settings_form.draw_crosshairs.value}&\
-draw_grid_lines=${settings_form.draw_grid_lines.value}&\
-skyglow_enable=${settings_form.skyglow_enable.value}&\
-skyglow_temp=${settings_form.skyglow_temp.value}&\
-skyglow_per_pixel_mag=${settings_form.skyglow_per_pixel_mag.value}&\
-Gaussian_blur_radius=${settings_form.Gaussian_blur_radius.value}&\
-output_scaling_factor=${settings_form.output_scaling_factor.value}&\
-bits_per_color=${settings_form.output_format.value}&\
-icc_profile=${settings_form.icc_profile.value}&\
-camera_res_x=${settings_form.camera_res_x.value}&\
-camera_res_y=${settings_form.camera_res_y.value}&\
-camera_fov=${settings_form.camera_fov.value}&\
-camera_pixel_limit_mag=${settings_form.camera_pixel_limit_mag.value}&\
-camera_pixel_limit_mode=${settings_form.camera_pixel_limit_mode.value}&\
-camera_wb_enable=${settings_form.camera_wb_enable.value}&\
-camera_wb_temp=${settings_form.camera_wb_temp.value}&\
-camera_color_saturation=${settings_form.camera_color_saturation.value}&\
-camera_gamma=${settings_form.camera_gamma.value}&\
-camera_projection=${settings_form.camera_projection.value}&\
-spherical_orientation=${settings_form.spherical_orientation.value}&\
-Airy_disk_enable=${settings_form.Airy_disk_enable.value}&\
-Airy_disk_first_null=${settings_form.Airy_disk_first_null.value}&\
-Airy_disk_max_extent=${settings_form.Airy_disk_max_extent.value}&\
-Airy_disk_min_extent=${settings_form.Airy_disk_min_extent.value}&\
-Airy_disk_obstruction=${settings_form.Airy_disk_obstruction.value}&\
-anti_alias_enable=${settings_form.anti_alias_enable.value}&\
-anti_alias_radius=${settings_form.anti_alias_radius.value}&\
-red_filter_preset=${settings_form.red_filter_preset.value}&\
-red_filter_long_limit=${settings_form.red_filter_long_limit.value}&\
-red_filter_short_limit=${settings_form.red_filter_short_limit.value}&\
-green_filter_preset=${settings_form.green_filter_preset.value}&\
-green_filter_long_limit=${settings_form.green_filter_long_limit.value}&\
-green_filter_short_limit=${settings_form.green_filter_short_limit.value}&\
-blue_filter_preset=${settings_form.blue_filter_preset.value}&\
-blue_filter_long_limit=${settings_form.blue_filter_long_limit.value}&\
-blue_filter_short_limit=${settings_form.blue_filter_short_limit.value}&\
-camera_icrs_preset=${navigation_form.camera_icrs_preset.value}&\
-camera_icrs_ra=${navigation_form.camera_icrs_ra.value}&\
-camera_icrs_dec=${navigation_form.camera_icrs_dec.value}&\
-camera_icrs_r=${navigation_form.camera_icrs_r.value}&\
-target_icrs_preset=${navigation_form.target_icrs_preset.value}&\
-target_icrs_ra=${navigation_form.target_icrs_ra.value}&\
-target_icrs_dec=${navigation_form.target_icrs_dec.value}&\
-target_icrs_r=${navigation_form.target_icrs_r.value}&\
-camera_rotation=${navigation_form.camera_rotation.value}&\
-camera_pan=${navigation_form.camera_pan.value}&\
-camera_tilt=${navigation_form.camera_tilt.value}`;
+        let settings_str = getSettingsStr();
+        let settings_url = `${current_href}${settings_str}`;
         settings_form.settings_url.value = settings_url;
+        let src = `${settings_form.rendering_server.value}${settings_str}`;
+        document.getElementById("image_download_link").href = src;
+      };
+      function setStatus(status_str) {
+        document.getElementById("status_message").innerHTML = status_str;
+      };
+      function updateImage() {
+        let blank = "";
+        setStatus(blank);
+        updateSettings();
+        let settings_str = getSettingsStr();
+        document.getElementById("render_image").src = blank;
+        let src = `${settings_form.rendering_server.value}${settings_str}`;
+        document.getElementById("render_image").onerror = null;
+        if (settings_form.output_format.value < 2) {
+          setStatus(loading_text);
+          document.getElementById("render_image").src = src;
+          document.getElementById("render_image").onload = function(remove_loading_text) {
+            setStatus(blank);
+          };
+          document.getElementById("render_image").onerror = function(send_error) {
+            setStatus(error_text);
+          };
+        } else {
+          setStatus(exr_text);
+        }
       };
       function set_red_filter_preset_user() {
         settings_form.red_filter_preset.value="User";
@@ -877,6 +830,7 @@ camera_tilt=${navigation_form.camera_tilt.value}`;
       function reset_forms() {
         navigation_form.reset();
         settings_form.reset(); 
+        updateSettings();
       };
       function copy_settings_url_to_clipboard() {
         copy_text = settings_form.settings_url;
@@ -889,7 +843,7 @@ camera_tilt=${navigation_form.camera_tilt.value}`;
   <body>
     <main role="main">
       <div id="settings_style">
-        <form name="settings_form">
+        <form name="settings_form" onchange="updateSettings()">
           <fieldset>
             <legend>About</legend>
             <div id="centered">
@@ -905,16 +859,16 @@ camera_tilt=${navigation_form.camera_tilt.value}`;
             <table style="margin-left:auto;margin-right:auto;">
               <tr><td>Rendering server</td><td><input type="text" name="rendering_server" id="rendering_server" size="25" value="http://r1.bsrender.io/r/"></td></tr>
             </table>
+            <p><div id="centered">
+              <a id="image_download_link" href="">Image download link</a>
+            </div>
           </fieldset>
           <fieldset>
             <legend>Shareable Settings URL</legend>
-            <div id="centered">
-              <em>Always click generate before copying, link may be stale</em>
-            </div>
             <table style="margin-left:auto;margin-right:auto;">
             <tr><td>
               <div id="button_style">
-                <button type="button" onclick="generate_settings_url()">Generate</button></td><td><button type="button" onclick="copy_settings_url_to_clipboard()">Copy</button></td><td><input type="text" id="settings_url" name="setting
+                <td><button type="button" onclick="copy_settings_url_to_clipboard()">Copy</button></td><td><input type="text" id="settings_url" name="setting
 s_url" size=30 value=""></td></tr>
               </div>
             </table>
@@ -1221,7 +1175,7 @@ s_url" size=30 value=""></td></tr>
       </div>
       <div id="content_style">
         <article>
-          <form name="navigation_form">
+          <form name="navigation_form" onchange="updateSettings()">
             <div id="navigation_style">
               <fieldset>
                 <legend>Camera Position</legend>
@@ -1321,6 +1275,8 @@ s_url" size=30 value=""></td></tr>
         </script>
         <article>
           <div id="rendering_style">
+            <div id="status_message">
+            </div>
             <br><img alt="" src="" id="render_image">
             <script>
               updateImage();

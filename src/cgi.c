@@ -45,8 +45,10 @@
 int printCGIHeader(bsr_config_t *bsr_config) {
   if (bsr_config->image_format == 0) {
     printf("Content-type: image/png\n");
+    printf("Content-Disposition: attachment; filename=\"galaxy.png\"\n");
   } else if (bsr_config->image_format == 1) {
     printf("Content-type: image/x-exr\n");
+    printf("Content-Disposition: attachment; filename=\"galaxy.exr\"\n");
   }
 //  printf("Expires: 0\n");
 //  printf("Cache-control: no-cache\n");

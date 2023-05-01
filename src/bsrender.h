@@ -39,7 +39,7 @@
 #ifndef BSRENDER_H
 #define BSRENDER_H
 
-#define BSR_VERSION "1.0-dev-19q"
+#define BSR_VERSION "1.0-dev-19r"
 
 #define BSR_32BIT_BUFFERS // use 32-bit floats in image composition, blur, and resize buffers. This reduces the size of these buffers by half which may
                           // be useful for extremely large image resolutions at the expense of summation precision within these buffers. This does not
