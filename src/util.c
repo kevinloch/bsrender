@@ -302,9 +302,9 @@ int storeHalfLE(unsigned char *dest, float src) {
       } else {
         half_fraction=0; // too small for subnormal half
     }
-  } else if (half_exponent > 30) { // inf
-    half_exponent=31;
-    half_fraction=0; 
+  } else if (half_exponent > 30) { // inf, limit to max normal number
+    half_exponent=30;
+    half_fraction=1023; 
   }
 
   // note: sign bit is always 0 in bsrender
