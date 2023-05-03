@@ -150,6 +150,10 @@
         if (tmpvalue != null) {
           settings_form.output_scaling_factor.value = tmpvalue;
         }
+        tmpvalue = search.get("Lanczos_order");
+        if (tmpvalue != null) {
+          settings_form.Lanczos_order.value = tmpvalue;
+        }
         tmpvalue = search.get("output_format");
         if (tmpvalue != null) {
           settings_form.output_format.value = tmpvalue;
@@ -331,6 +335,7 @@ skyglow_temp=${settings_form.skyglow_temp.value}&\
 skyglow_per_pixel_mag=${settings_form.skyglow_per_pixel_mag.value}&\
 Gaussian_blur_radius=${settings_form.Gaussian_blur_radius.value}&\
 output_scaling_factor=${settings_form.output_scaling_factor.value}&\
+Lanczos_order=${settings_form.Lanczos_order.value}&\
 output_format=${settings_form.output_format.value}&\
 icc_profile=${settings_form.icc_profile.value}&\
 camera_res_x=${settings_form.camera_res_x.value}&\
@@ -1131,6 +1136,8 @@ s_url" size=30 value=""></td></tr>
             <input type="text" name="Gaussian_blur_radius" id="Gaussian_blur_radius" size="12" value="0.0">
             <br><label for="output_scaling_factor">Output scaling factor</label>
             <input type="text" name="output_scaling_factor" id="output_scaling_factor" size="12" value="1.0">
+            <br><label for="Lanczos_order">Lanczos order</label>
+            <input type="text" name="Lanczos_order" id="Lanczos_order" size="12" value="3"> <em>2 - 10</em>
           </fieldset>
           <fieldset>
             <legend>Overlays</legend>

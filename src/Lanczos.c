@@ -82,19 +82,6 @@ int resizeLanczos(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   uint64_t image_offset;
 
   //
-  // worker threads:  wait for main thread to say go
-  // main thread: tell worker threads to go
-  //
-  if (bsr_state->perthread->my_pid != bsr_state->master_pid) {
-    waitForMainThread(bsr_state, THREAD_STATUS_LANCZOS_BEGIN);
-  } else {
-    // main thread
-    for (i=1; i <= bsr_state->num_worker_threads; i++) {
-      bsr_state->status_array[i].status=THREAD_STATUS_LANCZOS_BEGIN;
-    }
-  } // end if not main thread
-
-  //
   // all threads: get current image resolution and calculate resize resolution
   //
   current_image_res_x=bsr_state->current_image_res_x;
@@ -114,11 +101,24 @@ int resizeLanczos(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   }
 
   //
+  // worker threads:  wait for main thread to say go
+  // main thread: tell worker threads to go
+  //
+  if (bsr_state->perthread->my_pid != bsr_state->master_pid) {
+    waitForMainThread(bsr_state, THREAD_STATUS_LANCZOS_PREP_BEGIN);
+  } else {
+    // main thread
+    for (i=1; i <= bsr_state->num_worker_threads; i++) {
+      bsr_state->status_array[i].status=THREAD_STATUS_LANCZOS_PREP_BEGIN;
+    }
+  } // end if not main thread
+
+  //
   // all threads: convert to log scale to reduce clipping artifacts. This will be undone
   // at the end of resizeLanczos()
   //
   current_image_x=0;
-  lines_per_thread=(int)ceil(((float)current_image_res_y / (float)(bsr_state->num_worker_threads + 1)));
+  lines_per_thread=(int)ceil(((double)current_image_res_y / (double)(bsr_state->num_worker_threads + 1)));
   if (lines_per_thread < 1) {
     lines_per_thread=1;
   }
@@ -145,11 +145,34 @@ int resizeLanczos(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   } // end for i
 
   //
+  // worker threads: signal this thread is done and wait until main thread says we can continue to next step.
+  // main thread: wait until all other threads are done and then signal that they can continue to next step.
+  //
+  if (bsr_state->perthread->my_pid != bsr_state->master_pid) {
+    bsr_state->status_array[bsr_state->perthread->my_thread_id].status=THREAD_STATUS_LANCZOS_PREP_COMPLETE;
+    waitForMainThread(bsr_state, THREAD_STATUS_LANCZOS_RESAMPLE_BEGIN);
+  } else {
+    waitForWorkerThreads(bsr_state, THREAD_STATUS_LANCZOS_PREP_COMPLETE);
+    //
+    // ready to continue, set all worker thread status to continue
+    //
+    for (i=1; i <= bsr_state->num_worker_threads; i++) {
+      bsr_state->status_array[i].status=THREAD_STATUS_LANCZOS_RESAMPLE_BEGIN;
+    }
+  } // end if not main thread
+
+  //
   // all threads: copy rendered image to resize buffer using Lanczos interpolation
   //
-  Lanczos_order=2;
+  if (bsr_config->Lanczos_order < 2) {
+    Lanczos_order=2;
+  } else if (bsr_config->Lanczos_order > 10) {
+    Lanczos_order=10;
+  } else {
+    Lanczos_order=bsr_config->Lanczos_order;
+  }
   resize_x=0;
-  lines_per_thread=(int)ceil(((float)resize_res_y / (float)(bsr_state->num_worker_threads + 1)));
+  lines_per_thread=(int)ceil(((double)resize_res_y / (double)(bsr_state->num_worker_threads + 1)));
   if (lines_per_thread < 1) {
     lines_per_thread=1;
   }
@@ -172,16 +195,16 @@ int resizeLanczos(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
       L_x_b=0.0;
       for (i_x=((int)source_x_center - Lanczos_order + 1); i_x <= ((int)source_x_center + Lanczos_order); i_x++) {
         source_x=i_x;
-        current_image_offset=((uint64_t)source_y * (uint64_t)current_image_res_x) + (uint64_t)source_x;
-        current_image_p=bsr_state->current_image_buf + current_image_offset;
         if ((source_x >= 0) && (source_x < current_image_res_x) && (source_y >= 0) && (source_y < current_image_res_y)) {
+          current_image_offset=((uint64_t)source_y * (uint64_t)current_image_res_x) + (uint64_t)source_x;
+          current_image_p=bsr_state->current_image_buf + current_image_offset;
           L_distance_x=source_x_center - (double)i_x;
           if (L_distance_x == 0.0) {
             L_x_r+=current_image_p->r;
             L_x_g+=current_image_p->g;
             L_x_b+=current_image_p->b;
-          } else if ((L_distance_x >= -Lanczos_order) && (L_distance_x < Lanczos_order)) {
-            L_kernel=Lanczos_order * sin(M_PI * L_distance_x) * sin(M_PI * L_distance_x / Lanczos_order) / (M_PI * M_PI * L_distance_x * L_distance_x);
+          } else if ((L_distance_x >= -(double)Lanczos_order) && (L_distance_x <= (double)Lanczos_order)) {
+            L_kernel=Lanczos_order * sin(M_PI * L_distance_x) * sin(M_PI * L_distance_x / (double)Lanczos_order) / (M_PI * M_PI * L_distance_x * L_distance_x);
             L_x_r+=(current_image_p->r * L_kernel);
             L_x_g+=(current_image_p->g * L_kernel);
             L_x_b+=(current_image_p->b * L_kernel);
@@ -199,8 +222,8 @@ int resizeLanczos(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
         L_y_r+=L_x_r;
         L_y_g+=L_x_g;
         L_y_b+=L_x_b;
-      } else if ((L_distance_y >= -Lanczos_order) && (L_distance_y < Lanczos_order)) {
-        L_kernel=Lanczos_order * sin(M_PI * L_distance_y) * sin(M_PI * L_distance_y / Lanczos_order) / (M_PI * M_PI * L_distance_y * L_distance_y);
+      } else if ((L_distance_y >= -(double)Lanczos_order) && (L_distance_y <= (double)Lanczos_order)) {
+        L_kernel=Lanczos_order * sin(M_PI * L_distance_y) * sin(M_PI * L_distance_y / (double)Lanczos_order) / (M_PI * M_PI * L_distance_y * L_distance_y);
         L_y_r+=(L_x_r * L_kernel);
         L_y_g+=(L_x_g * L_kernel);
         L_y_b+=(L_x_b * L_kernel);
@@ -250,30 +273,27 @@ int resizeLanczos(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   // main thread: wait until all other threads are done and then signal that they can continue to next step.
   //
   if (bsr_state->perthread->my_pid != bsr_state->master_pid) {
-    bsr_state->status_array[bsr_state->perthread->my_thread_id].status=THREAD_STATUS_LANCZOS_COMPLETE;
+    bsr_state->status_array[bsr_state->perthread->my_thread_id].status=THREAD_STATUS_LANCZOS_RESAMPLE_COMPLETE;
     waitForMainThread(bsr_state, THREAD_STATUS_LANCZOS_CONTINUE);
   } else {
-    waitForWorkerThreads(bsr_state, THREAD_STATUS_LANCZOS_COMPLETE);
+    waitForWorkerThreads(bsr_state, THREAD_STATUS_LANCZOS_RESAMPLE_COMPLETE);
     //
-    // ready to continue, set all worker thread status to continue
+    // main thread: update current_image_buf pointer
     //
+    if (bsr_state->perthread->my_pid == bsr_state->master_pid) {
+      bsr_state->current_image_buf=bsr_state->image_resize_buf;
+      bsr_state->current_image_res_x=resize_res_x;
+      bsr_state->current_image_res_y=resize_res_y;
+    }
     for (i=1; i <= bsr_state->num_worker_threads; i++) {
       bsr_state->status_array[i].status=THREAD_STATUS_LANCZOS_CONTINUE;
     }
   } // end if not main thread
 
-
+  //
+  // main thread: output execution time if not in CGI mode
+  //
   if (bsr_state->perthread->my_pid == bsr_state->master_pid) {
-    //
-    // main thread: update current_image_buf pointer
-    //
-    bsr_state->current_image_buf=bsr_state->image_resize_buf;
-    bsr_state->current_image_res_x=resize_res_x;
-    bsr_state->current_image_res_y=resize_res_y;
-
-    //
-    // main thread: output execution time if not in CGI mode
-    //
     if ((bsr_config->cgi_mode != 1) && (bsr_config->print_status == 1)) {
       clock_gettime(CLOCK_REALTIME, &endtime);
       elapsed_time=((double)(endtime.tv_sec - 1500000000) + ((double)endtime.tv_nsec / 1.0E9)) - ((double)(starttime.tv_sec - 1500000000) + ((double)starttime.tv_nsec) / 1.0E9);

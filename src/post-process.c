@@ -72,6 +72,17 @@ int postProcess(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   }
 
   //
+  // all threads: get current image resolution and lines per thread
+  //
+  current_image_res_x=bsr_state->current_image_res_x;
+  current_image_res_y=bsr_state->current_image_res_y;
+  lines_per_thread=(int)ceil(((double)current_image_res_y / (double)(bsr_state->num_worker_threads + 1)));
+  if (lines_per_thread < 1) {
+    lines_per_thread=1;
+  }
+  inv_camera_pixel_limit = 1.0 / bsr_state->camera_pixel_limit;
+
+  //
   // worker threads:  wait for main thread to say go
   // main thread: tell worker threads to go
   //
@@ -83,17 +94,6 @@ int postProcess(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
       bsr_state->status_array[i].status=THREAD_STATUS_POST_PROCESS_BEGIN;
     }
   } // end if not main thread
-
-  //
-  // all threads: get current image resolution and lines per thread
-  //
-  current_image_res_x=bsr_state->current_image_res_x;
-  current_image_res_y=bsr_state->current_image_res_y;
-  lines_per_thread=(int)ceil(((float)current_image_res_y / (float)(bsr_state->num_worker_threads + 1)));
-  if (lines_per_thread < 1) {
-    lines_per_thread=1;
-  }
-  inv_camera_pixel_limit = 1.0 / bsr_state->camera_pixel_limit;
 
   //
   // all threads: normalize pixels to 1.0 reference, and apply cmaera_gamma

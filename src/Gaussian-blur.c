@@ -128,19 +128,6 @@ int GaussianBlur(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   } // end for kernel
 
   //
-  // worker threads:  wait for main thread to say go
-  // main thread: tell worker threads to go
-  //
-  if (bsr_state->perthread->my_pid != bsr_state->master_pid) {
-    waitForMainThread(bsr_state, THREAD_STATUS_GAUSSIAN_BLUR_HORIZONTAL_BEGIN);
-  } else {
-    // main thread
-    for (i=1; i <= bsr_state->num_worker_threads; i++) {
-      bsr_state->status_array[i].status=THREAD_STATUS_GAUSSIAN_BLUR_HORIZONTAL_BEGIN;
-    }
-  } // end if not main thread
-
-  //
   // all threads: get current image pointer and resolution
   //
   current_image_p=bsr_state->current_image_buf;
@@ -148,17 +135,30 @@ int GaussianBlur(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   current_image_res_y=bsr_state->current_image_res_y;
   blur_res_x=current_image_res_x;
   blur_res_y=current_image_res_y;
-  lines_per_thread=(int)ceil(((float)current_image_res_y / (float)(bsr_state->num_worker_threads + 1)));
+  lines_per_thread=(int)ceil(((double)current_image_res_y / (double)(bsr_state->num_worker_threads + 1)));
   if (lines_per_thread < 1) {
     lines_per_thread=1;
   }
+
+  //
+  // worker threads:  wait for main thread to say go
+  // main thread: tell worker threads to go
+  //
+  if (bsr_state->perthread->my_pid != bsr_state->master_pid) {
+    waitForMainThread(bsr_state, THREAD_STATUS_GAUSSIAN_BLUR_PREP_BEGIN);
+  } else {
+    // main thread
+    for (i=1; i <= bsr_state->num_worker_threads; i++) {
+      bsr_state->status_array[i].status=THREAD_STATUS_GAUSSIAN_BLUR_PREP_BEGIN;
+    }
+  } // end if not main thread
 
   //
   // all threads: temporarily re-scale image as GaussianBlur() requires values in the range [0..1].
   // /this is undone at the end of GaussianBlur()
   //
   current_image_x=0;
-  lines_per_thread=(int)ceil(((float)current_image_res_y / (float)(bsr_state->num_worker_threads + 1)));
+  lines_per_thread=(int)ceil(((double)current_image_res_y / (double)(bsr_state->num_worker_threads + 1)));
   if (lines_per_thread < 1) {
     lines_per_thread=1;
   }
@@ -184,6 +184,23 @@ int GaussianBlur(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
     }
     current_image_p++;
   } // end for i
+
+  //
+  // worker threads: signal this thread is done and wait until main thread says we can continue to next step.
+  // main thread: wait until all other threads are done and then signal that they can continue to next step.
+  //
+  if (bsr_state->perthread->my_pid != bsr_state->master_pid) {
+    bsr_state->status_array[bsr_state->perthread->my_thread_id].status=THREAD_STATUS_GAUSSIAN_BLUR_PREP_COMPLETE;
+    waitForMainThread(bsr_state, THREAD_STATUS_GAUSSIAN_BLUR_HORIZONTAL_BEGIN);
+  } else {
+    waitForWorkerThreads(bsr_state, THREAD_STATUS_GAUSSIAN_BLUR_PREP_COMPLETE);
+    //
+    // ready to continue, set all worker thread status to begin horizontal
+    //
+    for (i=1; i <= bsr_state->num_worker_threads; i++) {
+      bsr_state->status_array[i].status=THREAD_STATUS_GAUSSIAN_BLUR_HORIZONTAL_BEGIN;
+    }
+  } // end if not main thread
 
   //
   // all threads: apply Gaussian 1D kernel to each pixel horizontally and put output in blur buffer

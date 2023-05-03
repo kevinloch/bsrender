@@ -39,7 +39,7 @@
 #ifndef BSRENDER_H
 #define BSRENDER_H
 
-#define BSR_VERSION "1.0-dev-19r"
+#define BSR_VERSION "1.0-dev-19u"
 
 #define BSR_32BIT_BUFFERS // use 32-bit floats in image composition, blur, and resize buffers. This reduces the size of these buffers by half which may
                           // be useful for extremely large image resolutions at the expense of summation precision within these buffers. This does not
@@ -133,14 +133,20 @@ typedef enum {
   THREAD_STATUS_POST_PROCESS_BEGIN                = 40,
   THREAD_STATUS_POST_PROCESS_COMPLETE             = 41,
   THREAD_STATUS_POST_PROCESS_CONTINUE             = 42,
-  THREAD_STATUS_GAUSSIAN_BLUR_HORIZONTAL_BEGIN    = 50,
-  THREAD_STATUS_GAUSSIAN_BLUR_HORIZONTAL_COMPLETE = 51,
-  THREAD_STATUS_GAUSSIAN_BLUR_VERTICAL_BEGIN      = 52,
-  THREAD_STATUS_GAUSSIAN_BLUR_VERTICAL_COMPLETE   = 53,
-  THREAD_STATUS_GAUSSIAN_BLUR_CONTINUE            = 54,
-  THREAD_STATUS_LANCZOS_BEGIN                     = 60,
-  THREAD_STATUS_LANCZOS_COMPLETE                  = 61,
-  THREAD_STATUS_LANCZOS_CONTINUE                  = 62,
+  THREAD_STATUS_GAUSSIAN_BLUR_PREP_BEGIN          = 50,
+  THREAD_STATUS_GAUSSIAN_BLUR_PREP_COMPLETE       = 51,
+  THREAD_STATUS_GAUSSIAN_BLUR_HORIZONTAL_BEGIN    = 52,
+  THREAD_STATUS_GAUSSIAN_BLUR_HORIZONTAL_COMPLETE = 53,
+  THREAD_STATUS_GAUSSIAN_BLUR_VERTICAL_BEGIN      = 54,
+  THREAD_STATUS_GAUSSIAN_BLUR_VERTICAL_COMPLETE   = 55,
+  THREAD_STATUS_GAUSSIAN_BLUR_CONTINUE            = 56,
+  THREAD_STATUS_LANCZOS_PREP_BEGIN                = 60,
+  THREAD_STATUS_LANCZOS_PREP_COMPLETE             = 61,
+  THREAD_STATUS_LANCZOS_RESAMPLE_BEGIN            = 62,
+  THREAD_STATUS_LANCZOS_RESAMPLE_COMPLETE         = 63,
+  THREAD_STATUS_LANCZOS_POINTERS_BEGIN            = 64,
+  THREAD_STATUS_LANCZOS_POINTERS_COMPLETE         = 65,
+  THREAD_STATUS_LANCZOS_CONTINUE                  = 66,
   THREAD_STATUS_SEQUENCE_PIXELS_BEGIN             = 70,
   THREAD_STATUS_SEQUENCE_PIXELS_COMPLETE          = 71,
   THREAD_STATUS_SEQUENCE_PIXELS_CONTINUE          = 72,
@@ -363,6 +369,7 @@ typedef struct {
   double skyglow_per_pixel_mag;
   double Gaussian_blur_radius;
   double output_scaling_factor;
+  int Lanczos_order;
   int draw_crosshairs;
   int draw_grid_lines;
   int output_format;

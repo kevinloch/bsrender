@@ -96,6 +96,16 @@ int sequencePixels(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   }
 
   //
+  // all threads: get current image resolution and lines per thread
+  //
+  output_res_x=bsr_state->current_image_res_x;
+  output_res_y=bsr_state->current_image_res_y;
+  lines_per_thread=(int)ceil(((double)bsr_state->current_image_res_y / (double)(bsr_state->num_worker_threads + 1)));
+  if (lines_per_thread < 1) {
+    lines_per_thread=1;
+  }
+
+  //
   // worker threads:  wait for main thread to say go
   // main thread: tell worker threads to go
   //
@@ -107,16 +117,6 @@ int sequencePixels(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
       bsr_state->status_array[i].status=THREAD_STATUS_SEQUENCE_PIXELS_BEGIN;
     }
   } // end if not main thread
-
-  //
-  // all threads: get current image resolution and lines per thread
-  //
-  output_res_x=bsr_state->current_image_res_x;
-  output_res_y=bsr_state->current_image_res_y;
-  lines_per_thread=(int)ceil(((float)bsr_state->current_image_res_y / (float)(bsr_state->num_worker_threads + 1)));
-  if (lines_per_thread < 1) {
-    lines_per_thread=1;
-  }
 
   //
   // all threads: convert current_image_buf to unsigned char byte sequence and store
@@ -145,6 +145,7 @@ int sequencePixels(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   if (output_y < output_res_y) {
     bsr_state->row_pointers[output_y]=image_output_p;
   }
+
   for (image_offset=0; ((image_offset < ((uint64_t)output_res_x * (uint64_t)lines_per_thread)) && (output_y < output_res_y)); image_offset++) {
     //
     // copy pixel data from current_image_buf

@@ -445,7 +445,7 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, input_file_t 
   Airymap_max_width=bsr_config->Airy_disk_max_extent + 1;
   my_thread_id=bsr_state->perthread->my_thread_id;
   total_input_records=(input_file->buf_size - 256) / star_record_size;
-  input_records_per_thread=(uint64_t)ceil(((float)total_input_records / (float)bsr_state->num_worker_threads));
+  input_records_per_thread=(uint64_t)ceil(((double)total_input_records / (double)bsr_state->num_worker_threads));
   if (input_records_per_thread < 1) {
     input_records_per_thread=1;
   }

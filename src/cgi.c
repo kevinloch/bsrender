@@ -50,9 +50,9 @@ int printCGIHeader(bsr_config_t *bsr_config) {
     printf("Content-type: image/x-exr\n");
     printf("Content-Disposition: attachment; filename=\"galaxy.exr\"\n");
   }
-//  printf("Expires: 0\n");
-//  printf("Cache-control: no-cache\n");
-//  printf("Pragma: no-cache\n");
+  printf("Expires: 0\n");
+  printf("Cache-control: no-store, no-cache, must-revalidate\n");
+  printf("Pragma: no-cache\n");
   printf("\n");
   fflush(stdout);
   return(0);

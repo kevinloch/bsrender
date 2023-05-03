@@ -109,6 +109,7 @@ void initConfig(bsr_config_t *bsr_config) {
   bsr_config->skyglow_per_pixel_mag=14.0;
   bsr_config->Gaussian_blur_radius=0.0;
   bsr_config->output_scaling_factor=1.0;
+  bsr_config->Lanczos_order=3;
   bsr_config->draw_crosshairs=0;
   bsr_config->draw_grid_lines=0;
   bsr_config->output_format=0;
@@ -304,6 +305,7 @@ void setOptionValue(bsr_config_t *bsr_config, char *option, char *value, int fro
   match_count+=checkOptionDouble(&bsr_config->skyglow_per_pixel_mag, option, value, "skyglow_per_pixel_mag");
   match_count+=checkOptionDouble(&bsr_config->Gaussian_blur_radius, option, value, "Gaussian_blur_radius");
   match_count+=checkOptionDouble(&bsr_config->output_scaling_factor, option, value, "output_scaling_factor");
+  match_count+=checkOptionInt(&bsr_config->Lanczos_order, option, value, "Lanczos_order");
   match_count+=checkOptionBool(&bsr_config->draw_crosshairs, option, value, "draw_crosshairs");
   match_count+=checkOptionBool(&bsr_config->draw_grid_lines, option, value, "draw_grid_lines");
   match_count+=checkOptionInt(&bsr_config->output_format, option, value, "output_format");
