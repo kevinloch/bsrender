@@ -88,7 +88,7 @@ int GaussianBlur(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   //
   // main thread: display status message if not in CGI mode
   //
-  if ((bsr_state->perthread->my_pid == bsr_state->master_pid) && (bsr_config->cgi_mode != 1) && (bsr_config->print_status == 1)) {
+  if ((bsr_state->perthread->my_pid == bsr_state->main_pid) && (bsr_config->cgi_mode != 1) && (bsr_config->print_status == 1)) {
     clock_gettime(CLOCK_REALTIME, &starttime);
     printf("Applying Gaussian blur with radius %.3f...", radius);
     fflush(stdout);
@@ -144,7 +144,7 @@ int GaussianBlur(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   // worker threads:  wait for main thread to say go
   // main thread: tell worker threads to go
   //
-  if (bsr_state->perthread->my_pid != bsr_state->master_pid) {
+  if (bsr_state->perthread->my_pid != bsr_state->main_pid) {
     waitForMainThread(bsr_state, THREAD_STATUS_GAUSSIAN_BLUR_PREP_BEGIN);
   } else {
     // main thread
@@ -189,14 +189,12 @@ int GaussianBlur(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   // worker threads: signal this thread is done and wait until main thread says we can continue to next step.
   // main thread: wait until all other threads are done and then signal that they can continue to next step.
   //
-  if (bsr_state->perthread->my_pid != bsr_state->master_pid) {
+  if (bsr_state->perthread->my_pid != bsr_state->main_pid) {
     bsr_state->status_array[bsr_state->perthread->my_thread_id].status=THREAD_STATUS_GAUSSIAN_BLUR_PREP_COMPLETE;
     waitForMainThread(bsr_state, THREAD_STATUS_GAUSSIAN_BLUR_HORIZONTAL_BEGIN);
   } else {
     waitForWorkerThreads(bsr_state, THREAD_STATUS_GAUSSIAN_BLUR_PREP_COMPLETE);
-    //
     // ready to continue, set all worker thread status to begin horizontal
-    //
     for (i=1; i <= bsr_state->num_worker_threads; i++) {
       bsr_state->status_array[i].status=THREAD_STATUS_GAUSSIAN_BLUR_HORIZONTAL_BEGIN;
     }
@@ -209,9 +207,7 @@ int GaussianBlur(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   blur_y=bsr_state->perthread->my_thread_id * lines_per_thread;
   image_blur_p=bsr_state->image_blur_buf + ((uint64_t)blur_res_x * (uint64_t)blur_y);
   for (blur_i=0; ((blur_i < ((uint64_t)blur_res_x * (uint64_t)lines_per_thread)) && (blur_y < blur_res_y)); blur_i++) {
-    //
     // apply Gaussian kernel to this pixel horizontally
-    //
     G_r=0.0;
     G_g=0.0;
     G_b=0.0;
@@ -228,16 +224,12 @@ int GaussianBlur(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
       G_kernel_p++;
     } // end for kernel
 
-    //
     // copy blurred pixel to blur buffer
-    //
     image_blur_p->r=G_r;
     image_blur_p->g=G_g;
     image_blur_p->b=G_b;
 
-    //
     // if end of this line, move to next line
-    //
     blur_x++;
     if (blur_x == blur_res_x) {
       blur_x=0;
@@ -250,14 +242,12 @@ int GaussianBlur(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   // worker threads: signal this thread is done and wait until main thread says we can continue to next step.
   // main thread: wait until all other threads are done and then signal that they can continue to next step.
   //
-  if (bsr_state->perthread->my_pid != bsr_state->master_pid) {
+  if (bsr_state->perthread->my_pid != bsr_state->main_pid) {
     bsr_state->status_array[bsr_state->perthread->my_thread_id].status=THREAD_STATUS_GAUSSIAN_BLUR_HORIZONTAL_COMPLETE;
     waitForMainThread(bsr_state, THREAD_STATUS_GAUSSIAN_BLUR_VERTICAL_BEGIN);
   } else {
     waitForWorkerThreads(bsr_state, THREAD_STATUS_GAUSSIAN_BLUR_HORIZONTAL_COMPLETE);
-    //
     // ready to continue, set all worker thread status to begin vertical
-    //
     for (i=1; i <= bsr_state->num_worker_threads; i++) {
       bsr_state->status_array[i].status=THREAD_STATUS_GAUSSIAN_BLUR_VERTICAL_BEGIN;
     }
@@ -290,20 +280,17 @@ int GaussianBlur(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
       G_kernel_p++;
     } // end for kernel
 
-    //
     // undo scaling
-    //
     G_r *= BSR_BLUR_RESCALE;
     G_g *= BSR_BLUR_RESCALE;
     G_b *= BSR_BLUR_RESCALE;
 
-    //
     // copy blurred pixel to blur buffer
-    //
     image_blur_p->r=G_r;
     image_blur_p->g=G_g;
     image_blur_p->b=G_b;
 
+    // if end of this line, move to next line
     blur_x++;
     if (blur_x == blur_res_x) {
       blur_x=0;
@@ -316,14 +303,12 @@ int GaussianBlur(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   // worker threads: signal this thread is done and wait until main thread says we can continue to next step.
   // main thread: wait until all other threads are done and then signal that they can continue to next step.
   //
-  if (bsr_state->perthread->my_pid != bsr_state->master_pid) {
+  if (bsr_state->perthread->my_pid != bsr_state->main_pid) {
     bsr_state->status_array[bsr_state->perthread->my_thread_id].status=THREAD_STATUS_GAUSSIAN_BLUR_VERTICAL_COMPLETE;
     waitForMainThread(bsr_state, THREAD_STATUS_GAUSSIAN_BLUR_CONTINUE);
   } else {
     waitForWorkerThreads(bsr_state, THREAD_STATUS_GAUSSIAN_BLUR_VERTICAL_COMPLETE);
-    //
     // ready to continue, set all worker thread status to continue
-    //
     for (i=1; i <= bsr_state->num_worker_threads; i++) {
       bsr_state->status_array[i].status=THREAD_STATUS_GAUSSIAN_BLUR_CONTINUE;
     }
@@ -332,7 +317,7 @@ int GaussianBlur(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   //
   // main thread: display execution time if not in CGI mode
   //
-  if ((bsr_state->perthread->my_pid == bsr_state->master_pid) && (bsr_config->cgi_mode != 1) && (bsr_config->print_status == 1)) {
+  if ((bsr_state->perthread->my_pid == bsr_state->main_pid) && (bsr_config->cgi_mode != 1) && (bsr_config->print_status == 1)) {
     clock_gettime(CLOCK_REALTIME, &endtime);
     elapsed_time=((double)(endtime.tv_sec - 1500000000) + ((double)endtime.tv_nsec / 1.0E9)) - ((double)(starttime.tv_sec - 1500000000) + ((double)starttime.tv_nsec) / 1.0E9);
     printf(" (%.3fs)\n", elapsed_time);

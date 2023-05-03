@@ -49,7 +49,6 @@ int sequencePixels(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   // Image formats use a variety of number formats (integer/floating-point), encoding gamma, bit depth, color
   // channel order, and endianness. The result is stored in image_output_buf and row_pointers.
   //
-
   struct timespec starttime;
   struct timespec endtime;
   double elapsed_time;
@@ -75,7 +74,7 @@ int sequencePixels(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   //
   // main thread: display status message if not in CGI mode
   //
-  if ((bsr_state->perthread->my_pid == bsr_state->master_pid) && (bsr_config->cgi_mode != 1) && (bsr_config->print_status == 1)) {
+  if ((bsr_state->perthread->my_pid == bsr_state->main_pid) && (bsr_config->cgi_mode != 1) && (bsr_config->print_status == 1)) {
     clock_gettime(CLOCK_REALTIME, &starttime);
     if (bsr_config->image_number_format == 0) {
       if (bsr_config->bits_per_color == 8) { 
@@ -109,7 +108,7 @@ int sequencePixels(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   // worker threads:  wait for main thread to say go
   // main thread: tell worker threads to go
   //
-  if (bsr_state->perthread->my_pid != bsr_state->master_pid) {
+  if (bsr_state->perthread->my_pid != bsr_state->main_pid) {
     waitForMainThread(bsr_state, THREAD_STATUS_SEQUENCE_PIXELS_BEGIN);
   } else {
     // main thread
@@ -145,7 +144,6 @@ int sequencePixels(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   if (output_y < output_res_y) {
     bsr_state->row_pointers[output_y]=image_output_p;
   }
-
   for (image_offset=0; ((image_offset < ((uint64_t)output_res_x * (uint64_t)lines_per_thread)) && (output_y < output_res_y)); image_offset++) {
     //
     // copy pixel data from current_image_buf
@@ -285,14 +283,12 @@ int sequencePixels(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   // worker threads: signal this thread is done and wait until main thread says we can continue to next step.
   // main thread: wait until all other threads are done and then signal that they can continue to next step.
   //
-  if (bsr_state->perthread->my_pid != bsr_state->master_pid) {
+  if (bsr_state->perthread->my_pid != bsr_state->main_pid) {
     bsr_state->status_array[bsr_state->perthread->my_thread_id].status=THREAD_STATUS_SEQUENCE_PIXELS_COMPLETE;
     waitForMainThread(bsr_state, THREAD_STATUS_SEQUENCE_PIXELS_CONTINUE);
   } else {
     waitForWorkerThreads(bsr_state, THREAD_STATUS_SEQUENCE_PIXELS_COMPLETE);
-    //
     // ready to continue, set all worker thread status to continue
-    //
     for (i=1; i <= bsr_state->num_worker_threads; i++) {
       bsr_state->status_array[i].status=THREAD_STATUS_SEQUENCE_PIXELS_CONTINUE;
     }
@@ -301,7 +297,7 @@ int sequencePixels(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   //
   // main thread: output execution time if not in CGI mode
   //
-  if ((bsr_state->perthread->my_pid == bsr_state->master_pid) && (bsr_config->cgi_mode != 1) && (bsr_config->print_status == 1)) {
+  if ((bsr_state->perthread->my_pid == bsr_state->main_pid) && (bsr_config->cgi_mode != 1) && (bsr_config->print_status == 1)) {
     clock_gettime(CLOCK_REALTIME, &endtime);
     elapsed_time=((double)(endtime.tv_sec - 1500000000) + ((double)endtime.tv_nsec / 1.0E9)) - ((double)(starttime.tv_sec - 1500000000) + ((double)starttime.tv_nsec) / 1.0E9);
     printf(" (%.3fs)\n", elapsed_time);

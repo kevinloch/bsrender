@@ -432,7 +432,7 @@ int checkExceptions(bsr_state_t *bsr_state) {
 
     // check for child processes that have died
     for (i=1; i <= bsr_state->num_worker_threads; i++) {
-      if (getpgid(bsr_state->status_array[i].pid) != bsr_state->master_pgid) {
+      if (getpgid(bsr_state->status_array[i].pid) != bsr_state->main_pgid) {
         // if any child process has died we can't finish, exit
         exit(1);
       }
@@ -441,7 +441,7 @@ int checkExceptions(bsr_state_t *bsr_state) {
     // worker thread
 
     // check if main thread has died
-    if (getppid() != bsr_state->master_pid) {
+    if (getppid() != bsr_state->main_pid) {
       // main thread has died, exit
       exit(1);
     }

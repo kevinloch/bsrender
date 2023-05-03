@@ -1,34 +1,31 @@
 # Billion Star 3D Rendering Engine
 
-bsrender is a 3D rendering engine for large star databases such as the ESA's mission Gaia DR3 data set with over a billion stars. It generates PNG images from any position inside or outside the galaxy and can be run from the command line or CGI mode. Direct rendering is used for every star without the use of pre-rendered frames or low-res previews.
+bsrender is a 3D rendering engine for large star databases such as the ESA's mission Gaia DR3 data set with over a billion stars. It generates images from any position inside or outside the galaxy and can be run from the command line or from a web server in CGI mode. Direct rendering is used for every star without the use of pre-rendered frames or low-res previews.
 
   Resource |  Link    
 ---|---
 Project website|[bsrender.io](https://bsrender.io/)
 Live demo|[bsrender.io/demo/](https://bsrender.io/demo/)
 Source code|[github.com/kevinloch/bsrender](https://github.com/kevinloch/bsrender)
-Sample binary data files|[bsrender.io/sample_data/0.9/](https://bsrender.io/sample_data/0.9/)
+Sample binary data files|[bsrender.io/sample_data/1.0-dev/](https://bsrender.io/sample_data/1.0-dev/)
 
-Version 1.0 with support for the newly-released DR3 dataset is coming soon! It will feature dramatic improvements in rendering speed, support for experimental extinction removal (from DR3 GSPPHOT), and the ability to output a text list of stars within a selected field of view (including DR3 source_id, ra, dec, magnitude, and temperature for each star).
+## Key features
 
-## Key features v0.9
-
+  - Generate image in PNG or OpenEXR format. OpenEXR floating-point formats support HDR (pixel values > 1.0)
   - 3D translations/rotations of camera position/aiming using ICRS equitorial or Euclidian coordinates. Camera can be placed anywhere in the Universe
   - Customizable camera resolution, field of view, sensitivity, white balance, color saturation, and gamma
   - Several raster projection modes are supported: lat/lon (equirectangular), Spherical (forward hemisphere centered), Spherical (front/rear hemispheres), Hammer, Mollewide
   - Stars can be filtered by parallax quality (parallax over error), distance from camera or target, and apparent temperature
   - Camera color is modeled with a Planck spectrum for the apparent temperature of each star and customizable bandpass filters for each color channel
   - Apparent star temperature (color) is derived from Gaia bp/G and/or rp/G flux ratios for most stars
-  - 8 or 16 bits per color PNG output with selectable ICC profile and gamma, including an option for linear gamma
   - Multithreading support with customizable number of threads
-  - Runtime configuration can be from any combination of compiled-in defualts, configuration file settings, command line flags, or CGI QUERY_STRING (if in CGI mode). The same option=value settings are used in all of these modes
   
-## Optional features v0.9
+## Optional features
 
 - After aiming at target, separate controls are provided to pan and tilt away from target for maximum flexibility with aiming. Camera can also be rotated about it's view axis for desired orientation
 - Support for user-supplied stars. A sample external database is provided with the Sun and all stars brighter than magnitude 3 that are not included in the Gaia dataset
 - Airy disks provide photorealistic renderings of individual stars and clusters when enabled
-- Gaussian blur and/or Lanczos2 output scaling. This allows high resolution renderings to be smoothed and downsampled on a server before downloading
+- Gaussian blur and/or Lanczos output scaling. This allows high resolution renderings to be smoothed and downsampled on a server before downloading
 - Anti-aliasing, helpful when combining multiple frames into videos or simulating DSLR/MILC images
 - Skyglow for simulating views through Earth's atmosphere
 - A sample html/javascript interface includes presets for a few camera targets and several common Hubble bandpass filter settings (along with typical LRGB). Also allows copy/paste settings URL for sharing links to your rendering settings
@@ -65,7 +62,7 @@ Most options can also be set with a configuration file. By default bsrender look
 
 ## Data files (required)
 
-The Gaia archive .csv files are not suitable for direct 3D rendering. They must be processed into a binary data format that includes the 3D position, apparent temperature, and normalized intensity (relative to Vega at one parsec) of each star. The fastest and easiest way to use bsrender is to download pre-generated data files from [bsrender.io/sample_data/0.9/](https://bsrender.io/sample_data/0.9/) (46GB).
+The Gaia archive .csv files are not suitable for direct 3D rendering. They must be processed into a binary data format that includes the 3D position, apparent temperature, and normalized intensity (relative to Vega at one parsec) of each star. The fastest and easiest way to use bsrender is to download pre-generated data files from [bsrender.io/sample_data/1.0-dev/](https://bsrender.io/sample_data/1.0-dev/) (46GB).
 
 By default bsrender expects these files to be located in the subdirectory 'galaxydata' relative to where bsrender is run from. The -d command line option or data_file_directory config file option can be used to specify an alternate filename/location. To create the subdirectory and download the sample data files to it:
 
@@ -123,12 +120,12 @@ This may take up to 24 hours to complete, depending on system and disk speed. Be
 
   - Reducing the 'camera\_fov' (zooming in) will generally require increasing 'camera\_pixel\_limit\_mag' (pixel intensity limit in the web interface) which makes camera more sensitive to maintain the same subjective iamge brightness. This is because dense star fields aggregate to brighter individual pixels with wider field of view. For very narrow fields of view with individual stars, enabling Airy disks is Highly recommended. Otherwise the individual star pixels can be very hard to see and increasing 'camera\_pixel\_limit\_mag' may just saturate those pixels without increasing subjective brightness.
   - Similarly, increasing the camera resolution will generally require increasing 'camera\_pixel\_limit\_mag' to maintain the same subjective image brightness. Use caution with increasing 'camera\_pixel\_limit\_mag' too high with very high resolutions and/or narrow fields of view. Colors will desaturate as pixel intensity is saturated unless 'camera\_pixel\_limit\_mode' is set to 1 (preserve color) and even then unnatural colors will result. The key is to remain aware of when stars start to map to individual pixels and the approximate magnitude of those stars. Enabling Airy disks provides significant freedom to "overexpose" pixels as overexposed stars will appear larger and still preserve some of their color in the outer parts of the Airy disk.
-  - Rendering time depends on many factors. It is essential that there is enough ram for the operating system to cache the entire binary dataset. Enabling airy disks has minimal impact on rendering time unless there are a large number of highly overexposed stars or with a large setting for 'Airy\_disk\_min\_extent'. Wider fields of view contain more stars and take longer to render. Very large image resolutions take longer, mainly due to the time spent initializing and processing the image buffers, but also in PNG generation. Optional Gaussian blur and Lanczos2 resizing add minimal time but are also slower at larger resolutions.
+  - Rendering time depends on many factors. It is essential that there is enough ram for the operating system to cache the entire binary dataset. Enabling airy disks has minimal impact on rendering time unless there are a large number of highly overexposed stars or with a large setting for 'Airy\_disk\_min\_extent'. Wider fields of view contain more stars and take longer to render. Very large image resolutions take longer, mainly due to the time spent initializing and processing the image buffers, but also in image generation. Optional Gaussian blur and Lanczos2 resizing add minimal time but are also slower at larger resolutions.
   - When resizing with Lanczos2 resampling, best results are obtained by also using Gaussing blur at 1/4 the downscaling factor. If reducing by 2x, set blur radius to 0.5. if reducing by 8x set blur radius to 2.0 etc.
   - Star 'temperature' is apparent temperature not actual star temperature, except for supplemental stars in he external.csv dataset. This apparent temperature corresponds to a Planck blackbody spectrum that is the closest fit to the Gaia rp, bp and G flux data. Despite ignoring the distortion of stellar spectra by extinction this produces amazingly accurate star colors, often indistinguishable from Hubble photographs when Airy disks are enabled and the correct simulated Hubble passband filters are selected.
   - Due to uncertainty in the parallax data of approximately 20 microarcseconds, things start to look weird as the camera is positioned more than a short distance away from the sun. This is a limitation of the source data and not any bug or problem with the rendering engine. If override parallax is enabled in mkgalaxy (by setting -p > 0), there will be a spherical shell of residual stars at 1000 / minimum\_parallax parsecs from the Sun. This is of course artificial but is better than having some stars (like LMC and SMC) much farther away from the galaxy than they really are. The sample data files were generated with a 20 microarcsecond minimum parallax enforced and a 50 kpc artifical shell of distance-limited stars.
   - ICC profiles tell an image viewer information about how the image was encoded (color space, gamma, etc.). If a viewer ignores the ICC profile it will most likely assume it was encoded with the sRGB color space and gamma. For this reason the sRGB profile is the safest and most compatible profile to use. Note that while bsrender applies the encoding gamma specified in the selected standard, it does not otherwise change the colors saved to the output image. This is because the configurable camera bandpass filters do not necessarily repersent human vision so color calibration beyond white balance is purely subjective. On a color managed viewer a wide-gamut profile like Rec. 2020 will render more highly saturated colors for the same RGB values than a narrow-gamut profile like sRGB. Some of the Hubble and the LRGB camera bandpass presets in sample-frontend.html will give natural looking colors with the sRGB profile. Presets based on the IEC 1931 standard observer RGB color matching functions (representing human vision) give natural looking colors with the Rec. 2020 profile. Of course false or oversaturated colors are sometimes desirable and overall color saturation can be adjusted with any profile.
- - When generating PNG's for use with ffmpeg to make videos, a flat 2.0 encoding gamma should be used due to a bug in ffmpeg PNG import.
+ - When generating images for use with ffmpeg to make videos, a flat 2.0 encoding gamma should be used due to the way ffmpeg handles image import.
 
 ### CGI mode
 
@@ -139,7 +136,7 @@ when cgi\_mode=yes is set in the config file html headers and png data will be o
 
 Gaia source data is pre-processed with 'gaia-edr3-extract.sh' and then 'mkgalaxy' to tranform the relevant source data feilds into the most efficient form for direct renderng. Spherical ICRS coordinates ('ra', 'dec', and r derived from 'parallax') are transformed into double precision Euclidian x,y,z coordinates. The star's linear intensity (relative to Vega at 1pc) is derived from 'phot\_G\_mean\_flux'. The apparent star color temperature is derived by finding the best match (to the closest integer Kelvin) for bp/G and/or rp/G flux ratios to a Planck spectrum integrated within the Gaia rp, bp, and G passbands. If reliable bp and rp flux are not available the color wavenumber ('nu\_eff\_used\_in\_astrometry' or 'pseudocolor') is treated as the peak wavelength of a Planck spectrum and converted into an apparent color temperature. These five derived fields (x, y, z, color\_temperature, linear\_1pc\_intensity) are encoded into binary data files for use by 'bsrender'. The Gaia source 'parralax\_over\_error' value is used to split stars into 10 data files by "parallax quality".
 
-The rendering engine 'bsrender' uses these data files to generate a PNG file (or stream in CGI mode). Extensive options for configuring rendering are provided through a configuration file 'bsrender.cfg' and most of those can also be set via CGI GET request.
+The rendering engine 'bsrender' uses these data files to generate an image file (or stream in CGI mode). Extensive options for configuring rendering are provided through a configuration file 'bsrender.cfg' and most of those can also be set via CGI GET request.
 
 Before rendering begins an rgb table is initialized using the 'camera\_wb\_temp', 'camera\_color\_saturation', and camera color channel passband options. A Planck spectrum is simulated for the white balance temperature to generate white balance factors for each color channel. Then r,g,b values (normalized to the integrated wide band flux) are calculated for each temperature between 0-32767K. Later during rendering the r,g,b values for a star's apparent temperature is multiplied by the linear star intensity (adjusted for distance) to generate the star's contribution to a pixel or Airy disk map of pixels. If Airy disks are enabled then a pre-computed map of Airy disk pixel factors is generated. The first null of the Airy disk in the green channel is scaled to match 'Airy\_disk\_first\_null'. The included Bessel function table supports an Airy\_disk\_max\_extent of 1000 pixels which is over 3000 orders of diffraction with Airy\_disk\_first\_null set to the minimum of 0.3.
 
@@ -159,7 +156,7 @@ After the image composition buffer is complete post-processing involves several 
   - Limiting maximum values to 1.0 again
   - Applying appropriate encoding gamma if an ICC profile is selected
 
-Finally, the resulting image is quantized to 8 or 16 bits per color and output to a PNG file or stream with an optional ICC profile attached. Note: other than applying encoding gamma, RGB values are not changed (rebalanced) based on a selected ICC profile. 
+Finally, the resulting image is converted to the selected image format and output to file or stream with an optional ICC profile attached. Note: other than optionally applying encoding gamma, RGB values are not changed (rebalanced) based on a selected ICC profile. 
 
 ## Data Credit
 

@@ -150,6 +150,7 @@ Skyglow:\n\
 Post-processing:\n\
      --Gaussian_blur_radius=NUM           Optional Gaussian blur with this radius in pixels\n\
      --output_scaling_factor=FLOAT        Optional output scaling using Lanczos2 interpolation\n\
+     ---Lanczos_order=NUM                 Lanczos order parameter for output scaling\n\
 \n\
 Overlays:\n\
      --draw_crosshairs=BOOL               yes = Draw small crosshairs in center of image. Note: This will not be\n\

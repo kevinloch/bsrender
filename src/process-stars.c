@@ -87,7 +87,6 @@ quaternion_t quaternion_rotate(quaternion_t rotation, quaternion_t vector) {
   // Then take the product of 'im' and 'r_1' which is the inverse of 'rotation'.
   // Quaternion math from https://danceswithcode.net/engineeringnotes/quaternions/quaternions.html
   //
-
   quaternion_t r_1;    // inverse of 'rotation'
   quaternion_t im;     // intermediate result
   quaternion_t result; // final result
@@ -318,9 +317,7 @@ int antiAliasPixel(bsr_config_t *bsr_config, bsr_state_t *bsr_state, double outp
   //
   for (spread_y=(int)top_edge; spread_y <= (int)bottom_edge; spread_y++) {
     for (spread_x=(int)left_edge; spread_x <= (int)right_edge; spread_x++) {
-      //
       // determine how much of spread pattern overlaps this output pixel
-      //
       x_overlap=0.0;
       y_overlap=0.0;
       if ((left_edge < (double)spread_x) && (right_edge > (double)(spread_x + 1)) && (top_edge < (double)spread_y) && (bottom_edge > (double)(spread_y + 1))) {
@@ -345,17 +342,13 @@ int antiAliasPixel(bsr_config_t *bsr_config, bsr_state_t *bsr_state, double outp
         }
       }
  
-      //
       // calculate output r,g,b using overlap factors and intensity per pixel
-      //
       aa_factor=bsr_state->anti_alias_per_pixel * x_overlap * y_overlap;
       output_r=aa_factor * r;
       output_g=aa_factor * g;
       output_b=aa_factor * b;
 
-      //
       // send to dedup buffer if within raster bounds
-      //
       if ((spread_x >= 0) && (spread_x < bsr_config->camera_res_x) && (spread_y >= 0) && (spread_y < bsr_config->camera_res_y)) {
         image_offset=((uint64_t)bsr_config->camera_res_x * (uint64_t)spread_y) + (uint64_t)spread_x;
         sendPixelToDedupBuffer(bsr_state, image_offset, output_r, output_g, output_b);
@@ -748,9 +741,7 @@ fflush(stdout);
               Airymap_output_y=output_y + Airymap_y;
               if ((Airymap_output_x >= 0) && (Airymap_output_x < bsr_config->camera_res_x) && (Airymap_output_y >= 0) && (Airymap_output_y < bsr_config->camera_res_y)
                 && (*Airymap_red_p > 0.0) && (*Airymap_green_p > 0.0) && (*Airymap_blue_p > 0.0)) {
-                //
                 // Airymap pixel is within image raster, send to anti-alias function or direct to dedup buffer
-                //
                 if (bsr_config->anti_alias_enable == 1) {
                   antiAliasPixel(bsr_config, bsr_state, (output_x_d + (double)Airymap_x), (output_y_d + (double)Airymap_y), r, g, b);
                 } else {
@@ -764,9 +755,7 @@ fflush(stdout);
                 Airymap_output_y=output_y + Airymap_y;
                 if ((Airymap_output_x >= 0) && (Airymap_output_x < bsr_config->camera_res_x) && (Airymap_output_y >= 0) && (Airymap_output_y < bsr_config->camera_res_y)
                   && (*Airymap_red_p > 0.0) && (*Airymap_green_p > 0.0) && (*Airymap_blue_p > 0.0)) {
-                  //
                   // Airymap pixel is within image raster, send to anti-alias function or direct to dedup buffer
-                  //
                   if (bsr_config->anti_alias_enable == 1) {
                     antiAliasPixel(bsr_config, bsr_state, (output_x_d - (double)Airymap_x), (output_y_d + (double)Airymap_y), r, g, b);
                   } else {
@@ -781,9 +770,7 @@ fflush(stdout);
                 Airymap_output_y=output_y - Airymap_y;
                 if ((Airymap_output_x >= 0) && (Airymap_output_x < bsr_config->camera_res_x) && (Airymap_output_y >= 0) && (Airymap_output_y < bsr_config->camera_res_y)
                   && (*Airymap_red_p > 0.0) && (*Airymap_green_p > 0.0) && (*Airymap_blue_p > 0.0)) {
-                  //
                   // Airymap pixel is within image raster, send to anti-alias function or direct to dedup buffer
-                  //
                   if (bsr_config->anti_alias_enable == 1) {
                     antiAliasPixel(bsr_config, bsr_state, (output_x_d + (double)Airymap_x), (output_y_d - (double)Airymap_y), r, g, b);
                   } else {
@@ -798,9 +785,7 @@ fflush(stdout);
                 Airymap_output_y=output_y - Airymap_y;
                 if ((Airymap_output_x >= 0) && (Airymap_output_x < bsr_config->camera_res_x) && (Airymap_output_y >= 0) && (Airymap_output_y < bsr_config->camera_res_y)
                   && (*Airymap_red_p > 0.0) && (*Airymap_green_p > 0.0) && (*Airymap_blue_p > 0.0)) {
-                  //
                   // Airymap pixel is within image raster, send to anti-alias function or direct to dedup buffer
-                  //
                   if (bsr_config->anti_alias_enable == 1) {
                     antiAliasPixel(bsr_config, bsr_state, (output_x_d - (double)Airymap_x), (output_y_d - (double)Airymap_y), r, g, b);
                   } else {

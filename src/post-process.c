@@ -65,7 +65,7 @@ int postProcess(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   //
   // main thread: display status message if not in CGI mode
   //
-  if ((bsr_state->perthread->my_pid == bsr_state->master_pid) && (bsr_config->cgi_mode != 1) && (bsr_config->print_status == 1)) {
+  if ((bsr_state->perthread->my_pid == bsr_state->main_pid) && (bsr_config->cgi_mode != 1) && (bsr_config->print_status == 1)) {
     clock_gettime(CLOCK_REALTIME, &starttime);
     printf("Applying camera gamma and intensity limit...");
     fflush(stdout);
@@ -86,7 +86,7 @@ int postProcess(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   // worker threads:  wait for main thread to say go
   // main thread: tell worker threads to go
   //
-  if (bsr_state->perthread->my_pid != bsr_state->master_pid) {
+  if (bsr_state->perthread->my_pid != bsr_state->main_pid) {
     waitForMainThread(bsr_state, THREAD_STATUS_POST_PROCESS_BEGIN);
   } else {
     // main thread
@@ -102,25 +102,19 @@ int postProcess(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   current_image_y=bsr_state->perthread->my_thread_id * lines_per_thread;
   current_image_p=bsr_state->current_image_buf + ((uint64_t)current_image_res_x * (uint64_t)current_image_y);
   for (image_offset=0; ((image_offset < ((uint64_t)bsr_state->current_image_res_x * (uint64_t)lines_per_thread)) && (current_image_y < current_image_res_y)); image_offset++) {
-    //
     // normalize pixel values to camera saturation reference level = 1.0
-    //
     pixel_r=current_image_p->r * inv_camera_pixel_limit;
     pixel_g=current_image_p->g * inv_camera_pixel_limit;
     pixel_b=current_image_p->b * inv_camera_pixel_limit;
 
-    //
     // optionally apply camera gamma setting
-    //
     if (bsr_config->camera_gamma != 1.0) { // this is expensive so only if not 1.0
       pixel_r=pow(pixel_r, bsr_config->camera_gamma);
       pixel_g=pow(pixel_g, bsr_config->camera_gamma);
       pixel_b=pow(pixel_b, bsr_config->camera_gamma);
     }
 
-    //
     // copy back to current image buf
-    //
     current_image_p->r=pixel_r;
     current_image_p->g=pixel_g;
     current_image_p->b=pixel_b;
@@ -138,14 +132,12 @@ int postProcess(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   // worker threads: signal this thread is done and wait until main thread says we can continue to next step.
   // main thread: wait until all other threads are done and then signal that they can continue to next step.
   //
-  if (bsr_state->perthread->my_pid != bsr_state->master_pid) {
+  if (bsr_state->perthread->my_pid != bsr_state->main_pid) {
     bsr_state->status_array[bsr_state->perthread->my_thread_id].status=THREAD_STATUS_POST_PROCESS_COMPLETE;
     waitForMainThread(bsr_state, THREAD_STATUS_POST_PROCESS_CONTINUE);
   } else {
     waitForWorkerThreads(bsr_state, THREAD_STATUS_POST_PROCESS_COMPLETE);
-    //
     // ready to continue, set all worker thread status to continue
-    //
     for (i=1; i <= bsr_state->num_worker_threads; i++) {
       bsr_state->status_array[i].status=THREAD_STATUS_POST_PROCESS_CONTINUE;
     }
@@ -154,7 +146,7 @@ int postProcess(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   //
   // main thread: output execution time if not in CGI mode
   //
-  if ((bsr_state->perthread->my_pid == bsr_state->master_pid) && (bsr_config->cgi_mode != 1) && (bsr_config->print_status == 1)) {
+  if ((bsr_state->perthread->my_pid == bsr_state->main_pid) && (bsr_config->cgi_mode != 1) && (bsr_config->print_status == 1)) {
     clock_gettime(CLOCK_REALTIME, &endtime);
     elapsed_time=((double)(endtime.tv_sec - 1500000000) + ((double)endtime.tv_nsec / 1.0E9)) - ((double)(starttime.tv_sec - 1500000000) + ((double)starttime.tv_nsec) / 1.0E9);
     printf(" (%.3fs)\n", elapsed_time);
@@ -178,7 +170,7 @@ int postProcess(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   //
   // main thread: optionally draw overlays
   //
-  if (bsr_state->perthread->my_pid == bsr_state->master_pid) {
+  if (bsr_state->perthread->my_pid == bsr_state->main_pid) {
     if (bsr_config->draw_crosshairs == 1) {
       drawCrossHairs(bsr_config, bsr_state);
     }

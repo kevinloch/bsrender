@@ -39,7 +39,7 @@
 #ifndef BSRENDER_H
 #define BSRENDER_H
 
-#define BSR_VERSION "1.0-dev-19u"
+#define BSR_VERSION "1.0-dev-19"
 
 #define BSR_32BIT_BUFFERS // use 32-bit floats in image composition, blur, and resize buffers. This reduces the size of these buffers by half which may
                           // be useful for extremely large image resolutions at the expense of summation precision within these buffers. This does not
@@ -260,8 +260,8 @@ typedef struct {
   int current_image_res_x;
   int current_image_res_y;
   int num_worker_threads;
-  pid_t master_pid;
-  pid_t master_pgid;
+  pid_t main_pid;
+  pid_t main_pgid;
   pid_t httpd_pid;
   bsr_thread_state_t *perthread; // thread-specific variables, not globally mmapped
   int per_thread_buffers;

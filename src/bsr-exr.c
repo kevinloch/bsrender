@@ -225,12 +225,12 @@ int outputEXROffsetTable(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE 
   uint64_t offset;
   unsigned char offset_buf[8];
   const int chunk_header_size=8; // 8 bytes: y coordinate + pixel_data_size
- 
   int output_y;
  
   output_res_x=bsr_state->current_image_res_x;
   output_res_y=bsr_state->current_image_res_y;
 
+  // bits per line
   if (bsr_config->bits_per_color == 8) {
     bytes_per_line=(uint64_t)(chunk_header_size + (3 * output_res_x));
   } else if (bsr_config->bits_per_color == 16) {
@@ -239,6 +239,7 @@ int outputEXROffsetTable(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE 
     bytes_per_line=(uint64_t)(chunk_header_size + (12 * output_res_x));
   }
 
+  // output entry in offset table
   offset_table_size=(uint64_t)(8 * output_res_y);
   chunk_start=(uint64_t)(header_size + offset_table_size); 
   offset=chunk_start;
@@ -257,9 +258,6 @@ int outputEXROffsetTable(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE 
 }
 
 int outputEXRChunk(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *output_file) {
-  //
-  // uncompressed data only for now, will add ZIP/ZIPS compression support later
-  //
   int output_res_x;
   int output_res_y;
   int pixel_data_size=0;
@@ -323,7 +321,7 @@ int outputEXR(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   //
   // main thread: display status update if not in CGI mode
   //
-  if ((bsr_state->perthread->my_pid == bsr_state->master_pid) && (bsr_config->cgi_mode != 1) && (bsr_config->print_status == 1)) {
+  if ((bsr_state->perthread->my_pid == bsr_state->main_pid) && (bsr_config->cgi_mode != 1) && (bsr_config->print_status == 1)) {
     clock_gettime(CLOCK_REALTIME, &starttime);
     printf("Writing %s...", bsr_config->output_file_name);
     fflush(stdout);
@@ -333,7 +331,7 @@ int outputEXR(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   // worker threads:  wait for main thread to say go
   // main thread: tell worker threads to go
   //
-  if (bsr_state->perthread->my_pid != bsr_state->master_pid) {
+  if (bsr_state->perthread->my_pid != bsr_state->main_pid) {
     waitForMainThread(bsr_state, THREAD_STATUS_IMAGE_OUTPUT_BEGIN);
   } else {
     // main thread
@@ -350,7 +348,7 @@ int outputEXR(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   //
   // main thread: output EXR image to file or stdout 
   //
-  if (bsr_state->perthread->my_pid == bsr_state->master_pid) {
+  if (bsr_state->perthread->my_pid == bsr_state->main_pid) {
     if (bsr_config->cgi_mode != 1) {
       output_file=fopen(bsr_config->output_file_name, "wb");
       if (output_file == NULL) {
@@ -360,6 +358,7 @@ int outputEXR(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
       }
     } // end if not cgi_mode
 
+    // output file components
     header_size=outputEXRHeader(bsr_config, bsr_state, output_file);
     outputEXROffsetTable(bsr_config, bsr_state, output_file, header_size);
     outputEXRChunk(bsr_config, bsr_state, output_file);
@@ -373,14 +372,12 @@ int outputEXR(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   // worker threads: signal this thread is done and wait until main thread says we can continue to next step.
   // main thread: wait until all other threads are done and then signal that they can continue to next step.
   //
-  if (bsr_state->perthread->my_pid != bsr_state->master_pid) {
+  if (bsr_state->perthread->my_pid != bsr_state->main_pid) {
     bsr_state->status_array[bsr_state->perthread->my_thread_id].status=THREAD_STATUS_IMAGE_OUTPUT_COMPLETE;
     waitForMainThread(bsr_state, THREAD_STATUS_IMAGE_OUTPUT_CONTINUE);
   } else {
     waitForWorkerThreads(bsr_state, THREAD_STATUS_IMAGE_OUTPUT_COMPLETE);
-    //
     // ready to continue, set all worker thread status to continue
-    //
     for (i=1; i <= bsr_state->num_worker_threads; i++) {
       bsr_state->status_array[i].status=THREAD_STATUS_IMAGE_OUTPUT_CONTINUE;
     }
@@ -389,7 +386,7 @@ int outputEXR(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   //
   // main thread: display status message and close output file if not CGI mode
   //
-  if ((bsr_state->perthread->my_pid == bsr_state->master_pid) && (bsr_config->cgi_mode != 1)) {
+  if ((bsr_state->perthread->my_pid == bsr_state->main_pid) && (bsr_config->cgi_mode != 1)) {
     if (bsr_config->print_status == 1) {
       clock_gettime(CLOCK_REALTIME, &endtime);
       elapsed_time=((double)(endtime.tv_sec - 1500000000) + ((double)endtime.tv_nsec / 1.0E9)) - ((double)(starttime.tv_sec - 1500000000) + ((double)starttime.tv_nsec) / 1.0E9);

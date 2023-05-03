@@ -94,7 +94,7 @@ int resizeLanczos(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   //
   // main thread: display status message if not in CGI mode
   //
-  if ((bsr_state->perthread->my_pid == bsr_state->master_pid) && (bsr_config->cgi_mode != 1) && (bsr_config->print_status == 1)) {
+  if ((bsr_state->perthread->my_pid == bsr_state->main_pid) && (bsr_config->cgi_mode != 1) && (bsr_config->print_status == 1)) {
     clock_gettime(CLOCK_REALTIME, &starttime);
     printf("Resizing image from %dx%d to %dx%d...", current_image_res_x, current_image_res_y, resize_res_x, resize_res_y);
     fflush(stdout);
@@ -104,7 +104,7 @@ int resizeLanczos(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   // worker threads:  wait for main thread to say go
   // main thread: tell worker threads to go
   //
-  if (bsr_state->perthread->my_pid != bsr_state->master_pid) {
+  if (bsr_state->perthread->my_pid != bsr_state->main_pid) {
     waitForMainThread(bsr_state, THREAD_STATUS_LANCZOS_PREP_BEGIN);
   } else {
     // main thread
@@ -148,14 +148,12 @@ int resizeLanczos(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   // worker threads: signal this thread is done and wait until main thread says we can continue to next step.
   // main thread: wait until all other threads are done and then signal that they can continue to next step.
   //
-  if (bsr_state->perthread->my_pid != bsr_state->master_pid) {
+  if (bsr_state->perthread->my_pid != bsr_state->main_pid) {
     bsr_state->status_array[bsr_state->perthread->my_thread_id].status=THREAD_STATUS_LANCZOS_PREP_COMPLETE;
     waitForMainThread(bsr_state, THREAD_STATUS_LANCZOS_RESAMPLE_BEGIN);
   } else {
     waitForWorkerThreads(bsr_state, THREAD_STATUS_LANCZOS_PREP_COMPLETE);
-    //
     // ready to continue, set all worker thread status to continue
-    //
     for (i=1; i <= bsr_state->num_worker_threads; i++) {
       bsr_state->status_array[i].status=THREAD_STATUS_LANCZOS_RESAMPLE_BEGIN;
     }
@@ -187,9 +185,7 @@ int resizeLanczos(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
     for (i_y=((int)source_y_center - Lanczos_order + 1); i_y <= ((int)source_y_center + Lanczos_order); i_y++) {
       source_y=i_y;
 
-      //
       // L_x
-      //
       L_x_r=0.0;
       L_x_g=0.0;
       L_x_b=0.0;
@@ -214,9 +210,7 @@ int resizeLanczos(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
         } // end if within composition buffer bounds
       } // end for i_x
 
-      //
       // L_y
-      //
       L_distance_y=source_y_center - (double)i_y;
       if (L_distance_y == 0.0) {
         L_y_r+=L_x_r;
@@ -232,16 +226,12 @@ int resizeLanczos(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
       } // end if L_distance_y
     } // end for i_y
 
-    //
     // undo log scaling
-    //
     L_y_r=exp(L_y_r) - BSR_RESIZE_LOG_OFFSET;
     L_y_g=exp(L_y_g) - BSR_RESIZE_LOG_OFFSET;
     L_y_b=exp(L_y_b) - BSR_RESIZE_LOG_OFFSET;
 
-    //
     // handle negative clipping, which is common
-    //
     if (L_y_r < 0.0) {
       L_y_r=0.0;
     }
@@ -252,9 +242,7 @@ int resizeLanczos(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
       L_y_b=0.0;
     }
 
-    //
     // copy to output buffer
-    //
     image_resize_p->r=L_y_r;
     image_resize_p->g=L_y_g;
     image_resize_p->b=L_y_b;
@@ -272,15 +260,13 @@ int resizeLanczos(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   // worker threads: signal this thread is done and wait until main thread says we can continue to next step.
   // main thread: wait until all other threads are done and then signal that they can continue to next step.
   //
-  if (bsr_state->perthread->my_pid != bsr_state->master_pid) {
+  if (bsr_state->perthread->my_pid != bsr_state->main_pid) {
     bsr_state->status_array[bsr_state->perthread->my_thread_id].status=THREAD_STATUS_LANCZOS_RESAMPLE_COMPLETE;
     waitForMainThread(bsr_state, THREAD_STATUS_LANCZOS_CONTINUE);
   } else {
     waitForWorkerThreads(bsr_state, THREAD_STATUS_LANCZOS_RESAMPLE_COMPLETE);
-    //
     // main thread: update current_image_buf pointer
-    //
-    if (bsr_state->perthread->my_pid == bsr_state->master_pid) {
+    if (bsr_state->perthread->my_pid == bsr_state->main_pid) {
       bsr_state->current_image_buf=bsr_state->image_resize_buf;
       bsr_state->current_image_res_x=resize_res_x;
       bsr_state->current_image_res_y=resize_res_y;
@@ -293,7 +279,7 @@ int resizeLanczos(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   //
   // main thread: output execution time if not in CGI mode
   //
-  if (bsr_state->perthread->my_pid == bsr_state->master_pid) {
+  if (bsr_state->perthread->my_pid == bsr_state->main_pid) {
     if ((bsr_config->cgi_mode != 1) && (bsr_config->print_status == 1)) {
       clock_gettime(CLOCK_REALTIME, &endtime);
       elapsed_time=((double)(endtime.tv_sec - 1500000000) + ((double)endtime.tv_nsec / 1.0E9)) - ((double)(starttime.tv_sec - 1500000000) + ((double)starttime.tv_nsec) / 1.0E9);

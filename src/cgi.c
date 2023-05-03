@@ -78,9 +78,7 @@ int sanitizeQueryString(char *query_string_2048) {
   //
   sanitized_len=0;
   for (i=0; i < tmpstr_len; i++) {
-    //
     // check for and convert hex encoded characters (common in CGI QUERY_STRING)
-    //
     if ((tmpstr[i] == 37) && (i <= (tmpstr_len - 4))) {
       hextmp[0]=tmpstr[i+1];
       hextmp[1]=tmpstr[i+2];
@@ -91,9 +89,7 @@ int sanitizeQueryString(char *query_string_2048) {
       tmpchar=tmpstr[i];
     }
 
-    //
     // check if tmpchar is a valid symbol and copy back to query_string_2048
-    //
     if (strchr("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.-+&=_", tmpchar) == NULL) {
       query_string_2048[sanitized_len]=32; // convert invalid character to space
     } else {

@@ -188,13 +188,13 @@ int main(int argc, char **argv) {
   //
   // fork worker threads
   //
-  bsr_state->master_pid=getpid();
-  bsr_state->master_pgid=getpgrp();
+  bsr_state->main_pid=getpid();
+  bsr_state->main_pgid=getpgrp();
   bsr_state->httpd_pid=getppid();
   if (bsr_state->num_worker_threads > 0) {
     for (i=1; i <= bsr_state->num_worker_threads; i++) {
       bsr_state->perthread->my_pid=getpid();
-      if (bsr_state->perthread->my_pid == bsr_state->master_pid) {
+      if (bsr_state->perthread->my_pid == bsr_state->main_pid) {
         bsr_state->perthread->my_thread_id=i; // this gets inherited by forked process
         bsr_state->status_array[i].status=THREAD_STATUS_INVALID;
         fork();
@@ -203,7 +203,7 @@ int main(int argc, char **argv) {
   }
   bsr_state->perthread->my_pid=getpid();
   bsr_state->status_array[bsr_state->perthread->my_thread_id].pid=bsr_state->perthread->my_pid;
-  if (bsr_state->perthread->my_pid == bsr_state->master_pid) {
+  if (bsr_state->perthread->my_pid == bsr_state->main_pid) {
     bsr_state->perthread->my_thread_id=0;
   }
 
@@ -226,7 +226,7 @@ int main(int argc, char **argv) {
   //
   // main thread: display begin rendering status if not in CGI mode
   //
-  if ((bsr_state->perthread->my_pid == bsr_state->master_pid) && (bsr_config.cgi_mode != 1) && (bsr_config.print_status == 1)) {
+  if ((bsr_state->perthread->my_pid == bsr_state->main_pid) && (bsr_config.cgi_mode != 1) && (bsr_config.print_status == 1)) {
     clock_gettime(CLOCK_REALTIME, &starttime);
     printf("Rendering stars to image composition buffer...");
     fflush(stdout);
@@ -236,7 +236,7 @@ int main(int argc, char **argv) {
   // worker threads:  wait for main thread to say go
   // main thread: tell worker threads to go
   //
-  if (bsr_state->perthread->my_pid != bsr_state->master_pid) {
+  if (bsr_state->perthread->my_pid != bsr_state->main_pid) {
     waitForMainThread(bsr_state, THREAD_STATUS_PROCESS_STARS_BEGIN);
   } else {
     // main thread
@@ -248,7 +248,7 @@ int main(int argc, char **argv) {
   //
   // worker threads: process stars from binary data files
   //
-  if (bsr_state->perthread->my_pid != bsr_state->master_pid) {
+  if (bsr_state->perthread->my_pid != bsr_state->main_pid) {
     //
     // worker threads: set main thread buffer postion to the beginning of this threads block
     //
@@ -340,16 +340,12 @@ int main(int argc, char **argv) {
       } 
     } // end while not done
 
-    //
     // main thread: tell worker threads it's ok to continue
-    //
     for (i=1; i <= bsr_state->num_worker_threads; i++) {
       bsr_state->status_array[i].status=THREAD_STATUS_PROCESS_STARS_CONTINUE;
     }
 
-    //
     // main thread: report rendering time if not in CGI mode
-    //
     if ((bsr_config.cgi_mode != 1) && (bsr_config.print_status == 1)) {
       clock_gettime(CLOCK_REALTIME, &endtime);
       elapsed_time=((double)(endtime.tv_sec - 1500000000) + ((double)endtime.tv_nsec / 1.0E9)) - ((double)(starttime.tv_sec - 1500000000) + ((double)starttime.tv_nsec) / 1.0E9);
@@ -372,7 +368,7 @@ int main(int argc, char **argv) {
   //
   // all threads: output image file
   //
-  if ((bsr_config.image_format == 0) && (bsr_state->perthread->my_pid == bsr_state->master_pid)) { // PNG encoder not yet multi-threadded
+  if ((bsr_config.image_format == 0) && (bsr_state->perthread->my_pid == bsr_state->main_pid)) { // PNG encoder not yet multi-threadded
     outputPNG(&bsr_config, bsr_state);
   } else if (bsr_config.image_format == 1) {
     outputEXR(&bsr_config, bsr_state);
@@ -381,15 +377,11 @@ int main(int argc, char **argv) {
   //
   // main thread: cleanup
   //
-  if (bsr_state->perthread->my_pid == bsr_state->master_pid) {
-    //
+  if (bsr_state->perthread->my_pid == bsr_state->main_pid) {
     // main thread: clean up memory allocations
-    //
     freeMemory(bsr_state);
 
-    //
     // main thread: output total runtime
-    //
     if ((bsr_config.cgi_mode != 1) && (bsr_config.print_status == 1)) {
       clock_gettime(CLOCK_REALTIME, &overall_endtime);
       elapsed_time=((double)(overall_endtime.tv_sec - 1500000000) + ((double)overall_endtime.tv_nsec / 1.0E9)) - ((double)(overall_starttime.tv_sec - 1500000000) + ((double)overall_starttime.tv_nsec) / 1.0E9);
