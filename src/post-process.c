@@ -114,6 +114,15 @@ int postProcess(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
       pixel_b=pow(pixel_b, bsr_config->camera_gamma);
     }
 
+    // optionally pre-limit intensity before blur/resize
+    if (bsr_config->pre_limit_intensity == 1) {
+      if (bsr_config->camera_pixel_limit_mode == 0) {
+        limitIntensity(bsr_config, &pixel_r, &pixel_g, &pixel_b);
+      } else if (bsr_config->camera_pixel_limit_mode == 1) {
+        limitIntensityPreserveColor(bsr_config, &pixel_r, &pixel_g, &pixel_b);
+      }
+    }
+
     // copy back to current image buf
     current_image_p->r=pixel_r;
     current_image_p->g=pixel_g;

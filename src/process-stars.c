@@ -443,11 +443,6 @@ int processStars(bsr_config_t *bsr_config, bsr_state_t *bsr_state, input_file_t 
     input_records_per_thread=1;
   }
 
-/*
-printf("my_thread_id: %d, total_input_records: %lld, input_records_per_thread: %lld\n", my_thread_id, total_input_records, input_records_per_thread);
-fflush(stdout);
-*/
-
   //
   // process each line of input file
   // 
@@ -459,11 +454,6 @@ fflush(stdout);
 
   // skip to beginning of this thread's section of input file
   input_file_p+=((uint64_t)star_record_size * (uint64_t)input_record_abs);
-
-/*
-  printf("thread_id: %d, begin, input_record_abs: %lld, input_file_p: %lu\n", my_thread_id, input_record_abs, input_file_p);
-  fflush(stdout);
-*/
 
   // process each star record
   for (input_record_rel=0; ((input_record_rel < input_records_per_thread) && (input_record_abs < total_input_records)); input_record_rel++) {
@@ -825,11 +815,6 @@ fflush(stdout);
   if (bsr_state->perthread->dedup_count > 0) {
     sendDedupBufferToMainThread(bsr_state);
   } // end if dedup buffer has remaining entries
-
-/*
-  printf("thread_id: %d, end, input_record_abs: %lld, input_record_rel: %lld\n", my_thread_id, input_record_abs, input_record_rel);
-  fflush(stdout);
-*/
 
   return(0);
 }

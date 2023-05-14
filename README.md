@@ -11,7 +11,7 @@ Sample binary data files|[bsrender.io/sample_data/1.0-dev/](https://bsrender.io/
 
 ## Key features
 
-  - Generate image in PNG or OpenEXR format. OpenEXR floating-point formats support HDR (pixel values > 1.0)
+  - Generate image in PNG or OpenEXR format. OpenEXR floating-point formats support HDR display on some devices/applications
   - 3D translations/rotations of camera position/aiming using ICRS equitorial or Euclidian coordinates. Camera can be placed anywhere in the Universe
   - Customizable camera resolution, field of view, sensitivity, white balance, color saturation, and gamma
   - Several raster projection modes are supported: lat/lon (equirectangular), Spherical (forward hemisphere centered), Spherical (front/rear hemispheres), Hammer, Mollewide
@@ -36,7 +36,7 @@ Using the full Gaia dataset with 1.4B stars requires at least 64GB of ram to run
 
 ## Installation
 
-This program is written in C and requires gcc, GNU make, and libpng-static to compile. On Linux or Mac w/Xcode, go to the 'src' directory and type:
+This program is written in C and requires gcc, GNU make, libpng-static, and zlib-static to compile. On Linux or Mac w/Xcode, go to the 'src' directory and type:
 
     make
 

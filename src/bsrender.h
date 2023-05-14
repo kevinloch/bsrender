@@ -39,7 +39,7 @@
 #ifndef BSRENDER_H
 #define BSRENDER_H
 
-#define BSR_VERSION "1.0-dev-19"
+#define BSR_VERSION "1.0-dev-20"
 
 #define BSR_32BIT_BUFFERS // use 32-bit floats in image composition, blur, and resize buffers. This reduces the size of these buffers by half which may
                           // be useful for extremely large image resolutions at the expense of summation precision within these buffers. This does not
@@ -150,9 +150,11 @@ typedef enum {
   THREAD_STATUS_SEQUENCE_PIXELS_BEGIN             = 70,
   THREAD_STATUS_SEQUENCE_PIXELS_COMPLETE          = 71,
   THREAD_STATUS_SEQUENCE_PIXELS_CONTINUE          = 72,
-  THREAD_STATUS_IMAGE_OUTPUT_BEGIN                = 80,
-  THREAD_STATUS_IMAGE_OUTPUT_COMPLETE             = 81,
-  THREAD_STATUS_IMAGE_OUTPUT_CONTINUE             = 82,
+  THREAD_STATUS_IMAGE_COMPRESS_BEGIN              = 80,
+  THREAD_STATUS_IMAGE_COMPRESS_COMPLETE           = 81,
+  THREAD_STATUS_IMAGE_OUTPUT_BEGIN                = 82,
+  THREAD_STATUS_IMAGE_OUTPUT_COMPLETE             = 83,
+  THREAD_STATUS_IMAGE_OUTPUT_CONTINUE             = 84,
 } bsr_thread_status_t;
 
 typedef struct {
@@ -238,10 +240,13 @@ typedef struct {
   pixel_composition_t *image_composition_buf; // updated by all threads, globally mmaped
   unsigned char *image_output_buf;            // updated by all threads, globally mmaped
   unsigned char **row_pointers;               // updated by all threads, globally mmaped
+  int *compressed_sizes;                      // updated by all threads, globally mmaped
   pixel_composition_t *image_blur_buf;        // updated by all threads, globally mmaped
   pixel_composition_t *image_resize_buf;      // updated by all threads, globally mmaped
   dedup_buffer_t *dedup_buf;        // thread-specific buffer, malloc'ed so each thread get's it's own local buffer when fork()'ed
   dedup_index_t *dedup_index;       // thread-specific buffer, malloc'ed so each thread get's it's own local buffer when fork()'ed
+  unsigned char *compression_buf1;  // thread-specific buffer, malloc'ed so each thread get's it's own local buffer when fork()'ed
+  unsigned char *compression_buf2;  // thread-specific buffer, malloc'ed so each thread get's it's own local buffer when fork()'ed
   input_file_t input_file_external;
   input_file_t input_file_pq100;
   input_file_t input_file_pq050;
@@ -288,12 +293,14 @@ typedef struct {
   size_t composition_buffer_size;
   size_t output_buffer_size;
   size_t row_pointers_size;
+  size_t compressed_sizes_size;
   size_t blur_buffer_size;
   size_t resize_buffer_size;
   size_t thread_buffer_size;
   size_t status_array_size;
   size_t dedup_buffer_size;
   size_t dedup_index_size;
+  size_t compression_buf_size;
   size_t Airymap_size;
   size_t bsr_state_size;
 } bsr_state_t;
@@ -367,12 +374,14 @@ typedef struct {
   int skyglow_enable;
   double skyglow_temp;
   double skyglow_per_pixel_mag;
+  int pre_limit_intensity;
   double Gaussian_blur_radius;
   double output_scaling_factor;
   int Lanczos_order;
   int draw_crosshairs;
   int draw_grid_lines;
   int output_format;
+  int exr_compression;
   int image_format;
   int icc_profile;
   int bits_per_color;

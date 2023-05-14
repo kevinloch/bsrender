@@ -47,7 +47,7 @@ int sequencePixels(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   // This function takes pixel data from the current_image_buf after image generation and post processing
   // and converts it into the specific unsigned char sequence required by an image output format.
   // Image formats use a variety of number formats (integer/floating-point), encoding gamma, bit depth, color
-  // channel order, and endianness. The result is stored in image_output_buf and row_pointers.
+  // channel order, and endianness.
   //
   struct timespec starttime;
   struct timespec endtime;
@@ -119,7 +119,7 @@ int sequencePixels(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
 
   //
   // all threads: convert current_image_buf to unsigned char byte sequence and store
-  // in image_output_buf. Also update row_pointers
+  // in image_output_buf. Also update row_pointers if PNG image format
   //
   if (bsr_config->bits_per_color == 8) {
     bytes_per_color=1;
@@ -141,7 +141,8 @@ int sequencePixels(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
     image_output_R_p=image_output_p + (2ll * (uint64_t)bytes_per_color * (uint64_t)output_res_x);
   }
   current_image_p=bsr_state->current_image_buf + ((uint64_t)output_res_x * (uint64_t)output_y);
-  if (output_y < output_res_y) {
+  // only update row_pointers if PNG output format
+  if ((bsr_config->image_format == 0) && (output_y < output_res_y)) {
     bsr_state->row_pointers[output_y]=image_output_p;
   }
   for (image_offset=0; ((image_offset < ((uint64_t)output_res_x * (uint64_t)lines_per_thread)) && (output_y < output_res_y)); image_offset++) {
@@ -259,17 +260,19 @@ int sequencePixels(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
     } // end if image_format
 
     //
-    // set new row pointer if we have reached end of row
+    // if we have reached end of row, update x,y and image format specific variables
     //
     output_x++;
     if (output_x == output_res_x) {
       output_x=0;
       output_y++;
-      if (((image_offset + (uint64_t)1) < ((uint64_t)output_res_x * (uint64_t)lines_per_thread)) && (output_y < output_res_y)) {
-        bsr_state->row_pointers[output_y]=image_output_p;
-      }
-      if (bsr_config->image_format == 1) {
-        // update EXR output pointers
+      if (bsr_config->image_format == 0) {
+        // PNG, update row_pointers
+        if (((image_offset + (uint64_t)1) < ((uint64_t)output_res_x * (uint64_t)lines_per_thread)) && (output_y < output_res_y)) {
+          bsr_state->row_pointers[output_y]=image_output_p;
+        }
+      } else if (bsr_config->image_format == 1) {
+        // EXR, update local channel pointers
         image_output_B_p=image_output_p;
         image_output_G_p=image_output_p + ((uint64_t)bytes_per_color * (uint64_t)output_res_x);
         image_output_R_p=image_output_p + (2ll * (uint64_t)bytes_per_color * (uint64_t)output_res_x);

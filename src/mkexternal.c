@@ -236,11 +236,6 @@ int main(int argc, char **argv) {
   output_count=0;
   input_line_p=fgets(input_line, 256, input_file);
   while (input_line_p != NULL) {
-
-/*
-    printf("input_line: %s", input_line_p);
-    fflush(stdout);
-*/
     //
     // ra,dec,distance,apparent_magnitude,undimmed_magnitude,apparent_temperature,unreddened_temperature,common_name,notes
     //

@@ -43,24 +43,55 @@
 #include <time.h>
 
 int freeMemory(bsr_state_t *bsr_state) {
-  munmap(bsr_state->image_composition_buf, bsr_state->composition_buffer_size);
+  if (bsr_state->image_composition_buf != NULL) {
+    munmap(bsr_state->image_composition_buf, bsr_state->composition_buffer_size);
+  }
   if (bsr_state->image_blur_buf != NULL) {
     munmap(bsr_state->image_blur_buf, bsr_state->blur_buffer_size);
   }
   if (bsr_state->image_resize_buf != NULL) {
     munmap(bsr_state->image_resize_buf, bsr_state->resize_buffer_size);
   }
-  munmap(bsr_state->thread_buf, bsr_state->thread_buffer_size);
-  munmap(bsr_state->status_array, bsr_state->status_array_size);
-  munmap(bsr_state->Airymap_red, bsr_state->Airymap_size);
-  munmap(bsr_state->Airymap_green, bsr_state->Airymap_size);
-  munmap(bsr_state->Airymap_blue, bsr_state->Airymap_size);
-  free(bsr_state->dedup_buf);
-  free(bsr_state->dedup_index);
-  munmap(bsr_state->image_output_buf, bsr_state->output_buffer_size);
-  munmap(bsr_state->row_pointers, bsr_state->row_pointers_size);
-  munmap(bsr_state, bsr_state->bsr_state_size);
-
+  if (bsr_state->thread_buf != NULL) {
+    munmap(bsr_state->thread_buf, bsr_state->thread_buffer_size);
+  }
+  if (bsr_state->status_array != NULL) {
+    munmap(bsr_state->status_array, bsr_state->status_array_size);
+  }
+  if (bsr_state->Airymap_red != NULL) {
+    munmap(bsr_state->Airymap_red, bsr_state->Airymap_size);
+  }
+  if (bsr_state->Airymap_green != NULL) {
+    munmap(bsr_state->Airymap_green, bsr_state->Airymap_size);
+  }
+  if (bsr_state->Airymap_blue != NULL) {
+    munmap(bsr_state->Airymap_blue, bsr_state->Airymap_size);
+  }
+  if (bsr_state->dedup_buf != NULL) {
+    free(bsr_state->dedup_buf);
+  }
+  if (bsr_state->dedup_index != NULL) {
+    free(bsr_state->dedup_index);
+  }
+  if (bsr_state->image_output_buf != NULL) {
+    munmap(bsr_state->image_output_buf, bsr_state->output_buffer_size);
+  }
+  if (bsr_state->row_pointers != NULL) {
+    munmap(bsr_state->row_pointers, bsr_state->row_pointers_size);
+  }
+  if (bsr_state->compressed_sizes != NULL) {
+    munmap(bsr_state->compressed_sizes, bsr_state->compressed_sizes_size);
+  }
+  if (bsr_state->compression_buf1 != NULL) {
+    free(bsr_state->compression_buf1);
+  }
+  if (bsr_state->compression_buf2 != NULL) {
+    free(bsr_state->compression_buf2);
+  }
+  // must be freed last
+  if (bsr_state != NULL) {
+    munmap(bsr_state, bsr_state->bsr_state_size);
+  }
   return(0);
 }
 
@@ -78,6 +109,8 @@ int allocateMemory(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   thread_buffer_t *main_thread_buf_p;
   int output_res_x;
   int output_res_y;
+  int lines_per_block=0;
+  int pixel_data_size=0;
 
   //
   // allocate shared memory for Airy disk maps if Airy disk mode enabled
@@ -86,7 +119,7 @@ int allocateMemory(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
     mmap_protection=PROT_READ | PROT_WRITE;
     mmap_visibility=MAP_SHARED | MAP_ANONYMOUS;
     Airymap_width=bsr_config->Airy_disk_max_extent + 1;
-    bsr_state->Airymap_size=Airymap_width * Airymap_width * sizeof(double);
+    bsr_state->Airymap_size=(size_t)Airymap_width * (size_t)Airymap_width * sizeof(double);
     bsr_state->Airymap_red=(double *)mmap(NULL, bsr_state->Airymap_size, mmap_protection, mmap_visibility, -1, 0);
     bsr_state->Airymap_green=(double *)mmap(NULL, bsr_state->Airymap_size, mmap_protection, mmap_visibility, -1, 0);
     bsr_state->Airymap_blue=(double *)mmap(NULL, bsr_state->Airymap_size, mmap_protection, mmap_visibility, -1, 0);
@@ -153,11 +186,11 @@ int allocateMemory(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
     printf("Initializing dedup buffers and indexes...");
     fflush(stdout);
   }
-  bsr_state->dedup_buffer_size=bsr_state->per_thread_buffers * sizeof(dedup_buffer_t);
+  bsr_state->dedup_buffer_size=(size_t)bsr_state->per_thread_buffers * sizeof(dedup_buffer_t);
   bsr_state->dedup_buf=(dedup_buffer_t *)malloc(bsr_state->dedup_buffer_size);
   if (bsr_state->dedup_buf == NULL) {
     if (bsr_config->cgi_mode != 1) {
-      printf("Error: could not allocate shared memory for dedup buffer\n");
+      printf("Error: could not allocate memory for dedup buffer\n");
     }
     exit(1);
   }
@@ -178,11 +211,11 @@ int allocateMemory(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   if ((uint64_t)bsr_config->camera_res_x * (uint64_t)bsr_config->camera_res_y <= 16777216) {
     bsr_state->dedup_index_mode=0; // use image_offset for dedup index
     dedup_index_count=bsr_config->camera_res_x * bsr_config->camera_res_y;
-    bsr_state->dedup_index_size=dedup_index_count * sizeof(dedup_index_t);
+    bsr_state->dedup_index_size=(size_t)dedup_index_count * sizeof(dedup_index_t);
   } else {
     bsr_state->dedup_index_mode=1; // use lowest 24 bits of image_offset for dedup index
     dedup_index_count=0xffffff;
-    bsr_state->dedup_index_size=dedup_index_count * sizeof(dedup_index_t);
+    bsr_state->dedup_index_size=(size_t)dedup_index_count * sizeof(dedup_index_t);
   }
   bsr_state->dedup_index=(dedup_index_t *)malloc(bsr_state->dedup_index_size);
   if (bsr_state->dedup_index == NULL) {
@@ -216,7 +249,7 @@ int allocateMemory(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
     bsr_state->per_thread_buffers=1;
   }
   bsr_state->thread_buffer_count=bsr_state->num_worker_threads * bsr_state->per_thread_buffers;
-  bsr_state->thread_buffer_size=bsr_state->thread_buffer_count * sizeof(thread_buffer_t);
+  bsr_state->thread_buffer_size=(size_t)bsr_state->thread_buffer_count * sizeof(thread_buffer_t);
   bsr_state->thread_buf=(thread_buffer_t *)mmap(NULL, bsr_state->thread_buffer_size, mmap_protection, mmap_visibility, -1, 0);
   if (bsr_state->thread_buf == MAP_FAILED) {
     if (bsr_config->cgi_mode != 1) {
@@ -232,7 +265,7 @@ int allocateMemory(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
     main_thread_buf_p++;
   }
   // allocate shared memory for thread status array
-  bsr_state->status_array_size=(bsr_state->num_worker_threads + 1) * sizeof(bsr_status_t);
+  bsr_state->status_array_size=(size_t)(bsr_state->num_worker_threads + 1) * sizeof(bsr_status_t);
   bsr_state->status_array=(bsr_status_t *)mmap(NULL, bsr_state->status_array_size, mmap_protection, mmap_visibility, -1, 0);
   if (bsr_state->status_array == MAP_FAILED) {
     if (bsr_config->cgi_mode != 1) {
@@ -248,7 +281,7 @@ int allocateMemory(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   }
 
   //
-  // allocate memory for image output buffer
+  // allocate shared memory for image output buffer
   //
   if (bsr_config->output_scaling_factor != 1.0) {
     output_res_x=bsr_state->resize_res_x;
@@ -260,35 +293,86 @@ int allocateMemory(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   mmap_protection=PROT_READ | PROT_WRITE;
   mmap_visibility=MAP_SHARED | MAP_ANONYMOUS;
   if (bsr_config->bits_per_color == 32) {
-    bsr_state->output_buffer_size=(uint64_t)output_res_x * (uint64_t)output_res_y * (uint64_t)12 * sizeof(unsigned char);
+    bsr_state->output_buffer_size=(size_t)output_res_x * (size_t)output_res_y * (size_t)12 * sizeof(unsigned char);
   } else if (bsr_config->bits_per_color == 16) {
-    bsr_state->output_buffer_size=(uint64_t)output_res_x * (uint64_t)output_res_y * (uint64_t)6 * sizeof(unsigned char);
+    bsr_state->output_buffer_size=(size_t)output_res_x * (size_t)output_res_y * (size_t)6 * sizeof(unsigned char);
   } else { // default 8 bits per color
-    bsr_state->output_buffer_size=(uint64_t)output_res_x * (uint64_t)output_res_y * (uint64_t)3 * sizeof(unsigned char);
+    bsr_state->output_buffer_size=(size_t)output_res_x * (size_t)output_res_y * (size_t)3 * sizeof(unsigned char);
   }
   bsr_state->image_output_buf=(unsigned char *)mmap(NULL, bsr_state->output_buffer_size, mmap_protection, mmap_visibility, -1, 0);
   if (bsr_state->image_output_buf == MAP_FAILED) {
     if (bsr_config->cgi_mode != 1) {
-      printf("Error: could not allocate memory for image output buffer\n");
+      printf("Error: could not allocate shared memory for image output buffer\n");
       fflush(stdout);
     }
     exit(1);
   }
 
   //
-  // allocate memory for row_pointers
+  // allocate shared memory for row_pointers if required
   //
-  mmap_protection=PROT_READ | PROT_WRITE;
-  mmap_visibility=MAP_SHARED | MAP_ANONYMOUS;
-  bsr_state->row_pointers_size=(output_res_y * sizeof(unsigned char *));
-  bsr_state->row_pointers=(unsigned char **)mmap(NULL, bsr_state->row_pointers_size, mmap_protection, mmap_visibility, -1, 0);
-  if (bsr_state->row_pointers == MAP_FAILED) {
-    if (bsr_config->cgi_mode != 1) {
-      printf("Error: could not allocate memory for libpng row_pointers\n");
-      fflush(stdout);
+  if ((bsr_config->output_format == 0) || (bsr_config->output_format == 1)) {
+    mmap_protection=PROT_READ | PROT_WRITE;
+    mmap_visibility=MAP_SHARED | MAP_ANONYMOUS;
+    bsr_state->row_pointers_size=(size_t)output_res_y * sizeof(unsigned char *);
+    bsr_state->row_pointers=(unsigned char **)mmap(NULL, bsr_state->row_pointers_size, mmap_protection, mmap_visibility, -1, 0);
+    if (bsr_state->row_pointers == MAP_FAILED) {
+      if (bsr_config->cgi_mode != 1) {
+        printf("Error: could not allocate shared memory for libpng row_pointers\n");
+        fflush(stdout);
+      }
+      exit(1);
     }
-    exit(1);
   }
+
+  //
+  // allocate shared memory for image compression if required
+  //
+  if ((bsr_config->exr_compression == 2) || (bsr_config->exr_compression == 3)) {
+    // allocate shared memory for compressed_sizes table
+    mmap_protection=PROT_READ | PROT_WRITE;
+    mmap_visibility=MAP_SHARED | MAP_ANONYMOUS;
+    bsr_state->compressed_sizes_size=(size_t)output_res_y * sizeof(int);
+    bsr_state->compressed_sizes=(int *)mmap(NULL, bsr_state->compressed_sizes_size, mmap_protection, mmap_visibility, -1, 0);
+    if (bsr_state->row_pointers == MAP_FAILED) {
+      if (bsr_config->cgi_mode != 1) {
+        printf("Error: could not allocate shared memory for compressed_sizes array\n");
+        fflush(stdout);
+      }
+      exit(1);
+    }
+
+    // allocate non-shared memory for compression_buf1 and 2
+    if (bsr_config->exr_compression == 2) {
+      // deflate, 1 line per block
+      lines_per_block=1;
+    } else if (bsr_config->exr_compression == 3) {
+      // deflate, 16 line per block
+      lines_per_block=16;
+    }
+    if (bsr_config->bits_per_color == 16) {
+      pixel_data_size=6 * output_res_x * lines_per_block;
+    } else if (bsr_config->bits_per_color == 32) {
+      pixel_data_size=12 * output_res_x * lines_per_block;
+    }
+    // allocate non-shared memory for compression_buf1
+    bsr_state->compression_buf_size=(size_t)pixel_data_size * sizeof(unsigned char);
+    bsr_state->compression_buf1=(unsigned char *)malloc(bsr_state->compression_buf_size);
+    if (bsr_state->compression_buf1 == NULL) {
+      if (bsr_config->cgi_mode != 1) {
+        printf("Error: could not allocate memory for compression buffer 1\n");
+      }
+      exit(1);
+    }
+    // allocate non-shared memory for compression_buf2
+    bsr_state->compression_buf2=(unsigned char *)malloc(bsr_state->compression_buf_size);
+    if (bsr_state->compression_buf2== NULL) {
+      if (bsr_config->cgi_mode != 1) {
+        printf("Error: could not allocate memory for compression buffer 2\n");
+      }
+      exit(1);
+    }
+  } // end if exr_compression
 
   return(0);
 }
