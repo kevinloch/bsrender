@@ -162,13 +162,21 @@
         if (tmpvalue != null) {
           settings_form.output_format.value = tmpvalue;
         }
+        tmpvalue = search.get("compression_quality");
+        if (tmpvalue != null) {
+          settings_form.compression_quality.value = tmpvalue;
+        }
         tmpvalue = search.get("exr_compression");
         if (tmpvalue != null) {
           settings_form.exr_compression.value = tmpvalue;
         }
-        tmpvalue = search.get("icc_profile");
+        tmpvalue = search.get("color_profile");
         if (tmpvalue != null) {
-          settings_form.icc_profile.value = tmpvalue;
+          settings_form.color_profile.value = tmpvalue;
+        }
+        tmpvalue = search.get("hdr_neutral_white_ref");
+        if (tmpvalue != null) {
+          settings_form.hdr_neutral_white_ref.value = tmpvalue;
         }
         tmpvalue = search.get("camera_res_x");
         if (tmpvalue != null) {
@@ -346,8 +354,10 @@ Gaussian_blur_radius=${settings_form.Gaussian_blur_radius.value}&\
 output_scaling_factor=${settings_form.output_scaling_factor.value}&\
 Lanczos_order=${settings_form.Lanczos_order.value}&\
 output_format=${settings_form.output_format.value}&\
+compression_quality=${settings_form.compression_quality.value}&\
 exr_compression=${settings_form.exr_compression.value}&\
-icc_profile=${settings_form.icc_profile.value}&\
+color_profile=${settings_form.color_profile.value}&\
+hdr_neutral_white_ref=${settings_form.hdr_neutral_white_ref.value}&\
 camera_res_x=${settings_form.camera_res_x.value}&\
 camera_res_y=${settings_form.camera_res_y.value}&\
 camera_fov=${settings_form.camera_fov.value}&\
@@ -366,10 +376,13 @@ Airy_disk_min_extent=${settings_form.Airy_disk_min_extent.value}&\
 Airy_disk_obstruction=${settings_form.Airy_disk_obstruction.value}&\
 anti_alias_enable=${settings_form.anti_alias_enable.value}&\
 anti_alias_radius=${settings_form.anti_alias_radius.value}&\
+red_filter_preset=${settings_form.red_filter_preset.value}&\
 red_filter_long_limit=${settings_form.red_filter_long_limit.value}&\
 red_filter_short_limit=${settings_form.red_filter_short_limit.value}&\
+green_filter_preset=${settings_form.green_filter_preset.value}&\
 green_filter_long_limit=${settings_form.green_filter_long_limit.value}&\
 green_filter_short_limit=${settings_form.green_filter_short_limit.value}&\
+blue_filter_preset=${settings_form.blue_filter_preset.value}&\
 blue_filter_long_limit=${settings_form.blue_filter_long_limit.value}&\
 blue_filter_short_limit=${settings_form.blue_filter_short_limit.value}&\
 camera_icrs_ra=${navigation_form.camera_icrs_ra.value}&\
@@ -402,7 +415,7 @@ camera_tilt=${navigation_form.camera_tilt.value}`;
         document.getElementById("render_image").src = blank;
         let src = `${settings_form.rendering_server.value}${settings_str}`;
         document.getElementById("render_image").onerror = null;
-        if (settings_form.output_format.value < 2) {
+        if (settings_form.output_format.value != 2) {
           setStatus(loading_text);
           document.getElementById("render_image").src = src;
           document.getElementById("render_image").onload = function(remove_loading_text) {
@@ -863,7 +876,7 @@ camera_tilt=${navigation_form.camera_tilt.value}`;
             <legend>About</legend>
             <div id="centered">
               Sample web interface for
-              <h2><a href="https://github.com/kevinloch/bsrender">bsrender</a> 1.0-dev-20</h2>
+              <h2><a href="https://github.com/kevinloch/bsrender">bsrender</a> 1.0-dev-21f</h2>
               using data from <a href="https://www.cosmos.esa.int/web/gaia/dr3">Gaia DR3</a>
               <br>and supplemental <a href="https://bsrender.io/sample_data/1.0-dev/external.csv">bright stars</a>
             </div>
@@ -969,7 +982,7 @@ s_url" size=30 value=""></td></tr>
             <select name="camera_pixel_limit_mode" id="camera_pixel_limit_mode">
               <option value="-1" selected>default</option>
               <option value="0">saturate to white</option>
-              <option value="1">Preserve color</option>
+              <option value="1">preserve color</option>
               <option value="2">none (fp only)</option>
             </select>
             <br><label for "camera_wb_enable">Enable white balance</label>
@@ -1142,7 +1155,7 @@ s_url" size=30 value=""></td></tr>
               <em>Recommended blur is 1 / (4 * scaling) when downscaling</em>
             </div>
             <br><legend>Post-processing</legend>
-            <label for "pre_limit_intensity">Pre-limit intensity</label>
+            <label for "pre_limit_intensity">Pre-limit intensity*</label>
             <select name="pre_limit_intensity" id="pre_limit_intensity">
               <option value="no">no</option>
               <option value="yes" selected>yes</option>
@@ -1154,6 +1167,10 @@ s_url" size=30 value=""></td></tr>
             <input type="text" name="output_scaling_factor" id="output_scaling_factor" size="12" value="1.0">
             <br><label for="Lanczos_order">Lanczos order</label>
             <input type="text" name="Lanczos_order" id="Lanczos_order" size="12" value="3"> <em>2 - 10</em>
+            <div id="centered">
+              <br><em>*pre_limit_intensity is disabled automatically
+              <br>when an HDR color profile is selected</em>
+            </div>
           </fieldset>
           <fieldset>
             <legend>Overlays</legend>
@@ -1172,37 +1189,43 @@ s_url" size=30 value=""></td></tr>
             <legend>Output</legend>
             <label for "output_format">Output format</label>
             <select name="output_format" id="output_format">
-              <option value="0" selected>PNG 8-bit integer</option>
+              <option value="5" selected>JPG 8-bit integer</option>
+              <option value="0">PNG 8-bit integer</option>
               <option value="1">PNG 16-bit integer</option>
+              <option value="6">AVIF 8-bit integer</option>
+              <option value="7">AVIF 10-bit integer</option>
+              <option value="8">AVIF 12-bit integer</option>
               <option value="2">EXR 16-bit half</option>
               <option value="3">EXR 32-bit float</option>
               <option value="4">EXR 32-bit integer</option>
             </select>
-            <br><label for "exr_compression">OpenEXR compression</label>
-            <select name="exr_compression" id="exr_compression">
-              <option value="0">None</option>
-              <option value="1" disabled>RLE</option>
-              <option value="2">ZIPS (1 line per block)</option>
-              <option value="3" selected>ZIP (16 lines per block)</option>
-              <option value="4" disabled>PIZ</option>
-            </select>
-            <br><label for "icc_profile">ICC profile</label>
-            <select name="rgb_color_spce" id="icc_profile">
+            <br><label for "color_profile">Color profile</label>
+            <select name="color_profile" id="color_profile">
               <option value="-1" selected>default</option>
               <option value="1">sRGB</option>
-              <option value="2">Display P3 (compatible Z)</option>
-              <option value="3">Rec. 2020 (compatible Z)</option>
+              <option value="2">Display P3</option>
+              <option value="3">Rec. 2020</option>
+              <option value="8">Rec. 2100 PQ (HDR)</option>
               <option value="4">Rec. 601 NTSC</option>
               <option value="5">Rec. 601 PAL</option>
               <option value="6">Rec. 709</option>
-              <option value="0">none - linear gamma</option>
-              <option value="7">none - 2.0 gamma</option>
+              <option value="0">linear gamma</option>
+              <option value="7">2.0 gamma</option>
             </select>
+            <br><br><label for "compression_quality">Lossy compression quality</label>
+            <input type="text" name="compression_quality" id="compression_quality" size="12" value="80"> <em>0 - 100</em>
+            <br><label for "exr_compression">OpenEXR compression</label>
+            <select name="exr_compression" id="exr_compression">
+              <option value="3" selected>ZIP (16 lines per block)</option>
+              <option value="2">ZIPS (1 line per block)</option>
+              <option value="0">none</option>
+            </select>
+            <br><label for "hdr_neutral_white_ref">HDR neutral white reference</label>
+            <input type="text" name="hdr_neutral_white_ref" id="hdr_neutral_white_ref" size="12" value="200"> (nits)
             <div id="centered">
-            <br><em>ICC profiles are compact
-             <a href="https://github.com/saucecontrol/Compact-ICC-Profiles">open source</a> version 4.
-             <br>The EXR format does not support ICC profiles or encoding gamma. Instead, the 
-             chromaticities associated with the selected profile are included in the header</em>
+            <br><em>PNG, JPG formats use
+             <a href="https://github.com/saucecontrol/Compact-ICC-Profiles">open source</a> ICC profiles.
+             <br>EXR, AVIF formats use built-in signaling in the container</em>
              </div>
           </fieldset>
         </form>

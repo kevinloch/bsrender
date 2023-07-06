@@ -39,7 +39,7 @@
 #include "bsrender.h" // needs to be first to get GNU_SOURCE define for strcasestr
 
 //
-// Basic chomaticities for image formats that do not support ICC profiles
+// Basic chomaticities for EXR format
 //
 const chromaticities_t sRGB_c = { // https://en.wikipedia.org/wiki/SRGB
   .redX  = 0.6400f,
@@ -373,3 +373,8 @@ const unsigned char Rec709_v4_icc[] = {
   0x00, 0x00, 0x17, 0x10, 0x00, 0x00, 0x38, 0xe4, 0x00, 0x00, 0x14, 0xbd
 };
 const unsigned int Rec709_v4_icc_len = 480;
+
+// add Rec 2100 PQ profile here
+const unsigned char Rec2100PQ_v4_icc[] = {
+};
+const unsigned int Rec2100PQ_v4_icc_len = 0;

@@ -39,11 +39,20 @@
 #ifndef BSRENDER_H
 #define BSRENDER_H
 
-#define BSR_VERSION "1.0-dev-20"
+#define BSR_VERSION "1.0-dev-21g"
 
+//
+// user configurable compile-time ptions
+//
+#define BSR_USE_JPEG
+#define BSR_USE_PNG
+#define BSR_USE_EXR
+#define BSR_USE_AVIF
+#define BSR_USE_HEIF
 #define BSR_32BIT_BUFFERS // use 32-bit floats in image composition, blur, and resize buffers. This reduces the size of these buffers by half which may
                           // be useful for extremely large image resolutions at the expense of summation precision within these buffers. This does not
                           // change the main thread, or dedup buffers which are relatively small and always double precision.
+
 
 //
 // Binary data file details
@@ -72,6 +81,9 @@
 // BSRENDER_LE for little-endian and BSRENDER_BE for big-endian.
 //
 
+//
+// "advanced" compile-time options
+//
 #define BSR_EXTERNAL_PREFIX "galaxy-external"
 #define BSR_GDR3_PREFIX "galaxy-gdr3"
 #define BSR_LE_SUFFIX "le" // filename suffix for little-endian files
@@ -381,9 +393,11 @@ typedef struct {
   int draw_crosshairs;
   int draw_grid_lines;
   int output_format;
+  int color_profile;
   int exr_compression;
+  int compression_quality;
   int image_format;
-  int icc_profile;
+  int hdr_neutral_white_ref;
   int bits_per_color;
   int image_number_format;
   double camera_icrs_x;

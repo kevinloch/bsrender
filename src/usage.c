@@ -149,12 +149,11 @@ Skyglow\n\
 \n\
 Post-processing\n\
 \n\
-     --pre_limit_intensity=yes            Apply pixel intensity limit before blur/resize. This has no effect\n\
-                                          if pixel_intensity_limit_mode = 2 (None), or -1 (default) with\n\
-                                          a floating-point output_format\n\
+     --pre_limit_intensity=yes            Apply pixel intensity limit before blur/resize/encoding gamma. This is\n\
+                                          disabled automatically when an HDR color profile is selected\n\
      --Gaussian_blur_radius=FLOAT         Optional Gaussian blur with this radius in pixels\n\
      --output_scaling_factor=FLOAT        Optional output scaling using Lanczos2 interpolation\n\
-     --Lanczos_order=3                    Lanczos order parameter for output scaling\n\
+     --Lanczos_order=NUM                  Lanczos order parameter for output scaling\n\
 \n\
 Overlays\n\
      --draw_crosshairs=BOOL               Draw small crosshairs in center of image. Note: This will not be\n\
@@ -168,16 +167,29 @@ Output\n\
                                           2 = EXR 16-bit floating-point per color\n\
                                           3 = EXR 32-bit floating-point per color\n\
                                           4 = EXR 32-bit unsigned integer per color\n\
+                                          5 = JPG 8-bit unsigned integer per color\n\
+                                          6 = AVIF 8-bit unsigned integer per color\n\
+                                          7 = AVIF 10-bit unsigned integer per color\n\
+                                          8 = AVIF 12-bit unsigned integer per color\n\
+                                          10 = HEIF 8-bit unsigned integer per color\n\
+                                          11 = HEIF 10-bit unsigned integer per color\n\
+                                          12 = HEIF 12-bit unsigned integer per color\n\
+                                          Note: HEIF is not yet supported in CGI mode\n\
+     --color_profile=NUM                  0 = linear gamma, 1 = sRGB, 2 = Display-P3, 3 = Rec. 2020,\n\
+                                          4 = Rec. 601 NTSC, 5 = Rec. 601 PAL, 6 = Rec. 709,\n\
+                                          7 = 2.0 gamma, 8 = Rec. 2100 PQ (HDR),\n\
+                                         -1 = default: PNG,JPG,AVIF,HEIF = 1 (sRGB), EXR = 0 (linear)\n\
+                                          PNG, JPG formats use open source ICC profiles\n\
+                                          from https://github.com/saucecontrol/Compact-ICC-Profiles\n\
+                                          EXR, AVIF, and HEIF formats use built-in signaling in the container\n\
+     --compression_quality=NUM            Compression quality factor (0-100) for lossy compression formats\n\
      --exr_compression=NUM                Compression format for OpenEXR files\n\
                                           0 = uncompressed, 2 = ZIPS (one line per block)\n\
                                           3 = ZIP (16 lines per block)\n\
-     --icc_profile=-1                     0 = None - linear gamma, 1 = sRGB, 2 = Display-P3 (compatible Z),\n\
-                                          3 = Rec. 2020 (compatible Z), 4 = Rec. 601 NTSC, 5 = Rec. 601 PAL,\n\
-                                          6 = Rec. 709, 7 = None - flat 2.0 gamma\n\
-                                         -1 = default: PNG = 1 (sRGB), EXR = 0 (None)\n\
-                                          ICC profiles are v4 from https://github.com/saucecontrol/Compact-ICC-Profiles\n\
-                                          The EXR format does not support ICC profiles or encoding gamma. Instead, the\n\
-                                          chromaticities associated with the selected profile are included in the header\n\
+     --hdr_neutral_white_ref=NUM          Brightness of neutral white for HDR profiles in nits. camera_pixel_limit_mag\n\
+                                          is normalized to this value before encoding. Pixels brighter than this\n\
+                                          will be displayed brighter (up to 10,000 nits for PQ profile) on supported\n\
+                                          hardware/software\n\
 \n\
 Camera position in Euclidian ICRS coordinates\n\
      --camera_icrs_y=FLOAT                y coordinate in parsecs\n\

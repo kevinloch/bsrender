@@ -36,28 +36,9 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef BSR_ICC_PROFILES_H
-#define BSR_ICC_PROFILES_H
+#ifndef BSR_AVIF_H
+#define BSR_AVIF_H
 
-extern const chromaticities_t sRGB_c;
-extern const chromaticities_t DisplayP3_c;
-extern const chromaticities_t Rec2020_c;
-extern const chromaticities_t Rec601NTSC_c;
-extern const chromaticities_t Rec601PAL_c;
-extern const chromaticities_t Rec709_c;
-extern const unsigned char sRGB_v4_icc[];
-extern const unsigned int sRGB_v4_icc_len;
-extern const unsigned char DisplayP3Compat_v4_icc[];
-extern const unsigned int DisplayP3Compat_v4_icc_len;
-extern const unsigned char Rec2020Compat_v4_icc[];
-extern const unsigned int Rec2020Compat_v4_icc_len;
-extern const unsigned char Rec601NTSC_v4_icc[];
-extern const unsigned int Rec601NTSC_v4_icc_len;
-extern const unsigned char Rec601PAL_v4_icc[];
-extern const unsigned int Rec601PAL_v4_icc_len;
-extern const unsigned char Rec709_v4_icc[];
-extern const unsigned int Rec709_v4_icc_len;
-extern const unsigned char Rec2100PQ_v4_icc[];
-extern const unsigned int Rec2100PQ_v4_icc_len;
+int outputAvif(bsr_config_t *bsr_config, bsr_state_t *bsr_state);
 
-#endif // BSR_ICC_PROFILES_H
+#endif // BSR_AVIF_H

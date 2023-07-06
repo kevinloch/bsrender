@@ -294,7 +294,7 @@ int allocateMemory(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   mmap_visibility=MAP_SHARED | MAP_ANONYMOUS;
   if (bsr_config->bits_per_color == 32) {
     bsr_state->output_buffer_size=(size_t)output_res_x * (size_t)output_res_y * (size_t)12 * sizeof(unsigned char);
-  } else if (bsr_config->bits_per_color == 16) {
+  } else if ((bsr_config->bits_per_color == 10) || (bsr_config->bits_per_color == 12) || (bsr_config->bits_per_color == 16)) {
     bsr_state->output_buffer_size=(size_t)output_res_x * (size_t)output_res_y * (size_t)6 * sizeof(unsigned char);
   } else { // default 8 bits per color
     bsr_state->output_buffer_size=(size_t)output_res_x * (size_t)output_res_y * (size_t)3 * sizeof(unsigned char);
@@ -309,26 +309,24 @@ int allocateMemory(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   }
 
   //
-  // allocate shared memory for row_pointers if required
+  // allocate shared memory for row_pointers used in various ways by different image output encoders
   //
-  if ((bsr_config->output_format == 0) || (bsr_config->output_format == 1)) {
-    mmap_protection=PROT_READ | PROT_WRITE;
-    mmap_visibility=MAP_SHARED | MAP_ANONYMOUS;
-    bsr_state->row_pointers_size=(size_t)output_res_y * sizeof(unsigned char *);
-    bsr_state->row_pointers=(unsigned char **)mmap(NULL, bsr_state->row_pointers_size, mmap_protection, mmap_visibility, -1, 0);
-    if (bsr_state->row_pointers == MAP_FAILED) {
-      if (bsr_config->cgi_mode != 1) {
-        printf("Error: could not allocate shared memory for libpng row_pointers\n");
-        fflush(stdout);
-      }
-      exit(1);
+  mmap_protection=PROT_READ | PROT_WRITE;
+  mmap_visibility=MAP_SHARED | MAP_ANONYMOUS;
+  bsr_state->row_pointers_size=(size_t)output_res_y * sizeof(unsigned char *);
+  bsr_state->row_pointers=(unsigned char **)mmap(NULL, bsr_state->row_pointers_size, mmap_protection, mmap_visibility, -1, 0);
+  if (bsr_state->row_pointers == MAP_FAILED) {
+    if (bsr_config->cgi_mode != 1) {
+      printf("Error: could not allocate shared memory for row_pointers\n");
+      fflush(stdout);
     }
+    exit(1);
   }
 
   //
-  // allocate shared memory for image compression if required
+  // allocate memory for image compression buffers if required
   //
-  if ((bsr_config->exr_compression == 2) || (bsr_config->exr_compression == 3)) {
+  if ((bsr_config->image_format == 1) && ((bsr_config->exr_compression == 2) || (bsr_config->exr_compression == 3))) {
     // allocate shared memory for compressed_sizes table
     mmap_protection=PROT_READ | PROT_WRITE;
     mmap_visibility=MAP_SHARED | MAP_ANONYMOUS;

@@ -11,7 +11,7 @@ Sample binary data files|[bsrender.io/sample_data/1.0-dev/](https://bsrender.io/
 
 ## Key features
 
-  - Generate image in PNG or OpenEXR format. OpenEXR floating-point formats support HDR display on some devices/applications
+  - Generate images in JPG, PNG, AVIF, HEIF, or OpenEXR formats with 8-32 bits per color depending on image format.
   - 3D translations/rotations of camera position/aiming using ICRS equitorial or Euclidian coordinates. Camera can be placed anywhere in the Universe
   - Customizable camera resolution, field of view, sensitivity, white balance, color saturation, and gamma
   - Several raster projection modes are supported: lat/lon (equirectangular), Spherical (forward hemisphere centered), Spherical (front/rear hemispheres), Hammer, Mollewide
@@ -36,7 +36,7 @@ Using the full Gaia dataset with 1.4B stars requires at least 64GB of ram to run
 
 ## Installation
 
-This program is written in C and requires gcc, GNU make, libpng-static, and zlib-static to compile. On Linux or Mac w/Xcode, go to the 'src' directory and type:
+This program is written in C and requires gcc, GNU make, libpng, libjpeg, libavif, libheif, and zlib to compile. On Linux or Mac w/Xcode, go to the 'src' directory and type:
 
     make
 
@@ -124,7 +124,7 @@ This may take up to 24 hours to complete, depending on system and disk speed. Be
   - When resizing with Lanczos2 resampling, best results are obtained by also using Gaussing blur at 1/4 the downscaling factor. If reducing by 2x, set blur radius to 0.5. if reducing by 8x set blur radius to 2.0 etc.
   - Star 'temperature' is apparent temperature not actual star temperature, except for supplemental stars in he external.csv dataset. This apparent temperature corresponds to a Planck blackbody spectrum that is the closest fit to the Gaia rp, bp and G flux data. Despite ignoring the distortion of stellar spectra by extinction this produces amazingly accurate star colors, often indistinguishable from Hubble photographs when Airy disks are enabled and the correct simulated Hubble passband filters are selected.
   - Due to uncertainty in the parallax data of approximately 20 microarcseconds, things start to look weird as the camera is positioned more than a short distance away from the sun. This is a limitation of the source data and not any bug or problem with the rendering engine. If override parallax is enabled in mkgalaxy (by setting -p > 0), there will be a spherical shell of residual stars at 1000 / minimum\_parallax parsecs from the Sun. This is of course artificial but is better than having some stars (like LMC and SMC) much farther away from the galaxy than they really are. The sample data files were generated with a 20 microarcsecond minimum parallax enforced and a 50 kpc artifical shell of distance-limited stars.
-  - ICC profiles tell an image viewer information about how the image was encoded (color space, gamma, etc.). If a viewer ignores the ICC profile it will most likely assume it was encoded with the sRGB color space and gamma. For this reason the sRGB profile is the safest and most compatible profile to use. Note that while bsrender applies the encoding gamma specified in the selected standard, it does not otherwise change the colors saved to the output image. This is because the configurable camera bandpass filters do not necessarily repersent human vision so color calibration beyond white balance is purely subjective. On a color managed viewer a wide-gamut profile like Rec. 2020 will render more highly saturated colors for the same RGB values than a narrow-gamut profile like sRGB. Some of the Hubble and the LRGB camera bandpass presets in sample-frontend.html will give natural looking colors with the sRGB profile. Presets based on the IEC 1931 standard observer RGB color matching functions (representing human vision) give natural looking colors with the Rec. 2020 profile. Of course false or oversaturated colors are sometimes desirable and overall color saturation can be adjusted with any profile.
+  - Color profiles tell an image viewer information about how the image was encoded (color space, gamma, etc.). If a viewer ignores the color profile it will most likely assume it was encoded with the sRGB color space and gamma. For this reason the sRGB profile is the safest and most compatible profile to use. Note that while bsrender applies the encoding gamma specified in the selected standard, it does not otherwise change the colors saved to the output image. This is because the configurable camera bandpass filters do not necessarily repersent human vision so color calibration beyond white balance is purely subjective. On a color managed viewer a wide-gamut profile like Rec. 2020 will render more highly saturated colors for the same RGB values than a narrow-gamut profile like sRGB. Some of the Hubble and the LRGB camera bandpass presets in sample-frontend.html will give natural looking colors with the sRGB profile. Presets based on the IEC 1931 standard observer RGB color matching functions (representing human vision) give natural looking colors with the Rec. 2020 profile. Of course false or oversaturated colors are sometimes desirable and overall color saturation can be adjusted with any profile.
  - When generating images for use with ffmpeg to make videos, a flat 2.0 encoding gamma should be used due to the way ffmpeg handles image import.
 
 ### CGI mode
@@ -154,9 +154,9 @@ After the image composition buffer is complete post-processing involves several 
   - Optionally applying Gaussian blur (see 'Gaussian\_blur\_radius');
   - Optionally applying Lanczos2 image resizing (see 'output\_scaling\_factor')
   - Limiting maximum values to 1.0 again
-  - Applying appropriate encoding gamma if an ICC profile is selected
+  - Applying appropriate encoding gamma if a color profile is selected
 
-Finally, the resulting image is converted to the selected image format and output to file or stream with an optional ICC profile attached. Note: other than optionally applying encoding gamma, RGB values are not changed (rebalanced) based on a selected ICC profile. 
+Finally, the resulting image is converted to the selected image format and output to file or stream, with optional color profile information. Note: other than optionally applying encoding gamma, RGB values are not changed (rebalanced) based on a selected color profile. 
 
 ## Data Credit
 

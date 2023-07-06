@@ -45,7 +45,7 @@
 int sequencePixels(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   //
   // This function takes pixel data from the current_image_buf after image generation and post processing
-  // and converts it into the specific unsigned char sequence required by an image output format.
+  // and converts it into the specific unsigned char sequence required by an image output format (encoder).
   // Image formats use a variety of number formats (integer/floating-point), encoding gamma, bit depth, color
   // channel order, and endianness.
   //
@@ -70,6 +70,15 @@ int sequencePixels(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   int output_y;
   int bytes_per_pixel=0;
   int bytes_per_color=0;
+  double hdr_normalization_factor;
+  double Ym1;
+
+  // Rec. 2100 PQ constants
+  const double m1=0.1593017578125;
+  const double m2=78.84375;
+  const double c1=0.8359375;
+  const double c2=18.8515625;
+  const double c3=18.6875;
 
   //
   // main thread: display status message if not in CGI mode
@@ -79,6 +88,10 @@ int sequencePixels(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
     if (bsr_config->image_number_format == 0) {
       if (bsr_config->bits_per_color == 8) { 
         printf("Converting to 8-bit unsigned integer per color...");
+      } else if (bsr_config->bits_per_color == 10) {
+        printf("Converting to 10-bit unsigned integer per color...");
+      } else if (bsr_config->bits_per_color == 12) {
+        printf("Converting to 12-bit unsigned integer per color...");
       } else if (bsr_config->bits_per_color == 16) {
         printf("Converting to 16-bit unsigned integer per color...");
       } else if (bsr_config->bits_per_color == 32) {
@@ -95,7 +108,7 @@ int sequencePixels(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   }
 
   //
-  // all threads: get current image resolution and lines per thread
+  // all threads: get current image resolution, lines per thread, and hdr_nromalization_factor
   //
   output_res_x=bsr_state->current_image_res_x;
   output_res_y=bsr_state->current_image_res_y;
@@ -103,6 +116,7 @@ int sequencePixels(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   if (lines_per_thread < 1) {
     lines_per_thread=1;
   }
+  hdr_normalization_factor=(double)bsr_config->hdr_neutral_white_ref / 10000.0;
 
   //
   // worker threads:  wait for main thread to say go
@@ -119,12 +133,12 @@ int sequencePixels(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
 
   //
   // all threads: convert current_image_buf to unsigned char byte sequence and store
-  // in image_output_buf. Also update row_pointers if PNG image format
+  // in image_output_buf. Also update row_pointers if PNG or JPG image format
   //
   if (bsr_config->bits_per_color == 8) {
     bytes_per_color=1;
     bytes_per_pixel=3;
-  } else if (bsr_config->bits_per_color == 16) {
+  } else if ((bsr_config->bits_per_color == 10) || (bsr_config->bits_per_color == 12) || (bsr_config->bits_per_color == 16)) {
     bytes_per_color=2;
     bytes_per_pixel=6;
   } else if (bsr_config->bits_per_color == 32) {
@@ -141,8 +155,8 @@ int sequencePixels(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
     image_output_R_p=image_output_p + (2ll * (uint64_t)bytes_per_color * (uint64_t)output_res_x);
   }
   current_image_p=bsr_state->current_image_buf + ((uint64_t)output_res_x * (uint64_t)output_y);
-  // only update row_pointers if PNG output format
-  if ((bsr_config->image_format == 0) && (output_y < output_res_y)) {
+  // only update row_pointers if PNG or JPG output format
+  if (((bsr_config->image_format == 0) || (bsr_config->image_format == 2)) && (output_y < output_res_y)) {
     bsr_state->row_pointers[output_y]=image_output_p;
   }
   for (image_offset=0; ((image_offset < ((uint64_t)output_res_x * (uint64_t)lines_per_thread)) && (output_y < output_res_y)); image_offset++) {
@@ -154,19 +168,18 @@ int sequencePixels(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
     pixel_b=current_image_p->b;
 
     //
-    // limit pixel intensity to range [0..1] if pixel imit mode is 0 or 1 (required for integer formats)
-    //
-    if (bsr_config->camera_pixel_limit_mode == 0) {
-      limitIntensity(bsr_config, &pixel_r, &pixel_g, &pixel_b);
-    } else if (bsr_config->camera_pixel_limit_mode == 1) {
-      limitIntensityPreserveColor(bsr_config, &pixel_r, &pixel_g, &pixel_b);
-    }
-
-    //
-    // apply encoding gamma for image formats and color spaces that use it
+    // renormalize and/or limit intensity and apply transfer function (encoding gamma) for formats that use it
     //
     if (bsr_config->image_format != 1) { // EXR does not use encoding gamma
-      if ((bsr_config->icc_profile == 1) || (bsr_config->icc_profile == 2)) { // PNG default, sRGB and Display-P3
+      if ((bsr_config->color_profile == 1) || (bsr_config->color_profile == 2)) { // sRGB, and Display-P3
+        // limit pixel intensity to range [0..1]
+        if (bsr_config->camera_pixel_limit_mode == 0) {
+          limitIntensity(bsr_config, &pixel_r, &pixel_g, &pixel_b);
+        } else if (bsr_config->camera_pixel_limit_mode == 1) {
+          limitIntensityPreserveColor(bsr_config, &pixel_r, &pixel_g, &pixel_b);
+        }
+
+        // apply transfer function
         if (pixel_r <= 0.0031308) {
           pixel_r=pixel_r * 12.92;
         } else {
@@ -182,8 +195,16 @@ int sequencePixels(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
         } else {
           pixel_b=(1.055 * pow(pixel_b, one_over_2dot4) - 0.055);
         }
-      } else if ((bsr_config->icc_profile == 3) || (bsr_config->icc_profile == 4)\
-              || (bsr_config->icc_profile == 5) || (bsr_config->icc_profile == 6)) { // Rec. 2020, Rec. 601 NTSC, Rec. 601 PAL, Rec. 709
+      } else if ((bsr_config->color_profile == 3) || (bsr_config->color_profile == 4)\
+              || (bsr_config->color_profile == 5) || (bsr_config->color_profile == 6)) { // Rec. 2020, Rec. 601 NTSC, Rec. 601 PAL, Rec. 709
+        // limit pixel intensity to range [0..1]
+        if (bsr_config->camera_pixel_limit_mode == 0) {
+          limitIntensity(bsr_config, &pixel_r, &pixel_g, &pixel_b);
+        } else if (bsr_config->camera_pixel_limit_mode == 1) {
+          limitIntensityPreserveColor(bsr_config, &pixel_r, &pixel_g, &pixel_b);
+        }
+
+        // apply transfer function
         if (pixel_r < 0.018053968510807) {
           pixel_r=pixel_r * 4.5;
         } else {
@@ -199,18 +220,38 @@ int sequencePixels(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
         } else {
           pixel_b=(1.09929682680944 * pow(pixel_b, 0.45) - 0.09929682680944);
         }
-      } else if (bsr_config->icc_profile == 7) { // flat 2.0 gamma
+      } else if (bsr_config->color_profile == 7) { // flat 2.0 gamma
         pixel_r=pow(pixel_r, 0.5);
         pixel_g=pow(pixel_g, 0.5);
         pixel_b=pow(pixel_b, 0.5);
-      } // end if icc_profile
+      } else if (bsr_config->color_profile == 8) { //Rec. 2100 PQ
+        // renormalize to hdr_neutral_white_ref for PQ transform
+        pixel_r *= hdr_normalization_factor;
+        pixel_g *= hdr_normalization_factor;
+        pixel_b *= hdr_normalization_factor;
+
+        // limit pixel intensity to range [0..1] 
+        if (bsr_config->camera_pixel_limit_mode == 0) {
+          limitIntensity(bsr_config, &pixel_r, &pixel_g, &pixel_b);
+        } else if (bsr_config->camera_pixel_limit_mode == 1) {
+          limitIntensityPreserveColor(bsr_config, &pixel_r, &pixel_g, &pixel_b);
+        }
+
+        // apply transfer function        
+        Ym1=pow(pixel_r, m1);
+        pixel_r=pow(((c1 + (c2 * Ym1)) / (1.0 + (c3 * Ym1))), m2);
+        Ym1=pow(pixel_g, m1);
+        pixel_g=pow(((c1 + (c2 * Ym1)) / (1.0 + (c3 * Ym1))), m2);
+        Ym1=pow(pixel_b, m1);
+        pixel_b=pow(((c1 + (c2 * Ym1)) / (1.0 + (c3 * Ym1))), m2);
+      } // end if color_profile
     } // end if image_format
 
     //
     // convert r,g,b to output byte sequence and store in output buffer
     //
-    if (bsr_config->image_format == 0) {
-      // PNG format. Channels are RGB RGB RGB order and stored big-endian
+    if ((bsr_config->image_format == 0) || (bsr_config->image_format == 2)) {
+      // PNG, JPG formats. Channels are RGB RGB RGB order and stored big-endian
       if (bsr_config->bits_per_color == 8) {
         *image_output_p=(unsigned char)((pixel_r * 255.0) + 0.5);
         image_output_p+=bytes_per_color;
@@ -257,6 +298,97 @@ int sequencePixels(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
         image_output_R_p+=bytes_per_color;
         image_output_p+=bytes_per_pixel; // to keep beginning of row in sync
       } // end if image_number_format
+    } else if (bsr_config->image_format == 3) {
+      // AVIF format. Channels are in RGB RGB RGB order and stored system-endian
+      if (bsr_config->bits_per_color == 8) {
+        *image_output_p=(unsigned char)((pixel_r * 255.0) + 0.5);
+        image_output_p+=bytes_per_color;
+        *image_output_p=(unsigned char)((pixel_g * 255.0) + 0.5);
+        image_output_p+=bytes_per_color;
+        *image_output_p=(unsigned char)((pixel_b * 255.0) + 0.5);
+        image_output_p+=bytes_per_color;
+      } else if (bsr_config->bits_per_color == 10) {
+#ifdef BSR_BIG_ENDIAN_COMPILE
+        storeU16BE(image_output_p,  (uint16_t)((pixel_r * 1023.0) + 0.5));
+#elif defined BSR_LITTLE_ENDIAN_COMPILE
+        storeU16LE(image_output_p,  (uint16_t)((pixel_r * 1023.0) + 0.5));
+#endif
+        image_output_p+=bytes_per_color;
+#ifdef BSR_BIG_ENDIAN_COMPILE
+        storeU16BE(image_output_p,  (uint16_t)((pixel_g * 1023.0) + 0.5));
+#elif defined BSR_LITTLE_ENDIAN_COMPILE
+        storeU16LE(image_output_p,  (uint16_t)((pixel_g * 1023.0) + 0.5));
+#endif
+        image_output_p+=bytes_per_color;
+#ifdef BSR_BIG_ENDIAN_COMPILE
+        storeU16BE(image_output_p,  (uint16_t)((pixel_b * 1023.0) + 0.5));
+#elif defined BSR_LITTLE_ENDIAN_COMPILE
+        storeU16LE(image_output_p,  (uint16_t)((pixel_b * 1023.0) + 0.5));
+#endif
+        image_output_p+=bytes_per_color;
+      } else if (bsr_config->bits_per_color == 12) {
+#ifdef BSR_BIG_ENDIAN_COMPILE
+        storeU16BE(image_output_p,  (uint16_t)((pixel_r * 4095.0) + 0.5));
+#elif defined BSR_LITTLE_ENDIAN_COMPILE
+        storeU16LE(image_output_p,  (uint16_t)((pixel_r * 4095.0) + 0.5));
+#endif
+        image_output_p+=bytes_per_color;
+#ifdef BSR_BIG_ENDIAN_COMPILE
+        storeU16BE(image_output_p,  (uint16_t)((pixel_g * 4095.0) + 0.5));
+#elif defined BSR_LITTLE_ENDIAN_COMPILE
+        storeU16LE(image_output_p,  (uint16_t)((pixel_g * 4095.0) + 0.5));
+#endif
+        image_output_p+=bytes_per_color;
+#ifdef BSR_BIG_ENDIAN_COMPILE
+        storeU16BE(image_output_p,  (uint16_t)((pixel_b * 4095.0) + 0.5));
+#elif defined BSR_LITTLE_ENDIAN_COMPILE
+        storeU16LE(image_output_p,  (uint16_t)((pixel_b * 4095.0) + 0.5));
+#endif
+        image_output_p+=bytes_per_color;
+      } else if (bsr_config->bits_per_color == 16) { // note: 16-bit half
+#ifdef BSR_BIG_ENDIAN_COMPILE
+        storeHalfBE(image_output_p, (float)pixel_r);
+#elif defined BSR_LITTLE_ENDIAN_COMPILE
+        storeHalfLE(image_output_p, (float)pixel_r);
+#endif
+        image_output_p+=bytes_per_color;
+#ifdef BSR_BIG_ENDIAN_COMPILE
+        storeHalfBE(image_output_p, (float)pixel_g);
+#elif defined BSR_LITTLE_ENDIAN_COMPILE
+        storeHalfLE(image_output_p, (float)pixel_g);
+#endif
+        image_output_p+=bytes_per_color;
+#ifdef BSR_BIG_ENDIAN_COMPILE
+        storeHalfBE(image_output_p, (float)pixel_b);
+#elif defined BSR_LITTLE_ENDIAN_COMPILE
+        storeHalfLE(image_output_p, (float)pixel_b);
+#endif
+        image_output_p+=bytes_per_color;
+      } // end if bits_per_color
+    } else if (bsr_config->image_format == 4) {
+      // HEIF format. Channels are RGB RGB RGB order and stored little-endian
+      if (bsr_config->bits_per_color == 8) {
+        *image_output_p=(unsigned char)((pixel_r * 255.0) + 0.5);
+        image_output_p+=bytes_per_color;
+        *image_output_p=(unsigned char)((pixel_g * 255.0) + 0.5);
+        image_output_p+=bytes_per_color;
+        *image_output_p=(unsigned char)((pixel_b * 255.0) + 0.5);
+        image_output_p+=bytes_per_color;
+      } else if (bsr_config->bits_per_color == 10) {
+        storeU16LE(image_output_p,  (uint16_t)((pixel_r * 1023.0) + 0.5));
+        image_output_p+=bytes_per_color;
+        storeU16LE(image_output_p,  (uint16_t)((pixel_g * 1023.0) + 0.5));
+        image_output_p+=bytes_per_color;
+        storeU16LE(image_output_p,  (uint16_t)((pixel_b * 1023.0) + 0.5));
+        image_output_p+=bytes_per_color;
+      } else if (bsr_config->bits_per_color == 12) {
+        storeU16LE(image_output_p,  (uint16_t)((pixel_r * 4095.0) + 0.5));
+        image_output_p+=bytes_per_color;
+        storeU16LE(image_output_p,  (uint16_t)((pixel_g * 4095.0) + 0.5));
+        image_output_p+=bytes_per_color;
+        storeU16LE(image_output_p,  (uint16_t)((pixel_b * 4095.0) + 0.5));
+        image_output_p+=bytes_per_color;
+      } // end if bits_per_color
     } // end if image_format
 
     //
@@ -266,8 +398,8 @@ int sequencePixels(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
     if (output_x == output_res_x) {
       output_x=0;
       output_y++;
-      if (bsr_config->image_format == 0) {
-        // PNG, update row_pointers
+      if ((bsr_config->image_format == 0) || (bsr_config->image_format == 2)) {
+        // update row_pointers if PNG or JPG output format
         if (((image_offset + (uint64_t)1) < ((uint64_t)output_res_x * (uint64_t)lines_per_thread)) && (output_y < output_res_y)) {
           bsr_state->row_pointers[output_y]=image_output_p;
         }

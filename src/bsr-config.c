@@ -114,9 +114,11 @@ void initConfig(bsr_config_t *bsr_config) {
   bsr_config->draw_crosshairs=0;
   bsr_config->draw_grid_lines=0;
   bsr_config->output_format=0;
+  bsr_config->color_profile=-1;
   bsr_config->exr_compression=3;
+  bsr_config->compression_quality=80;
   bsr_config->image_format=0;
-  bsr_config->icc_profile=-1;
+  bsr_config->hdr_neutral_white_ref=100;
   bsr_config->bits_per_color=8;
   bsr_config->image_number_format=0;
   bsr_config->camera_icrs_x=0.0;
@@ -312,8 +314,10 @@ void setOptionValue(bsr_config_t *bsr_config, char *option, char *value, int fro
   match_count+=checkOptionBool(&bsr_config->draw_crosshairs, option, value, "draw_crosshairs");
   match_count+=checkOptionBool(&bsr_config->draw_grid_lines, option, value, "draw_grid_lines");
   match_count+=checkOptionInt(&bsr_config->output_format, option, value, "output_format");
+  match_count+=checkOptionInt(&bsr_config->color_profile, option, value, "color_profile");
   match_count+=checkOptionInt(&bsr_config->exr_compression, option, value, "exr_compression");
-  match_count+=checkOptionInt(&bsr_config->icc_profile, option, value, "icc_profile");
+  match_count+=checkOptionInt(&bsr_config->compression_quality, option, value, "compression_quality");
+  match_count+=checkOptionInt(&bsr_config->hdr_neutral_white_ref, option, value, "hdr_neutral_white_ref");
   match_count+=checkOptionDouble(&bsr_config->camera_icrs_x, option, value, "camera_icrs_x");
   match_count+=checkOptionDouble(&bsr_config->camera_icrs_y, option, value, "camera_icrs_y");
   match_count+=checkOptionDouble(&bsr_config->camera_icrs_z, option, value, "camera_icrs_z");
@@ -609,27 +613,134 @@ int validateConfig(bsr_config_t *bsr_config) {
   // 2 = EXR 16-bit floating-point per color
   // 3 = EXR 32-bit floating-point per color
   // 4 = EXR 32-bit unsigned integer per color
+  // 5 = JPG 8-bit unsigned integer per color
+  // 6 = AVIF 8-bit unsigned integer per color
+  // 7 = AVIF 10-bit unsigned integer per color
+  // 8 = AVIF 12-bit unsigned integer per color
+  // 9 = AVIF 16-bit floating-point per color
+  // 10 = HEIF 8-bit unsigned integer per color
+  // 11 = HEIF 10-bit unsigned integer per color
+  // 12 = HEIF 12-bit unsigned integer per color
   //
   if (bsr_config->output_format == 0) {
+#ifndef BSR_USE_PNG
+    printf("Error: not compiled with PNG support\n");
+    fflush(stdout);
+    exit(1);
+#endif
     bsr_config->image_format=0;
     bsr_config->image_number_format=0;
     bsr_config->bits_per_color=8;
   } else if (bsr_config->output_format == 1) {
+#ifndef BSR_USE_PNG 
+    printf("Error: not compiled with PNG support\n");
+    fflush(stdout);
+    exit(1);
+#endif
     bsr_config->image_format=0;
     bsr_config->image_number_format=0;
     bsr_config->bits_per_color=16;
   } else if (bsr_config->output_format == 2) {
+#ifndef BSR_USE_EXR
+    printf("Error: not compiled with EXR support\n");
+    fflush(stdout);
+    exit(1);
+#endif
     bsr_config->image_format=1;
     bsr_config->image_number_format=1;
     bsr_config->bits_per_color=16;
   } else if (bsr_config->output_format == 3) {
+#ifndef BSR_USE_EXR
+    printf("Error: not compiled with EXR support\n");
+    fflush(stdout);
+    exit(1);
+#endif
     bsr_config->image_format=1;
     bsr_config->image_number_format=1;
     bsr_config->bits_per_color=32;
   } else if (bsr_config->output_format == 4) {
+#ifndef BSR_USE_EXR
+    printf("Error: not compiled with EXR support\n");
+    fflush(stdout);
+    exit(1);
+#endif
     bsr_config->image_format=1;
     bsr_config->image_number_format=0;
     bsr_config->bits_per_color=32;
+  } else if (bsr_config->output_format == 5) {
+#ifndef BSR_USE_JPEG
+    printf("Error: not compiled with JPEG support\n");
+    fflush(stdout);
+    exit(1);
+#endif
+    bsr_config->image_format=2;
+    bsr_config->image_number_format=0;
+    bsr_config->bits_per_color=8;
+  } else if (bsr_config->output_format == 6) {
+#ifndef BSR_USE_AVIF
+    printf("Error: not compiled with AVIF support\n");
+    fflush(stdout);
+    exit(1);
+#endif
+    bsr_config->image_format=3;
+    bsr_config->image_number_format=0;
+    bsr_config->bits_per_color=8;
+  } else if (bsr_config->output_format == 7) {
+#ifndef BSR_USE_AVIF
+    printf("Error: not compiled with AVIF support\n");
+    fflush(stdout);
+    exit(1);
+#endif
+    bsr_config->image_format=3;
+    bsr_config->image_number_format=0;
+    bsr_config->bits_per_color=10;
+  } else if (bsr_config->output_format == 8) {
+#ifndef BSR_USE_AVIF
+    printf("Error: not compiled with AVIF support\n");
+    fflush(stdout);
+    exit(1);
+#endif
+    bsr_config->image_format=3;
+    bsr_config->image_number_format=0;
+    bsr_config->bits_per_color=12;
+/*
+  } else if (bsr_config->output_format == 9) {
+#ifndef BSR_USE_AVIF
+    printf("Error: not compiled with AVIF support\n");
+    fflush(stdout);
+    exit(1);
+#endif
+    bsr_config->image_format=3;
+    bsr_config->image_number_format=1;
+    bsr_config->bits_per_color=16;
+*/
+  } else if (bsr_config->output_format == 10) {
+#ifndef BSR_USE_HEIF
+    printf("Error: not compiled with HEIF support\n");
+    fflush(stdout);
+    exit(1);
+#endif
+    bsr_config->image_format=4;
+    bsr_config->image_number_format=0;
+    bsr_config->bits_per_color=8;
+  } else if (bsr_config->output_format == 11) {
+#ifndef BSR_USE_HEIF
+    printf("Error: not compiled with HEIF support\n");
+    fflush(stdout);
+    exit(1);
+#endif
+    bsr_config->image_format=4;
+    bsr_config->image_number_format=0;
+    bsr_config->bits_per_color=10;
+  } else if (bsr_config->output_format == 12) {
+#ifndef BSR_USE_HEIF
+    printf("Error: not compiled with HEIF support\n");
+    fflush(stdout);
+    exit(1);
+#endif
+    bsr_config->image_format=4;
+    bsr_config->image_number_format=0;
+    bsr_config->bits_per_color=12;
   } else {
     if ((bsr_config->QUERY_STRING_p == NULL) && (bsr_config->print_status == 1)) {
       printf("Error: invalid output_format (%d). See --help (Output section) for output format codes.\n", bsr_config->output_format);
@@ -639,12 +750,36 @@ int validateConfig(bsr_config_t *bsr_config) {
   }
 
   //
-  // change output filename if still default "galaxy.png" and EXR format is selected
+  // libheif does not appear to support writing to stdout
+  //
+  if ((bsr_config->cgi_mode == 1) && ((bsr_config->output_format == 10) || (bsr_config->output_format == 11) || (bsr_config->output_format == 12))) {
+    printf("Error: HEIF output format is not supported in CGI mode\n");
+    fflush(stdout);
+    exit(1);
+  }
+
+  //
+  // change output filename if still default "galaxy.png" and non-PNG output format is configured
   //
   if ((bsr_config->image_format == 1)\
        && ((strstr(bsr_config->output_file_name, "galaxy.png") == bsr_config->output_file_name))\
        && (strlen(bsr_config->output_file_name) == strlen("galaxy.png"))) {
     strncpy(bsr_config->output_file_name, "galaxy.exr", 255);
+    bsr_config->output_file_name[255]=0;
+  } else if ((bsr_config->image_format == 2)\
+       && ((strstr(bsr_config->output_file_name, "galaxy.png") == bsr_config->output_file_name))\
+       && (strlen(bsr_config->output_file_name) == strlen("galaxy.png"))) {
+    strncpy(bsr_config->output_file_name, "galaxy.jpg", 255);
+    bsr_config->output_file_name[255]=0;
+  } else if ((bsr_config->image_format == 3)\
+       && ((strstr(bsr_config->output_file_name, "galaxy.png") == bsr_config->output_file_name))\
+       && (strlen(bsr_config->output_file_name) == strlen("galaxy.png"))) {
+    strncpy(bsr_config->output_file_name, "galaxy.avif", 255);
+    bsr_config->output_file_name[255]=0;
+  } else if ((bsr_config->image_format == 4)\
+       && ((strstr(bsr_config->output_file_name, "galaxy.png") == bsr_config->output_file_name))\
+       && (strlen(bsr_config->output_file_name) == strlen("galaxy.png"))) {
+    strncpy(bsr_config->output_file_name, "galaxy.heif", 255);
     bsr_config->output_file_name[255]=0;
   }
 
@@ -668,18 +803,23 @@ int validateConfig(bsr_config_t *bsr_config) {
   }
 
   //
-  // check icc_profile
+  // check color_profile
   //
-  if (bsr_config->icc_profile == -1) {
+  if (bsr_config->color_profile == -1) {
     // process default setting
-    if (bsr_config->image_format == 0) {
-      bsr_config->icc_profile=1;  // PNG=sRGB default
+    if ((bsr_config->image_format == 0) || (bsr_config->image_format == 2) || (bsr_config->image_format == 3) || (bsr_config->image_format == 4)) {
+      bsr_config->color_profile=1;  // PNG,JPG,AVIF default is sRGB
     } else if (bsr_config->image_format == 1) {
-      bsr_config->icc_profile=0;  // EXR=NONE default
+      bsr_config->color_profile=0;  // EXR default is none
     }
+  } else if (bsr_config->color_profile == 8) {
+    if ((bsr_config->QUERY_STRING_p == NULL) && (bsr_config->print_status == 1)) {
+      printf("HDR color profile selected: disabling pre_limit_intensity\n");
+      fflush(stdout);
+    }
+    // disable pre_limit_intensity if using HDR color profile
+    bsr_config->pre_limit_intensity=0;
   }
-
-  // many more checks should be added here
 
   return(0);
 }

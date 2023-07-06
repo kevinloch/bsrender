@@ -49,6 +49,15 @@ int printCGIHeader(bsr_config_t *bsr_config) {
   } else if (bsr_config->image_format == 1) {
     printf("Content-type: image/x-exr\n");
     printf("Content-Disposition: attachment; filename=\"galaxy.exr\"\n");
+  } else if (bsr_config->image_format == 2) {
+    printf("Content-type: image/jpeg\n");
+    printf("Content-Disposition: attachment; filename=\"galaxy.jpg\"\n");
+  } else if (bsr_config->image_format == 3) {
+    printf("Content-type: image/avif\n");
+    printf("Content-Disposition: attachment; filename=\"galaxy.avif\"\n");
+  } else if (bsr_config->image_format == 4) {
+    printf("Content-type: image/heif\n");
+    printf("Content-Disposition: attachment; filename=\"galaxy.heif\"\n");
   }
   printf("Expires: 0\n");
   printf("Cache-control: no-store, no-cache, must-revalidate\n");

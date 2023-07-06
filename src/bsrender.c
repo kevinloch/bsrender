@@ -51,7 +51,9 @@
 #include "rgb.h"
 #include "bsr-png.h"
 #include "bsr-exr.h"
-#include "process-stars.h"
+#include "bsr-jpeg.h"
+#include "bsr-avif.h"
+#include "bsr-heif.h"
 #include "init-state.h"
 #include "cgi.h"
 #include "post-process.h"
@@ -372,6 +374,12 @@ int main(int argc, char **argv) {
     outputPNG(&bsr_config, bsr_state);
   } else if (bsr_config.image_format == 1) {
     outputEXR(&bsr_config, bsr_state);
+  } else if ((bsr_config.image_format == 2) && (bsr_state->perthread->my_pid == bsr_state->main_pid)) { // JPG encoder not yet multi-threadded (but still very fast)
+    outputJpeg(&bsr_config, bsr_state);
+  } else if ((bsr_config.image_format == 3) && (bsr_state->perthread->my_pid == bsr_state->main_pid)) { // libavif is already multi-thredded internally so we invoke from main thread
+    outputAvif(&bsr_config, bsr_state);
+  } else if ((bsr_config.image_format == 4) && (bsr_state->perthread->my_pid == bsr_state->main_pid)) {
+    outputHeif(&bsr_config, bsr_state);
   }
 
   //

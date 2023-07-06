@@ -42,12 +42,15 @@
 #include <string.h>
 #include <time.h>
 #include <math.h>
-#include <zlib.h>
 #include "util.h"
 #include "cgi.h"
 #include "icc-profiles.h"
 #include "bsr-exr.h"
 #include "sequence-pixels.h"
+
+#ifdef BSR_USE_EXR
+#include <zlib.h>
+#endif
 
 int outputEXRHeader(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *output_file) {
   unsigned char header[4096];
@@ -177,23 +180,23 @@ int outputEXRHeader(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *outp
   // EXR does not support ICC profiles but it does have a standard optional attribute
   // for color space information. Default is no chromaticity header
   //
-  if ((bsr_config->icc_profile >= 1) && (bsr_config->icc_profile <= 6)) {
-    if (bsr_config->icc_profile == 1) {
+  if ((bsr_config->color_profile >= 1) && (bsr_config->color_profile <= 6)) {
+    if (bsr_config->color_profile == 1) {
       // sRGB
       chromaticities=sRGB_c;
-    } else if (bsr_config->icc_profile == 2) {
+    } else if (bsr_config->color_profile == 2) {
       // Display-P3
       chromaticities=DisplayP3_c;
-    } else if (bsr_config->icc_profile == 3) {
+    } else if (bsr_config->color_profile == 3) {
       // Rec. 2020
       chromaticities=Rec2020_c;
-    } else if (bsr_config->icc_profile == 4) {
+    } else if (bsr_config->color_profile == 4) {
       // Rec. 601 NTSC
       chromaticities=Rec601NTSC_c;
-    } else if (bsr_config->icc_profile == 5) {
+    } else if (bsr_config->color_profile == 5) {
       // Rec. 601 PAL
       chromaticities=Rec601PAL_c;
-    } else if (bsr_config->icc_profile == 6) {
+    } else if (bsr_config->color_profile == 6) {
       // Rec. 709
       chromaticities=Rec709_c;
     }
@@ -336,6 +339,9 @@ int outputEXRChunks(bsr_config_t *bsr_config, bsr_state_t *bsr_state, FILE *outp
 }
 
 int compressEXRDeflate(bsr_config_t *bsr_config, bsr_state_t *bsr_state, int lines_per_block) {
+
+#ifdef BSR_USE_EXR
+
   int output_res_x;
   int output_res_y;
   int pixel_data_size=0;
@@ -452,6 +458,8 @@ int compressEXRDeflate(bsr_config_t *bsr_config, bsr_state_t *bsr_state, int lin
     image_output_p+=pixel_data_size;
   }
 
+#endif // BSR_USE_EXR
+
   return(0);
 }
 
@@ -562,6 +570,9 @@ int outputEXR(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
       printf(" (%.3fs)\n", elapsed_time);
       fflush(stdout);
     }
+
+    // close output file
+    fclose(output_file);
   }
 
   return(0);
