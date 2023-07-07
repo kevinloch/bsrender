@@ -117,11 +117,9 @@ int outputJpeg(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   } else if (bsr_config->color_profile == 6) {
     // Rec. 709
     jpeg_write_icc_profile(&jpeg_info, Rec709_v4_icc, Rec709_v4_icc_len);
-/*
   } else if (bsr_config->color_profile == 8) {
     // Rec. 2100 PQ
     jpeg_write_icc_profile(&jpeg_info, Rec2100PQ_v4_icc, Rec2100PQ_v4_icc_len);
-*/
   } else {
     // default is sRGB
     jpeg_write_icc_profile(&jpeg_info, sRGB_v4_icc, sRGB_v4_icc_len);

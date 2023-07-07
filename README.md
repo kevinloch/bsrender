@@ -36,7 +36,9 @@ Using the full Gaia dataset with 1.4B stars requires at least 64GB of ram to run
 
 ## Installation
 
-This program is written in C and requires gcc, GNU make, libpng, libjpeg, libavif, libheif, and zlib to compile. On Linux or Mac w/Xcode, go to the 'src' directory and type:
+This program is written in C and requires gcc, GNU make, libpng, libjpeg, libavif, libheif, and zlib to compile. You can disable compiling in specific output formats by commenting out '#define BSR_USE_<format>' in bsrender.h and removing the associated -l<library> flag from BSR_LIBS in Makefile.
+
+On Linux or Mac w/Xcode, go to the 'src' directory and type:
 
     make
 

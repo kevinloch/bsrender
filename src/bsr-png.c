@@ -123,11 +123,9 @@ int outputPNG(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
   } else if (bsr_config->color_profile == 7) {
     // no ICC profile and flat 2.0 gamma
     png_set_gAMA(png_ptr, info_ptr, 0.5);
-/*
   } else if (bsr_config->color_profile == 8) {
     // Rec. 2100 PQ
     png_set_iCCP(png_ptr, info_ptr, "Rec 2100 PQ", 0, Rec2100PQ_v4_icc, Rec2100PQ_v4_icc_len);
-*/
   } else {
     // default is sRGB
     png_set_iCCP(png_ptr, info_ptr, "sRGB", 0, sRGB_v4_icc, sRGB_v4_icc_len);

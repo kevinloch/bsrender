@@ -876,7 +876,7 @@ camera_tilt=${navigation_form.camera_tilt.value}`;
             <legend>About</legend>
             <div id="centered">
               Sample web interface for
-              <h2><a href="https://github.com/kevinloch/bsrender">bsrender</a> 1.0-dev-21f</h2>
+              <h2><a href="https://github.com/kevinloch/bsrender">bsrender</a> 1.0-dev-21i</h2>
               using data from <a href="https://www.cosmos.esa.int/web/gaia/dr3">Gaia DR3</a>
               <br>and supplemental <a href="https://bsrender.io/sample_data/1.0-dev/external.csv">bright stars</a>
             </div>
@@ -885,7 +885,7 @@ camera_tilt=${navigation_form.camera_tilt.value}`;
               <button type="reset" onclick="reset_forms()">Reset to defaults</button><button type="button" onclick="abortRender()">Stop</button><button type="button" onclick="updateImage()">Render</button>
             </div>
             <table style="margin-left:auto;margin-right:auto;">
-              <tr><td>Rendering server</td><td><input type="text" name="rendering_server" id="rendering_server" size="25" value="http://r1.bsrender.io/r/"></td></tr>
+              <tr><td>Rendering server</td><td><input type="text" name="rendering_server" id="rendering_server" size="25" value="https://r1.bsrender.io/r/"></td></tr>
             </table>
             <p><div id="centered">
               <a id="image_download_link" href="">Image download link</a>
@@ -1225,7 +1225,9 @@ s_url" size=30 value=""></td></tr>
             <div id="centered">
             <br><em>PNG, JPG formats use
              <a href="https://github.com/saucecontrol/Compact-ICC-Profiles">open source</a> ICC profiles.
-             <br>EXR, AVIF formats use built-in signaling in the container</em>
+             <br>EXR, AVIF formats use built-in signaling in the container.
+             <br>Rec. 2100PQ ICC profile is experimental and will appear
+             <br>washed out if viewer does not support cicp/lumi tags</em>
              </div>
           </fieldset>
         </form>

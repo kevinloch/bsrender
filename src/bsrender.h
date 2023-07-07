@@ -39,7 +39,7 @@
 #ifndef BSRENDER_H
 #define BSRENDER_H
 
-#define BSR_VERSION "1.0-dev-21g"
+#define BSR_VERSION "1.0-dev-21i"
 
 //
 // user configurable compile-time ptions

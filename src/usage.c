@@ -182,6 +182,8 @@ Output\n\
                                           PNG, JPG formats use open source ICC profiles\n\
                                           from https://github.com/saucecontrol/Compact-ICC-Profiles\n\
                                           EXR, AVIF, and HEIF formats use built-in signaling in the container\n\
+                                          Rec. 2100 PQ profile is experimental and will appear very washed out\n\
+                                          if viewer does not use the cicp/lumi tags\n\
      --compression_quality=NUM            Compression quality factor (0-100) for lossy compression formats\n\
      --exr_compression=NUM                Compression format for OpenEXR files\n\
                                           0 = uncompressed, 2 = ZIPS (one line per block)\n\
