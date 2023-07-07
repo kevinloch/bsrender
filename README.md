@@ -11,8 +11,8 @@ Sample binary data files|[bsrender.io/sample_data/1.0-dev/](https://bsrender.io/
 
 ## Key features
 
-  - Generate images in JPG, PNG, AVIF, HEIF, or OpenEXR formats with multiple bit depth depending on format. HEIF is supported in cli mode only (not CGI/web interface)
-  - HDR is supported on all formats using an experimental oepn source Rec. 2100 PQ ICC profile (PNG, JPG), or in-header signaling (EXR, AVIF, HEIF). Known to work with Chrome browser on M1/M2 Macbooks.
+  - Generate images in JPG, PNG, AVIF, HEIF, or OpenEXR formats with multiple bit depths depending on format. AVIF encding is very slow. HEIF is supported in cli mode only (not CGI/web interface).
+  - HDR is supported on all formats using an experimental oepn source Rec. 2100 PQ ICC profile (PNG, JPG), or in-header signaling (EXR, AVIF, HEIF). HDR is known to work with Chrome browser on M1/M2 Macbooks. HDR images on some unsupported viewers/hardware may appear very washed out or very dark
   - 3D translations/rotations of camera position/aiming using ICRS equitorial or Euclidian coordinates. Camera can be placed anywhere in the Universe
   - Customizable camera resolution, field of view, sensitivity, white balance, color saturation, and gamma
   - Several raster projection modes are supported: lat/lon (equirectangular), Spherical (forward hemisphere centered), Spherical (front/rear hemispheres), Hammer, Mollewide
