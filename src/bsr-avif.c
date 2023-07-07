@@ -134,7 +134,8 @@ int outputAvif(bsr_config_t *bsr_config, bsr_state_t *bsr_state) {
     // Rec. 2100 PQ
     avif_image->colorPrimaries=AVIF_COLOR_PRIMARIES_BT2020;
     avif_image->transferCharacteristics=AVIF_TRANSFER_CHARACTERISTICS_SMPTE2084;
-    avif_image->matrixCoefficients=AVIF_MATRIX_COEFFICIENTS_SMPTE2085;
+    //avif_image->matrixCoefficients=AVIF_MATRIX_COEFFICIENTS_SMPTE2085; // fails with "no content" error
+    avif_image->matrixCoefficients=AVIF_MATRIX_COEFFICIENTS_BT709;
   } else {
     // default is sRGB
     avif_image->colorPrimaries=AVIF_COLOR_PRIMARIES_IEC61966_2_4;
