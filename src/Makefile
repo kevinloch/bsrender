@@ -41,13 +41,13 @@ $(MKBESSEL_OBJ): %.o : %.c $(MKBESSEL_DEPS)
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 mkBessel: $(MKBESSEL_OBJ)
-	$(CC) $(CFLAGS) $(LIBS) -o mkBessel $^
+	$(CC) $(CFLAGS) -o mkBessel $^ $(LIBS)
 
 mkgalaxy: $(MKGALAXY_OBJ)
-	$(CC) $(CFLAGS) $(LIBS) -o mkgalaxy $^
+	$(CC) $(CFLAGS) -o mkgalaxy $^ $(LIBS)
 
 mkexternal: $(MKEXTERNAL_OBJ)
-	$(CC) $(CFLAGS) $(LIBS) -o mkexternal $^
+	$(CC) $(CFLAGS) -o mkexternal $^ $(LIBS)
 
 bsrender: $(BSR_OBJ)
-	$(CC) $(CFLAGS) $(BSR_LIBS) -o bsrender $^
+	$(CC) $(CFLAGS) $(BSR_LIBS) -o bsrender $^ $(BSR_LIBS)
